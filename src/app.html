@@ -5,6 +5,30 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+		<!--
+			Applies the saved theme before the first paint.
+
+			This has to be inline and blocking. Loading it as a file, or deferring
+			it, means the page paints in the default theme and then repaints — the
+			flash of the wrong colours that every "dark mode" bug report is about.
+
+			Fase 8 adds a CSP; this script needs a hash or nonce there, and it is
+			the reason a plain `script-src 'self'` will not be enough.
+		-->
+		<script>
+			(() => {
+				try {
+					const saved = localStorage.getItem('verum-theme');
+					if (saved === 'light' || saved === 'dark') {
+						document.documentElement.dataset.theme = saved;
+					}
+				} catch {
+					// Private mode, or storage disabled. prefers-color-scheme still applies.
+				}
+			})();
+		</script>
+
 		%sveltekit.head%
 	</head>
 

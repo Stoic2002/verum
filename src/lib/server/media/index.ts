@@ -1,24 +1,15 @@
 import { desc, eq, inArray } from 'drizzle-orm';
 import type { Database } from '../db/types';
-import { media, type MediaVariant } from '../db/schema';
+import { media } from '../db/schema';
 import { cleanOriginalName, processImage } from './process';
 import { getStorage } from './storage';
+import type { MediaRecord } from './types';
 
 export { MAX_UPLOAD_BYTES, UploadError } from './process';
 export { getStorage, mediaFsRoot, setStorage, type Storage } from './storage';
+export { ARTICLE_IMAGE_SIZES, pictureFor, type PictureSource } from './picture';
 
-export type MediaRecord = {
-	id: number;
-	r2Key: string;
-	originalName: string;
-	mimeType: string;
-	width: number;
-	height: number;
-	bytes: number;
-	alt: string;
-	credit: string | null;
-	variants: MediaVariant[];
-};
+export type { MediaRecord } from './types';
 
 /**
  * Processes an upload, stores every rendition, and records one row.
@@ -113,52 +104,4 @@ export async function deleteMedia(db: Database, id: number) {
 
 	const keys = [row.r2Key, ...row.variants.map((variant) => variant.key)];
 	await getStorage().remove(keys);
-}
-
-/** `sizes` tells the browser how wide the image renders, so it can pick a width. */
-export const ARTICLE_IMAGE_SIZES = '(min-width: 46rem) 42rem, 100vw';
-
-export type PictureSource = { type: string; srcset: string };
-
-/**
- * Builds what a <picture> needs: one srcset per format, plus intrinsic
- * dimensions.
- *
- * width and height are not decoration. Without them the browser cannot reserve
- * the box before the bytes arrive, and every image on the page becomes a layout
- * shift (PRD §12.5, CLS < 0.1).
- */
-export function pictureFor(
-	record: MediaRecord,
-	url: (key: string) => string
-): { sources: PictureSource[]; src: string; width: number; height: number; alt: string } {
-	const byFormat = new Map<string, MediaVariant[]>();
-	for (const variant of record.variants) {
-		byFormat.set(variant.format, [...(byFormat.get(variant.format) ?? []), variant]);
-	}
-
-	const srcset = (variants: MediaVariant[]) =>
-		variants
-			.slice()
-			.sort((a, b) => a.width - b.width)
-			.map((variant) => `${url(variant.key)} ${variant.width}w`)
-			.join(', ');
-
-	// AVIF first: the browser takes the first type it can decode.
-	const sources: PictureSource[] = [];
-	for (const format of ['avif', 'webp'] as const) {
-		const variants = byFormat.get(format);
-		if (variants?.length) sources.push({ type: `image/${format}`, srcset: srcset(variants) });
-	}
-
-	const webp = byFormat.get('webp') ?? [];
-	const fallback = webp.slice().sort((a, b) => a.width - b.width)[Math.min(1, webp.length - 1)];
-
-	return {
-		sources,
-		src: url(fallback?.key ?? record.r2Key),
-		width: record.width,
-		height: record.height,
-		alt: record.alt
-	};
 }

@@ -34,8 +34,19 @@ export default defineConfig(
 		}
 	},
 	{
-		// Override or add rule settings here, such as:
-		// 'svelte/button-has-type': 'error'
-		rules: {}
+		/*
+		 * Public pages and shared components build their hrefs with $lib/urls.
+		 *
+		 * Those paths carry a locale prefix that the route tree does not contain,
+		 * because src/hooks.ts delocalises the URL before SvelteKit matches it —
+		 * so `/en/ai/slug` is a real page while `resolve()` has no route id for
+		 * it. The shapes are covered by src/lib/urls.spec.ts and by the e2e suite
+		 * instead.
+		 *
+		 * Admin routes keep the rule: their paths are in the route tree, so a
+		 * typo there should still be a build error.
+		 */
+		files: ['src/routes/(public)/**/*.svelte', 'src/lib/components/**/*.svelte'],
+		rules: { 'svelte/no-navigation-without-resolve': 'off' }
 	}
 );

@@ -98,6 +98,22 @@ penulis meng-upload ulang semuanya. SVG ditolak; EXIF (termasuk GPS) dibuang.
 start — bukan fallback diam-diam, karena deploy produksi yang kurang satu
 variabel akan kehilangan semua upload saat restart.
 
+**Cache-control dimiliki halaman, bukan layout.** SvelteKit melempar error kalau
+dua `load` menyetel header yang sama, dan tiap halaman memang butuh nilai
+berbeda: artikel 24 jam, homepage 60 detik, search nanti tanpa cache. Jangan
+menaruh default di `+layout.server.ts`.
+
+**Dark mode dipasang oleh script inline di `app.html`, sebelum paint pertama.**
+Memindahkannya ke file atau men-defer-nya mengembalikan flash tema yang salah.
+Script itu butuh hash atau nonce saat CSP dipasang di Fase 8.
+
+**Banner saran bahasa dirender di klien**, dari `navigator.language`. Memutuskannya
+di server dari `Accept-Language` akan membakar bahasa pengunjung pertama ke
+dalam salinan CDN yang diterima semua orang. Tetap saran, tidak pernah redirect.
+
+**`AdSlot` memesan tingginya dan tidak memuat script apa pun.** Tag AdSense
+disuntikkan oleh callback consent CMP di Fase 8, ke dalam kotak yang sudah ada.
+
 **Skema database beku.** 15 tabel, migrasi di `drizzle/`. Perubahan hanya lewat
 migrasi baru dengan alasan tertulis (`docs/PLAN-DEV.md` §D.4). Yang berbeda dari
 PRD §11 dan alasannya ada di §F.1.

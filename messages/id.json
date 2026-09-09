@@ -1,4 +1,63 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"phase0_smoke": "Fondasi sudah jalan."
+	"phase0_smoke": "Fondasi sudah jalan.",
+
+	"site_tagline": "AI dan teknologi, diuji oleh orang yang memakainya.",
+	"nav_home": "Beranda",
+	"nav_search": "Cari",
+	"nav_skip": "Lompat ke konten",
+	"nav_menu": "Menu",
+
+	"home_latest": "Terbaru",
+	"home_more_in": "Lainnya di {category}",
+	"home_empty": "Belum ada yang terbit.",
+
+	"article_read_time": "{minutes} menit baca",
+	"article_published": "Terbit {date}",
+	"article_updated": "Diperbarui {date}",
+	"article_living": "Artikel hidup",
+	"article_living_note": "Artikel ini diperbarui secara berkala, bukan diganti artikel baru.",
+	"article_contents": "Daftar isi",
+	"article_correction": "Koreksi",
+	"article_related": "Bacaan terkait",
+	"article_tags": "Tag",
+	"article_share": "Bagikan",
+	"article_share_copy": "Salin tautan",
+	"article_share_copied": "Tautan disalin",
+
+	"category_articles": "{count} artikel",
+	"tag_heading": "Artikel bertag “{name}”",
+	"topic_heading": "Semua tentang {title}",
+
+	"pagination_prev": "Lebih baru",
+	"pagination_next": "Lebih lama",
+	"pagination_page": "Halaman {page} dari {total}",
+
+	"newsletter_heading": "Satu email, saat ada yang layak dibaca",
+	"newsletter_body": "Tanpa jadwal yang dipaksakan, tanpa kiriman ulang. Berhenti langganan sekali klik.",
+	"newsletter_email": "Alamat email",
+	"newsletter_submit": "Berlangganan",
+
+	"locale_banner": "Artikel ini juga tersedia dalam {language}.",
+	"locale_banner_switch": "Baca",
+	"locale_banner_dismiss": "Tutup",
+	"language_en": "Bahasa Inggris",
+	"language_id": "Bahasa Indonesia",
+
+	"theme_toggle": "Ganti tema",
+	"theme_light": "Terang",
+	"theme_dark": "Gelap",
+	"theme_system": "Sistem",
+
+	"footer_editorial": "Kebijakan editorial",
+	"footer_about": "Tentang",
+	"footer_contact": "Kontak",
+	"footer_privacy": "Privasi",
+	"footer_terms": "Ketentuan",
+	"footer_rights": "© {year} VERUM",
+
+	"error_404_title": "Halaman tidak ditemukan",
+	"error_404_body": "URL itu tidak menunjuk ke apa pun. Mungkin sudah pindah.",
+	"error_generic_title": "Ada yang salah",
+	"error_generic_body": "Halaman tidak bisa dimuat. Coba lagi sebentar."
 }

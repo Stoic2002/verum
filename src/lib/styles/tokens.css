@@ -1,0 +1,121 @@
+/*
+ * Design tokens.
+ *
+ * Light is the base; dark is applied by prefers-color-scheme unless the reader
+ * has chosen otherwise, and by an explicit data-theme in both directions so the
+ * toggle wins over the system setting.
+ */
+
+:root {
+	--bg: #fdfdfc;
+	--surface: #ffffff;
+	--surface-2: #f4f4f2;
+	--border: #e3e3df;
+	--text: #17171a;
+	--text-2: #45454c;
+	--text-3: #6f6f79;
+	--accent: #9a3412;
+	--accent-hover: #7c2d12;
+	--focus: #2563eb;
+
+	--font-body: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--font-serif: ui-serif, Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+	--font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+
+	--measure: 42rem;
+	--wide: 72rem;
+
+	color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme='light']) {
+		--bg: #101012;
+		--surface: #17171a;
+		--surface-2: #1e1e22;
+		--border: #2c2c31;
+		--text: #ececef;
+		--text-2: #b6b6bd;
+		--text-3: #86868f;
+		--accent: #fb923c;
+		--accent-hover: #fdba74;
+		--focus: #60a5fa;
+
+		color-scheme: dark;
+	}
+}
+
+:root[data-theme='dark'] {
+	--bg: #101012;
+	--surface: #17171a;
+	--surface-2: #1e1e22;
+	--border: #2c2c31;
+	--text: #ececef;
+	--text-2: #b6b6bd;
+	--text-3: #86868f;
+	--accent: #fb923c;
+	--accent-hover: #fdba74;
+	--focus: #60a5fa;
+
+	color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	background: var(--bg);
+}
+
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--text);
+	font-family: var(--font-body);
+	font-size: 1rem;
+	line-height: 1.6;
+	-webkit-text-size-adjust: 100%;
+}
+
+a {
+	color: var(--accent);
+}
+a:hover {
+	color: var(--accent-hover);
+}
+
+:focus-visible {
+	outline: 2px solid var(--focus);
+	outline-offset: 2px;
+	border-radius: 2px;
+}
+
+img,
+picture,
+video,
+iframe {
+	max-width: 100%;
+}
+
+.pill {
+	display: inline-block;
+	padding: 0.0625rem 0.4375rem;
+	border-radius: 999px;
+	background: var(--surface-2);
+	color: var(--text-3);
+	font-size: 0.6875rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		transition-duration: 0.01ms !important;
+	}
+}

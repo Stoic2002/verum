@@ -490,3 +490,80 @@ Alasannya konkret: `sharp` dan `@node-rs/argon2` adalah native module, dan itu j
 
 - Halaman publik belum memakai `pictureFor`; Fase 5 yang memasangnya di homepage, kategori, dan artikel.
 - Belum ada pembersihan objek yatim (upload yang gagal di tengah meninggalkan objek tanpa baris). Sengaja: baris ditulis **setelah** objek, karena objek yatim berharga beberapa sen sementara baris yang menunjuk file tidak ada adalah gambar rusak di artikel terbit. Skrip pembersih masuk Fase 8 kalau memang perlu.
+
+---
+
+## Bagian J — Catatan implementasi Fase 5 (permukaan publik)
+
+### J.1 Banner ganti bahasa dirender di klien, bukan server
+
+Ini bukan preferensi gaya; server-render akan **merusak cache CDN**.
+
+Halaman artikel di-cache di edge dengan TTL panjang (§10.3). Kalau banner diputuskan di server dari `Accept-Language`, maka bahasa pengunjung pertama ikut terbakar ke dalam salinan yang diterima semua orang sesudahnya. Alternatifnya `Vary: Accept-Language`, yang memecah cache jadi puluhan varian dan membuang gunanya.
+
+Jadi: daftar locale yang benar-benar ada dikirim sebagai data (tidak tergantung pengunjung, aman di-cache), dan `navigator.language` yang memutuskan di browser. Tetap **saran, bukan redirect** (§10.4).
+
+### J.2 Cache-control dimiliki halaman, bukan layout
+
+SvelteKit melempar error kalau dua `load` menyetel header yang sama. Awalnya saya menaruh `cache-control` di `+layout.server.ts` sebagai default — hasilnya **setiap halaman publik 500**, dan yang menangkapnya adalah `scripts/smoke-build.sh`, bukan unit test.
+
+Sekarang tiap halaman menyetel miliknya sendiri, karena memang berbeda: artikel 24 jam dengan `stale-while-revalidate`, homepage dan kategori 60 detik, topik 5 menit, search nanti tanpa cache sama sekali. Default di layout akan salah untuk sebagian besar halaman _atau_ bertabrakan dengan halaman yang menyetel yang benar.
+
+### J.3 Dark mode tanpa flash
+
+Script inline di `<head>` membaca `localStorage` dan menyetel `data-theme` **sebelum paint pertama**. Harus inline dan blocking: dimuat sebagai file atau di-defer berarti halaman ter-paint dengan tema default lalu repaint — persis flash yang jadi isi setiap laporan bug "dark mode".
+
+Konsekuensi untuk Fase 8: script ini butuh hash atau nonce di CSP. Sudah dicatat di `app.html` — `script-src 'self'` saja tidak akan cukup.
+
+Toggle punya **tiga** state, bukan dua. "System" harus jadi opsi nyata: pembaca yang mengganti OS-nya ke gelap saat malam berharap situsnya ikut, dan toggle dua-state diam-diam mengeluarkan mereka dari itu selamanya begitu sekali disentuh.
+
+### J.4 Kontrol yang butuh JS disembunyikan sampai JS jalan
+
+Layout menambahkan `class="js"` ke `<html>` lewat efek. Theme toggle dan tombol salin tautan hanya muncul setelah itu — kontrol mati lebih buruk daripada tidak ada kontrol. Tombol share tetap tampil karena memang hanya `<a href>`.
+
+Ada e2e dengan `javaScriptEnabled: false` yang memeriksa homepage, artikel, kategori, tag, dan topik semuanya render, dan bahwa kedua kontrol itu tersembunyi. SSR bukan nice-to-have di sini: §10.1 menjadikannya alasan stack-nya SvelteKit dan bukan SPA.
+
+### J.5 Slot iklan: kotak dulu, script belakangan
+
+`AdSlot` memesan tinggi lewat CSS dan **tidak memuat script apa pun**. Dua hal disengaja:
+
+1. Slot iklan adalah penyebab layout shift nomor satu di situs publisher (§13.1), dan memesan setelah iklan datang tidak menolong — shift-nya sudah terjadi.
+2. AdSense hanya boleh berjalan setelah CMP punya sinyal consent (§14). Tag-nya akan disuntikkan oleh callback consent di Fase 8, ke dalam kotak-kotak ini, berdasarkan `data-ad-slot`. Menaruhnya di `app.html` akan menembakkannya sebelum consent — pelanggaran yang justru jadi alasan CMP diwajibkan.
+
+E2E mengukur CLS sungguhan dengan placeholder aktif: **0**.
+
+### J.6 Embed X dan share tanpa script pihak ketiga
+
+Konsisten dengan §H.2: tombol share adalah `<a href>` biasa ke URL intent masing-masing platform. Setiap SDK share adalah JavaScript pihak ketiga yang menyetel cookie — masalah consent dan biaya performa — demi sesuatu yang sudah bisa diungkapkan sebuah URL.
+
+### J.7 Refactor yang dipaksa oleh seed
+
+`renderMarkdown` menarik `media/index.ts`, yang menarik `storage.ts`, yang butuh `$env/dynamic/private`. Seed berjalan sebagai skrip bun di luar SvelteKit, jadi seed **crash** begitu ia mulai me-render markdown.
+
+Perbaikannya struktural, bukan tambalan: fungsi murni (`pictureFor`, `ARTICLE_IMAGE_SIZES`) pindah ke `media/picture.ts` dan tipe ke `media/types.ts`, keduanya tanpa sentuhan environment. Pipeline render sekarang hanya bergantung pada bagian murni. Ini juga membuat seed menghasilkan `body_html` yang identik dengan artikel yang benar-benar ditulis.
+
+### J.8 Aturan lint yang dimatikan, dan gantinya
+
+`svelte/no-navigation-without-resolve` dimatikan **hanya** untuk `src/routes/(public)/**` dan `src/lib/components/**`. Alasannya: setiap URL publik membawa prefix locale yang tidak ada di route tree, karena `hooks.ts` men-delokalisasi sebelum SvelteKit mencocokkan — `/en/ai/slug` adalah halaman nyata sementara `resolve()` tidak punya route id untuknya.
+
+Gantinya `src/lib/urls.spec.ts`: 5 test yang menguji bentuk URL sesuai §12.1, termasuk bahwa tidak ada tanggal di URL dan bahwa halaman 1 tidak punya dua URL (`?page=1` dan path telanjang). Route admin **tetap** memakai aturan itu, karena path-nya memang ada di route tree.
+
+### J.9 Yang dibuktikan
+
+90 test unit/integrasi (naik dari 85) dan 33 e2e (naik dari 21).
+
+- JS mati: homepage, artikel, kategori, tag, topik semuanya render; theme toggle dan tombol salin tersembunyi; link share tetap ada.
+- Kategori tak dikenal → 404, bukan halaman kosong.
+- Ganti locale tetap di artikel yang sama, dan artikel yang **hanya** punya versi `en` mengembalikan 404 di `/id` — asimetri §7 memang begitu.
+- Artikel terjadwal tidak terjangkau.
+- Tema tersimpan sudah terpasang sebelum paint, dan `background-color` body benar-benar warna gelap.
+- Slot iklan tinggi ≥ 280px dan CLS terukur **0**.
+- Di viewport 360px halaman tidak pernah scroll ke samping.
+- Smoke build produksi diperluas ke `/en/ai`, `/en/tag/llm`, `/en/topic/ai-tooling`, `/id`, dan 404 kategori.
+
+### J.10 Belum dikerjakan
+
+- `/[locale]/search` belum ada; Fase 6.
+- Form newsletter dirender **disabled** karena route-nya baru ada di Fase 6. Form yang diam-diam membuang alamat lebih buruk daripada "belum".
+- Meta lengkap, hreflang, structured data, RSS, sitemap: Fase 7. Yang ada sekarang hanya title, description, dan canonical.
+- Halaman statis (About, Privacy, dsb.) belum ada — footer sudah menautkannya dan tautan itu masih 404 sampai Fase 7.

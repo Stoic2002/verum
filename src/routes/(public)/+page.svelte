@@ -1,25 +1,91 @@
 <script lang="ts">
-	import type { Pathname } from '$app/types';
-	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
 	import { m } from '$lib/paraglide/messages';
-	import { locales, localizeHref } from '$lib/paraglide/runtime';
+	import { getLocale } from '$lib/paraglide/runtime';
+	import * as urls from '$lib/urls';
+	import ArticleCard from '$lib/components/ArticleCard.svelte';
+	import NewsletterCta from '$lib/components/NewsletterCta.svelte';
 
 	let { data } = $props();
+	const locale = getLocale();
 </script>
 
-<h1>VERUM</h1>
+<svelte:head>
+	<title>VERUM — {m.site_tagline()}</title>
+	<meta name="description" content={m.site_tagline()} />
+</svelte:head>
 
-<p>{m.phase0_smoke()}</p>
-<p><code data-testid="locale">{data.locale}</code></p>
+{#if !data.featured}
+	<p class="empty">{m.home_empty()}</p>
+{:else}
+	<section class="lede">
+		<ArticleCard card={data.featured} headingLevel={2} featured />
+	</section>
 
-<nav>
-	{#each locales as locale (locale)}
-		<!-- localizeHref returns a locale-prefixed path, which is not in the route
-		     tree (hooks.ts delocalises before matching), hence the cast. Fase 5
-		     replaces this with a shared link helper. -->
-		<a href={resolve(localizeHref(page.url.pathname, { locale }) as Pathname)} hreflang={locale}>
-			{locale}
-		</a>
+	{#if data.latest.length}
+		<section class="section">
+			<h2 class="section__title">{m.home_latest()}</h2>
+			<div class="grid">
+				{#each data.latest as card (card.id)}
+					<ArticleCard {card} />
+				{/each}
+			</div>
+		</section>
+	{/if}
+
+	<div class="cta-slot"><NewsletterCta /></div>
+
+	{#each data.blocks as block (block.slug)}
+		<section class="section">
+			<h2 class="section__title">
+				<a href={urls.category(locale, block.slug)}>{block.name}</a>
+			</h2>
+			{#if block.description}
+				<p class="section__description">{block.description}</p>
+			{/if}
+			<div class="grid">
+				{#each block.articles as card (card.id)}
+					<ArticleCard {card} />
+				{/each}
+			</div>
+		</section>
 	{/each}
-</nav>
+{/if}
+
+<style>
+	.lede {
+		padding-bottom: 2rem;
+		border-bottom: 1px solid var(--border);
+	}
+	.section {
+		margin: 2.5rem 0;
+	}
+	.section__title {
+		margin: 0 0 0.25rem;
+		font-size: 0.8125rem;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		color: var(--text-3);
+	}
+	.section__title a {
+		color: inherit;
+		text-decoration: none;
+	}
+	.section__description {
+		margin: 0 0 1.25rem;
+		max-width: var(--measure);
+		color: var(--text-2);
+		font-size: 0.875rem;
+	}
+	.grid {
+		display: grid;
+		gap: 1.75rem;
+		margin-top: 1.25rem;
+		grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+	}
+	.cta-slot {
+		margin: 2.5rem 0;
+	}
+	.empty {
+		color: var(--text-3);
+	}
+</style>

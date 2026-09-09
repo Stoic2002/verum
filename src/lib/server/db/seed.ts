@@ -9,8 +9,12 @@ import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
+import { renderMarkdown } from '../content/render';
 import {
 	adminUsers,
+	topicArticles,
+	topicLocales,
+	topics,
 	articleLocales,
 	articleTags,
 	articles,
@@ -212,12 +216,21 @@ async function seed() {
 			.returning({ id: articles.id });
 
 		for (const [locale, content] of Object.entries(fixture.locales)) {
+			// Render exactly as the admin editor would, so seeded articles are
+			// indistinguishable from written ones on the public pages.
+			const rendered = await renderMarkdown(content.bodyMd);
+
 			await db
 				.insert(articleLocales)
 				.values({
 					articleId: article.id,
 					locale: locale as Locale,
 					...content,
+					bodyHtml: rendered.html,
+					bodyText: rendered.text,
+					toc: rendered.toc,
+					wordCount: rendered.wordCount,
+					readingMinutes: rendered.readingMinutes,
 					publishedAt: fixture.publishedAt,
 					modifiedAt: fixture.publishedAt
 				})
@@ -228,6 +241,46 @@ async function seed() {
 			.insert(articleTags)
 			.values(fixture.tags.map((slug) => ({ articleId: article.id, tagId: tagId.get(slug)! })))
 			.onConflictDoNothing();
+	}
+
+	// One topic, so the dossier page has something to render.
+	const [topic] = await db
+		.insert(topics)
+		.values({ slug: 'ai-tooling' })
+		.onConflictDoNothing()
+		.returning({ id: topics.id });
+
+	if (topic) {
+		await db.insert(topicLocales).values([
+			{
+				topicId: topic.id,
+				locale: 'en',
+				title: 'AI tooling',
+				introMd: 'Everything published here about the tools developers actually reach for.',
+				introHtml: '<p>Everything published here about the tools developers actually reach for.</p>'
+			},
+			{
+				topicId: topic.id,
+				locale: 'id',
+				title: 'Perkakas AI',
+				introMd: 'Semua tulisan di sini tentang tool yang benar-benar dipakai developer.',
+				introHtml: '<p>Semua tulisan di sini tentang tool yang benar-benar dipakai developer.</p>'
+			}
+		]);
+
+		const published = await db.select({ id: articles.id }).from(articles).limit(3);
+		if (published.length) {
+			await db
+				.insert(topicArticles)
+				.values(
+					published.map((row, index) => ({
+						topicId: topic.id,
+						articleId: row.id,
+						sortOrder: index
+					}))
+				)
+				.onConflictDoNothing();
+		}
 	}
 
 	const [{ count }] = await db

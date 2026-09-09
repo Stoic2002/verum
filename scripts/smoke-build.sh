@@ -11,14 +11,30 @@ PORT="${PORT:-4183}"
 
 [ -f build/index.js ] || { echo "build/index.js missing — run bun run build first" >&2; exit 1; }
 
-PORT="$PORT" node build/index.js &
+# The server's output goes to a log, not to this script's stdout. Inheriting
+# stdout keeps a pipe open after the script exits, so `bun run smoke | tail`
+# hangs forever waiting for an EOF the background process never sends.
+LOG=$(mktemp)
+PORT="$PORT" node build/index.js >"$LOG" 2>&1 &
 SERVER=$!
-trap 'kill $SERVER 2>/dev/null || true' EXIT
+trap 'kill $SERVER 2>/dev/null || true; rm -f "$LOG"' EXIT
 
-for _ in $(seq 1 60); do
-	curl -sf -o /dev/null "http://localhost:$PORT/en" && break
+started=0
+for _ in $(seq 1 80); do
+	if curl -sf -o /dev/null "http://localhost:$PORT/en"; then started=1; break; fi
+	if ! kill -0 $SERVER 2>/dev/null; then
+		echo "Server exited before answering:" >&2
+		cat "$LOG" >&2
+		exit 1
+	fi
 	sleep 0.25
 done
+
+if [ "$started" != "1" ]; then
+	echo "Server did not answer on port $PORT:" >&2
+	cat "$LOG" >&2
+	exit 1
+fi
 
 code() { curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT$1"; }
 
@@ -39,5 +55,10 @@ check / 301
 check /admin 303
 check /admin/login 200
 check /media/img/does-not-exist/640w.avif 404
+check /en/ai 200
+check /en/tag/llm 200
+check /en/topic/ai-tooling 200
+check /id 200
+check /en/not-a-real-category 404
 
 [ "$fail" = "0" ] && echo "Production build serves correctly." || exit 1

@@ -1,8 +1,10 @@
 import type { Nodes as MdastNodes, Parents as MdastParents, Root as MdastRoot } from 'mdast';
 import type { Element, Properties, Root as HastRoot } from 'hast';
 import type { VFile } from 'vfile';
-import type { MediaRecord } from '../media';
-import { ARTICLE_IMAGE_SIZES, pictureFor } from '../media';
+// The pure picture module, not the media barrel: the barrel reaches storage,
+// which reaches $env, which the seed script cannot resolve.
+import { ARTICLE_IMAGE_SIZES, pictureFor } from '../media/picture';
+import type { MediaRecord } from '../media/types';
 import { visit } from 'unist-util-visit';
 
 /**

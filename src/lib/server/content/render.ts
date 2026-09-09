@@ -11,7 +11,7 @@ import remarkRehype from 'remark-rehype';
 import { unified } from 'unified';
 import { VFile } from 'vfile';
 import type { TocEntry } from '../db/schema';
-import type { MediaRecord } from '../media';
+import type { MediaRecord } from '../media/types';
 import { rehypeEmbeds, remarkEmbeds } from './embeds';
 
 /**
