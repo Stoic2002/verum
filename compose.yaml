@@ -1,0 +1,26 @@
+# Optional: only needed on a machine without a local PostgreSQL 16.
+# The default local setup is Homebrew postgresql@16 + `bun run db:setup`.
+# Local development database only. Production Postgres runs on the VPS (PRD §10.1).
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: verum-db
+    restart: unless-stopped
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: verum
+      POSTGRES_PASSWORD: verum
+      POSTGRES_DB: verum
+    volumes:
+      # /data, not the parent — Postgres stores the cluster in PGDATA and the
+      # scaffold's default of /var/lib/postgresql does not persist it.
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U verum -d verum']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:

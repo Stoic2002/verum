@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    # Integration tests run the real migrations, including the search-vector
+    # trigger. Version-matched to production (PRD §10.1).
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: verum
+          POSTGRES_PASSWORD: verum
+          POSTGRES_DB: verum_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U verum"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://verum:verum@localhost:5432/verum_test
+      DATABASE_URL_TEST: postgres://verum:verum@localhost:5432/verum_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Bun is the toolchain; Node is the runtime the build targets (adapter-node).
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Typecheck
+        run: bun run check
+
+      - name: Unit tests
+        run: bun run test:unit --run
+
+      - name: Build
+        run: bun run build
+
+      - name: Install Playwright browser
+        run: bun run test:e2e:install
+
+      - name: E2E tests
+        run: bun run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
