@@ -1,17 +1,14 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"phase0_smoke": "Fondasi sudah jalan.",
-
 	"site_tagline": "AI dan teknologi, diuji oleh orang yang memakainya.",
 	"nav_home": "Beranda",
 	"nav_search": "Cari",
 	"nav_skip": "Lompat ke konten",
 	"nav_menu": "Menu",
-
 	"home_latest": "Terbaru",
 	"home_more_in": "Lainnya di {category}",
 	"home_empty": "Belum ada yang terbit.",
-
 	"article_read_time": "{minutes} menit baca",
 	"article_published": "Terbit {date}",
 	"article_updated": "Diperbarui {date}",
@@ -24,40 +21,47 @@
 	"article_share": "Bagikan",
 	"article_share_copy": "Salin tautan",
 	"article_share_copied": "Tautan disalin",
-
 	"category_articles": "{count} artikel",
 	"tag_heading": "Artikel bertag “{name}”",
 	"topic_heading": "Semua tentang {title}",
-
 	"pagination_prev": "Lebih baru",
 	"pagination_next": "Lebih lama",
 	"pagination_page": "Halaman {page} dari {total}",
-
 	"newsletter_heading": "Satu email, saat ada yang layak dibaca",
 	"newsletter_body": "Tanpa jadwal yang dipaksakan, tanpa kiriman ulang. Berhenti langganan sekali klik.",
 	"newsletter_email": "Alamat email",
 	"newsletter_submit": "Berlangganan",
-
 	"locale_banner": "Artikel ini juga tersedia dalam {language}.",
 	"locale_banner_switch": "Baca",
 	"locale_banner_dismiss": "Tutup",
 	"language_en": "Bahasa Inggris",
 	"language_id": "Bahasa Indonesia",
-
 	"theme_toggle": "Ganti tema",
 	"theme_light": "Terang",
 	"theme_dark": "Gelap",
 	"theme_system": "Sistem",
-
 	"footer_editorial": "Kebijakan editorial",
 	"footer_about": "Tentang",
 	"footer_contact": "Kontak",
 	"footer_privacy": "Privasi",
 	"footer_terms": "Ketentuan",
 	"footer_rights": "© {year} VERUM",
-
 	"error_404_title": "Halaman tidak ditemukan",
 	"error_404_body": "URL itu tidak menunjuk ke apa pun. Mungkin sudah pindah.",
 	"error_generic_title": "Ada yang salah",
-	"error_generic_body": "Halaman tidak bisa dimuat. Coba lagi sebentar."
+	"error_generic_body": "Halaman tidak bisa dimuat. Coba lagi sebentar.",
+	"search_all_categories": "Semua kategori",
+	"search_results": "{count} hasil untuk “{query}”",
+	"search_none": "Tidak ada yang cocok. Coba kata yang lebih sedikit, atau ejaan lain.",
+	"newsletter_check_inbox": "Hampir selesai — cek email Anda",
+	"newsletter_check_body": "Tautan konfirmasi sudah dikirim ke {email}. Langganan dimulai setelah Anda mengkliknya.",
+	"newsletter_confirmed": "Anda sudah berlangganan",
+	"newsletter_confirmed_body": "Sekian saja. Anda bisa berhenti langganan lewat email mana pun.",
+	"newsletter_invalid": "Tautan itu tidak berlaku",
+	"newsletter_invalid_body": "Mungkin sudah kedaluwarsa, atau sudah dipakai. Daftar lagi untuk mendapat yang baru.",
+	"newsletter_unsubscribed": "Langganan dihentikan",
+	"newsletter_unsubscribed_body": "Tidak ada email lagi dari kami. Tidak ada yang lain berubah.",
+	"newsletter_error_email": "Masukkan alamat email yang valid.",
+	"newsletter_error_rate": "Terlalu banyak percobaan. Coba lagi sebentar.",
+	"newsletter_unsubscribe_confirm": "Ya, hentikan langganan saya"
 }

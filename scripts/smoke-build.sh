@@ -60,5 +60,8 @@ check /en/tag/llm 200
 check /en/topic/ai-tooling 200
 check /id 200
 check /en/not-a-real-category 404
+check /en/search 200
+check /en/newsletter 200
+check /en/newsletter/confirm 200
 
 [ "$fail" = "0" ] && echo "Production build serves correctly." || exit 1

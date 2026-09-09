@@ -77,3 +77,36 @@ export async function searchArticles(
 
 	return Array.from(result);
 }
+
+/**
+ * How many articles the query matches, for pagination.
+ *
+ * A second query rather than a window function: `count(*) OVER ()` would have
+ * to rank and headline every match before counting them, and ts_headline is by
+ * far the most expensive part of the search.
+ */
+export async function countSearchResults(
+	db: Database,
+	query: string,
+	{ locale, category }: { locale: Locale; category?: string }
+): Promise<number> {
+	const trimmed = query.trim();
+	if (!trimmed) return 0;
+
+	const cfg = TS_CONFIG[locale];
+
+	const [row] = await db.execute<{ count: number }>(sql`
+		SELECT count(*)::int AS count
+		FROM article_locales al
+		JOIN articles a ON a.id = al.article_id
+		JOIN categories c ON c.id = a.category_id
+		WHERE al.locale = ${locale}
+			AND a.status = 'published'
+			AND al.published_at IS NOT NULL
+			AND al.published_at <= now()
+			AND al.search_vector @@ websearch_to_tsquery(${cfg}::regconfig, ${trimmed})
+			${category ? sql`AND c.slug = ${category}` : sql``}
+	`);
+
+	return Number(row?.count ?? 0);
+}

@@ -114,6 +114,16 @@ dalam salinan CDN yang diterima semua orang. Tetap saran, tidak pernah redirect.
 **`AdSlot` memesan tingginya dan tidak memuat script apa pun.** Tag AdSense
 disuntikkan oleh callback consent CMP di Fase 8, ke dalam kotak yang sudah ada.
 
+**Pageview dihitung lewat beacon dari browser, bukan di `load`.** Halaman
+artikel di-cache CDN 24 jam, jadi origin tidak pernah melihat sebagian besar
+pembacaan — penghitung sisi server akan salah sebesar cache hit rate. Yang
+disimpan hanya hitungan harian tanpa identifier apa pun.
+
+**Tanpa kredensial SMTP, email ditulis ke buffer dan bisa dilihat di
+`/admin/mail`.** Halaman itu berhenti ada begitu SMTP terkonfigurasi. Mengisi
+_sebagian_ variabel SMTP adalah error: form yang menerima alamat lalu tidak
+pernah mengirim konfirmasi terlihat persis seperti form yang bekerja.
+
 **Skema database beku.** 15 tabel, migrasi di `drizzle/`. Perubahan hanya lewat
 migrasi baru dengan alasan tertulis (`docs/PLAN-DEV.md` §D.4). Yang berbeda dari
 PRD §11 dan alasannya ada di §F.1.

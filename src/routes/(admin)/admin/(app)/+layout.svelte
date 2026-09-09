@@ -13,7 +13,8 @@
 		{ href: resolve('/(admin)/admin/(app)/media'), label: 'Media' },
 		{ href: resolve('/(admin)/admin/(app)/topics'), label: 'Topics' },
 		{ href: resolve('/(admin)/admin/(app)/taxonomy'), label: 'Categories & tags' },
-		{ href: resolve('/(admin)/admin/(app)/redirects'), label: 'Redirects' }
+		{ href: resolve('/(admin)/admin/(app)/redirects'), label: 'Redirects' },
+		{ href: resolve('/(admin)/admin/(app)/mail'), label: 'Dev inbox' }
 	];
 
 	const isCurrent = (href: string) =>

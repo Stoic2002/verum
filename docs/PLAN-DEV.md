@@ -567,3 +567,79 @@ Gantinya `src/lib/urls.spec.ts`: 5 test yang menguji bentuk URL sesuai §12.1, t
 - Form newsletter dirender **disabled** karena route-nya baru ada di Fase 6. Form yang diam-diam membuang alamat lebih buruk daripada "belum".
 - Meta lengkap, hreflang, structured data, RSS, sitemap: Fase 7. Yang ada sekarang hanya title, description, dan canonical.
 - Halaman statis (About, Privacy, dsb.) belum ada — footer sudah menautkannya dan tautan itu masih 404 sampai Fase 7.
+
+---
+
+## Bagian K — Catatan implementasi Fase 6 (search, newsletter, dashboard)
+
+### K.1 Pageview: penghitung sisi server akan salah ~sebesar cache hit rate
+
+Ini temuan terpenting fase ini. Halaman artikel yang terbit di-cache CDN dengan TTL 24 jam (§10.3) — artinya **origin tidak pernah melihat sebagian besar pembacaan**. Menambahkan `UPDATE article_stats` di `load` halaman artikel akan menghitung hanya yang lolos cache, lalu melaporkan angka itu di dashboard seolah-olah itu jumlah sebenarnya.
+
+Jadi penghitungnya adalah **beacon dari browser** ke `/api/view`, endpoint yang tidak di-cache. Yang disimpan hanya hitungan harian per artikel per locale: tanpa identifier, tanpa alamat, tanpa fingerprint — jadi tidak ada yang perlu digerbangi consent banner, dan ia boleh jalan sebelum CMP menjawab.
+
+Ini metrik internal kasar, bukan kebenaran analytics: pengunjung yang niat bisa menggelembungkannya. Keputusan soal peringkat tetap dari Search Console. Sudah dicatat di kode.
+
+### K.2 Mailer bisa ditukar, konfigurasi separuh adalah error
+
+Pola yang sama dengan storage R2 di §I.1. SMTP untuk produksi, buffer in-memory selain itu — jadi alur double opt-in bisa dibangun dan diuji **end-to-end** sebelum akun SMTP ada, dan CI yang tidak punya kredensial tetap menjalankannya.
+
+Mengisi sebagian variabel SMTP melempar error. Alasannya spesifik untuk kasus ini: form pendaftaran yang **menerima alamat lalu diam-diam tidak pernah mengirim konfirmasi** terlihat persis seperti form yang bekerja. Kegagalan itu baru ketahuan saat Anda bertanya-tanya kenapa tidak ada subscriber.
+
+Halaman `/admin/mail` (dev inbox) **berhenti ada** begitu SMTP terkonfigurasi — halaman yang menampilkan isi email keluar tidak boleh terjangkau di produksi, bahkan di balik session admin.
+
+> **Keputusan terbuka:** provider SMTP belum dipilih. §18.4 menyebut Buttondown vs Listmonk, tapi keduanya soal _pengiriman kampanye_; yang dibutuhkan di sini email transaksional. Kandidat: Resend, Postmark, atau SMTP dari provider newsletter yang dipilih. Isi 5 variabel di `.env` dan jalur SMTP langsung aktif tanpa perubahan kode.
+
+### K.3 Double opt-in dimiliki sendiri, bukan provider
+
+§13.3 menyebut email list sebagai satu-satunya kanal yang tidak bisa diambil Google. Itu hanya benar kalau alamatnya ada di tempat yang kita kendalikan — jadi tabel `newsletter_subscribers` **adalah** listnya, dan provider hanya mengirim.
+
+| Keputusan                                                | Alasan                                                                                                                                                                                                                   |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Token disimpan sebagai SHA-256                           | Sama seperti session: dump database tidak berisi apa pun yang bisa dipakai.                                                                                                                                              |
+| Token hangus saat dipakai                                | Email yang diteruskan ke orang lain jadi mati.                                                                                                                                                                           |
+| Alamat yang **sudah** terkonfirmasi tidak dikirimi ulang | Kalau tidak, form ini jadi cara membuat server kita mengirim email ke alamat siapa pun, berulang kali.                                                                                                                   |
+| Alamat pending yang mendaftar lagi mendapat token baru   | Email yang hilang bisa dipulihkan tanpa beban support; link lama langsung mati.                                                                                                                                          |
+| Respons sama untuk alamat baru dan yang sudah terdaftar  | Form publik tidak boleh membocorkan siapa ada di list.                                                                                                                                                                   |
+| Unsubscribe adalah **POST** dari link **ber-HMAC**       | GET satu klik akan dipicu klien email yang mem-prefetch link — diam-diam mengeluarkan orang yang tidak pernah mengklik. Tanpa signature, siapa pun bisa mengeluarkan siapa pun dengan mengetik alamat di query string.   |
+| Honeypot, bukan CAPTCHA                                  | Field tersembunyi yang tidak pernah diisi manusia. `aria-hidden` + `tabindex="-1"` supaya screen reader tidak mengumumkan field yang tidak boleh diisi. `altcha` (§E.2) tetap dicadangkan kalau spam jadi masalah nyata. |
+| Rate limit 5/jam per IP                                  | Endpoint ini mengirim email. Tanpa batas, ia adalah alat untuk membuat server ini mengirimi orang lain.                                                                                                                  |
+
+Validasi alamat sengaja longgar (`^[^\s@]+@[^\s@.]+\.[^\s@]+$`). Regex yang lebih ketat menolak alamat asli — tanda plus, TLD baru, local part unicode — dan **email konfirmasinya sendiri adalah pemeriksaan yang sebenarnya**: alamat yang tidak bisa menerimanya tidak pernah jadi subscriber.
+
+### K.4 Search
+
+`ts_rank_cd` dengan normalisasi 32, `websearch_to_tsquery` untuk parsing, `ts_headline` untuk cuplikan. Hitungan total adalah **query kedua**, bukan `count(*) OVER ()`: window function akan memaksa ranking dan headline atas setiap kecocokan sebelum menghitungnya, dan `ts_headline` adalah bagian termahal dari search.
+
+Halaman search `no-store` dan `noindex, follow` — hasil search bukan konten, dan tidak boleh terindeks. Rate-limited karena setiap pencarian adalah full-text scan plus headline per hit: request publik termahal yang dilayani situs ini.
+
+### K.5 Dashboard
+
+Menampilkan yang benar-benar dipantau menurut §3, sebatas yang diketahui database ini: status artikel, **kecepatan terbit terhadap target 5/minggu** (§5.1 — konsistensi mengalahkan volume, jadi ditampilkan relatif terhadap target, bukan angka telanjang), artikel terjadwal berikutnya, 10 artikel paling banyak dibaca 30 hari, subscriber terkonfirmasi, dan driver mail/storage yang sedang aktif. Sesi organik dan halaman terindeks datang dari Search Console — itu tidak untuk dicerminkan.
+
+### K.6 Yang dibuktikan
+
+120 test unit/integrasi (naik dari 90) dan 47 e2e (naik dari 33).
+
+**Sepuluh query search**, sesuai exit criteria, atas korpus yang bentuknya menyerupai yang asli — kosakata tumpang tindih antar kategori, satu artikel Indonesia, satu draft, satu terjadwal:
+
+1. frasa judul persis → artikelnya di peringkat 1
+2. satu istilah khas → hanya yang menyebutnya
+3. stemming: `refactor` menemukan "refactoring"
+4. istilah yang hanya ada di body tetap cocok
+5. dua kata → yang memuat keduanya di atas yang memuat salah satu
+6. frasa dalam tanda kutip mengecualikan artikel yang katanya terpisah
+7. negasi `-sqlite` benar-benar membuang
+8. filter kategori menyempitkan tanpa mengubah relevansi
+9. stemming Indonesia bekerja dan tidak menjangkau baris Inggris
+10. omong kosong mengembalikan kosong, bukan segalanya
+
+Plus: draft dan artikel terjadwal tidak pernah muncul, dan hitungan total konsisten dengan daftar hasil di semua halaman.
+
+**Double opt-in end-to-end** di e2e: daftar → email tertangkap → link diambil dari dev inbox → dibuka di context tanpa session → terkonfirmasi → link yang sama ditolak saat dipakai ulang → subscriber muncul di dashboard. Ditambah: alamat tidak valid ditolak **server**, bukan hanya browser; honeypot menelan bot tanpa membuat apa pun; search bekerja dengan JavaScript mati.
+
+### K.7 Belum dikerjakan
+
+- Sinkronisasi subscriber ke provider pengiriman. Listnya sudah dimiliki; mengirim kampanye adalah pekerjaan Fase 2 roadmap PRD, bukan sekarang.
+- `purgeStalePending` ada dan diuji tapi belum dipanggil siapa pun — cron Fase 8.
+- Halaman statis yang ditautkan footer masih 404. Fase 7.

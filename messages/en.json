@@ -1,17 +1,14 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"phase0_smoke": "Foundation is up.",
-
 	"site_tagline": "AI and technology, tested by someone who uses it.",
 	"nav_home": "Home",
 	"nav_search": "Search",
 	"nav_skip": "Skip to content",
 	"nav_menu": "Menu",
-
 	"home_latest": "Latest",
 	"home_more_in": "More in {category}",
 	"home_empty": "Nothing published yet.",
-
 	"article_read_time": "{minutes} min read",
 	"article_published": "Published {date}",
 	"article_updated": "Updated {date}",
@@ -24,40 +21,47 @@
 	"article_share": "Share",
 	"article_share_copy": "Copy link",
 	"article_share_copied": "Link copied",
-
 	"category_articles": "{count} articles",
 	"tag_heading": "Articles tagged “{name}”",
 	"topic_heading": "Everything on {title}",
-
 	"pagination_prev": "Newer",
 	"pagination_next": "Older",
 	"pagination_page": "Page {page} of {total}",
-
 	"newsletter_heading": "One email, when something is worth reading",
 	"newsletter_body": "No schedule to pad out, no reposts. Unsubscribe in one click.",
 	"newsletter_email": "Email address",
 	"newsletter_submit": "Subscribe",
-
 	"locale_banner": "This article is also available in {language}.",
 	"locale_banner_switch": "Read it",
 	"locale_banner_dismiss": "Dismiss",
 	"language_en": "English",
 	"language_id": "Indonesian",
-
 	"theme_toggle": "Switch theme",
 	"theme_light": "Light",
 	"theme_dark": "Dark",
 	"theme_system": "System",
-
 	"footer_editorial": "Editorial policy",
 	"footer_about": "About",
 	"footer_contact": "Contact",
 	"footer_privacy": "Privacy",
 	"footer_terms": "Terms",
 	"footer_rights": "© {year} VERUM",
-
 	"error_404_title": "Page not found",
 	"error_404_body": "That URL does not point at anything. It may have moved.",
 	"error_generic_title": "Something went wrong",
-	"error_generic_body": "The page could not be loaded. Try again in a moment."
+	"error_generic_body": "The page could not be loaded. Try again in a moment.",
+	"search_all_categories": "All categories",
+	"search_results": "{count} results for “{query}”",
+	"search_none": "Nothing matched. Try fewer words, or a different spelling.",
+	"newsletter_check_inbox": "Almost there — check your inbox",
+	"newsletter_check_body": "We sent a confirmation link to {email}. The subscription starts once you click it.",
+	"newsletter_confirmed": "You are subscribed",
+	"newsletter_confirmed_body": "That is all it takes. You can unsubscribe from any email.",
+	"newsletter_invalid": "That link is not valid",
+	"newsletter_invalid_body": "It may have expired, or already been used. Sign up again to get a fresh one.",
+	"newsletter_unsubscribed": "You are unsubscribed",
+	"newsletter_unsubscribed_body": "No more email from us. Nothing else changes.",
+	"newsletter_error_email": "Enter a valid email address.",
+	"newsletter_error_rate": "Too many attempts. Try again shortly.",
+	"newsletter_unsubscribe_confirm": "Yes, unsubscribe me"
 }

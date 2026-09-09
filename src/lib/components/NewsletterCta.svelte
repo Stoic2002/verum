@@ -3,9 +3,8 @@
 	import { getLocale } from '$lib/paraglide/runtime';
 
 	/**
-	 * Signup form. Posts to a route that does not exist until Fase 6, so it is
-	 * rendered disabled rather than pretending to work — a form that silently
-	 * drops an address is worse than an honest "not yet".
+	 * Signup form. Posts to /{locale}/newsletter, which starts the double opt-in
+	 * flow: nothing is on the list until the emailed link is clicked.
 	 */
 	let { compact = false }: { compact?: boolean } = $props();
 
@@ -17,6 +16,21 @@
 	<p>{m.newsletter_body()}</p>
 
 	<form method="POST" action="/{locale}/newsletter" aria-describedby="newsletter-note">
+		<!--
+			Honeypot. A hidden field real people never fill in, and cheaper than a
+			CAPTCHA for a form this size. aria-hidden and tabindex keep it away from
+			assistive technology, which would otherwise announce a field nobody
+			should complete.
+		-->
+		<input
+			class="visually-hidden"
+			type="text"
+			name="website"
+			tabindex="-1"
+			autocomplete="off"
+			aria-hidden="true"
+		/>
+
 		<label class="visually-hidden" for="newsletter-email">{m.newsletter_email()}</label>
 		<input
 			id="newsletter-email"
@@ -25,9 +39,8 @@
 			autocomplete="email"
 			placeholder={m.newsletter_email()}
 			required
-			disabled
 		/>
-		<button type="submit" disabled>{m.newsletter_submit()}</button>
+		<button type="submit">{m.newsletter_submit()}</button>
 	</form>
 </section>
 
@@ -76,11 +89,6 @@
 		font: inherit;
 		font-size: 0.875rem;
 		cursor: pointer;
-	}
-	input:disabled,
-	button:disabled {
-		opacity: 0.55;
-		cursor: not-allowed;
 	}
 	.visually-hidden {
 		position: absolute;

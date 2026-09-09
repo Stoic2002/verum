@@ -9,6 +9,7 @@
 	import NewsletterCta from '$lib/components/NewsletterCta.svelte';
 	import Picture from '$lib/components/Picture.svelte';
 	import ShareButtons from '$lib/components/ShareButtons.svelte';
+	import ViewBeacon from '$lib/components/ViewBeacon.svelte';
 
 	let { data } = $props();
 
@@ -29,6 +30,8 @@
 	<meta name="description" content={article.metaDesc || article.excerpt} />
 	<link rel="canonical" href={canonical} />
 </svelte:head>
+
+<ViewBeacon articleId={article.id} />
 
 <div class="layout">
 	<article class="article">
