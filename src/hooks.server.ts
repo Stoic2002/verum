@@ -19,7 +19,7 @@ const LOGIN_PATH = '/admin/login';
  * serves them before the SvelteKit handler runs.
  */
 const UNLOCALIZED =
-	/^\/(admin|api|robots\.txt|ads\.txt|rss\.xml|sitemap.*\.xml|\.well-known)(\/|$)/;
+	/^\/(admin|api|preview|robots\.txt|ads\.txt|rss\.xml|sitemap.*\.xml|\.well-known)(\/|$)/;
 
 /**
  * Canonicalise every public URL to a locale-prefixed one (PRD §12.1).

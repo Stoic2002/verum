@@ -353,3 +353,74 @@ Konsekuensi lain: karena limiter adalah state per-proses di server yang diuji, P
 - Superforms belum dipasang. Satu form login tidak membenarkan sebuah library; Fase 3 yang membawanya saat ada ~8 form.
 - CSP dan HSTS: Fase 8. Header admin yang ada sekarang (`no-store`, `noindex`, `nosniff`, `DENY`) tidak bergantung pada CSP.
 - Ganti password lewat UI. Untuk satu user, mengganti hash lewat `psql` atau seed sudah cukup sampai ada alasan lain.
+
+---
+
+## Bagian H — Catatan implementasi Fase 3 (mesin konten)
+
+### H.1 Pipeline markdown
+
+Urutannya bukan selera; setiap posisi punya alasan.
+
+```
+remark-parse → gfm → directive → remarkEmbeds
+  → remark-rehype (allowDangerousHtml) → rehype-raw
+  → rehype-sanitize          ← setelah raw, jadi HTML penulis ikut disaring
+  → rehype-slug              ← id heading milik kita, bukan milik penulis
+  → rehypeEmbeds             ← ekspansi placeholder di sisi tepercaya
+  → ekstraksi TOC + prosa
+  → rehype-shiki             ← inline style; kalau sebelum sanitize akan dibuang
+  → rehype-stringify
+```
+
+**Embed ditangani dua tahap, dan itu yang membuat sanitizer tetap berarti.** Tahap pertama (sebelum sanitasi) mengubah `::youtube{id=…}` jadi `<div data-embed>` biasa dengan atribut yang sudah divalidasi. Tahap kedua (setelah sanitasi) mengembangkannya jadi markup asli. Konsekuensinya: **skema sanitasi tidak perlu mengizinkan `<iframe>` sama sekali** — penulis yang menempelkan `<iframe>` mentah tetap dibuang, sementara direktif tetap bekerja karena jalur itu hanya bisa menghasilkan ID yang sudah lolos validasi.
+
+**Direktif tak dikenal dikembalikan ke teks aslinya.** remark-directive memperlakukan `:kata` sebagai text directive, jadi prosa biasa bisa memicunya. Tanpa pemulihan sumber, mdast-util-to-hast merender direktif tak tertangani sebagai elemen kosong — **menghapus kalimat penulis diam-diam**. Ada test untuk kalimat `Ratio was 3:1 and the flag is :experimental here.`
+
+### H.2 Keputusan produk di dalam pipeline
+
+| Keputusan                                                                    | Alasan                                                                                                                                                                                                                                                                                                                                                                                      |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Embed X = **kartu statis, bukan widget X**                                   | `widgets.js` adalah JavaScript pihak ketiga yang menyetel cookie — tidak boleh dimuat sebelum consent CMP (§14), jadi ia tidak akan tampil untuk sebagian besar pembaca Eropa. Ditambah satu round-trip render-blocking untuk kutipan sepanjang satu link. Kartu selalu tampil, untuk semua pembaca, tanpa biaya script. **Bisa ditinjau ulang** kalau Anda merasa tampilan asli X sepadan. |
+| YouTube lewat `youtube-nocookie.com`, `loading="lazy"`, dibungkus rasio 16:9 | nocookie menahan cookie pelacak sampai pemutaran, jadi ia boleh dimuat sebelum consent. Wrapper rasio memesan tempatnya sehingga iframe yang datang belakangan tidak menggeser halaman (§12.5, CLS).                                                                                                                                                                                        |
+| Body di-index dari `body_text`, bukan `body_md`                              | Test membuktikan `const secretToken = 1` di code block tidak jadi kata yang bisa dicari.                                                                                                                                                                                                                                                                                                    |
+| TOC hanya h2 dan h3                                                          | h1 adalah judul artikel; lebih dalam dari h3 menghasilkan outline yang tidak dipakai siapa pun untuk navigasi.                                                                                                                                                                                                                                                                              |
+| 200 kata/menit                                                               | Angka untuk prosa teknis.                                                                                                                                                                                                                                                                                                                                                                   |
+
+### H.3 Slug berubah = 301 otomatis
+
+PRD §12.1 mewajibkan mencatat 301 saat slug berubah. Mengandalkan ingatan untuk itu adalah cara membuang link equity, jadi `saveArticleLocale` menuliskannya dalam transaksi yang sama. Tiga langkah, berurutan:
+
+1. Apa pun yang sudah menunjuk ke path lama **dipindah** ke path baru. Rantai A→B→C adalah hop terbuang dan mengencerkan apa yang diteruskan 301.
+2. Rename-nya sendiri di-insert.
+3. Path yang sedang hidup dihapus dari sisi `from_path` — kasus ini muncul saat slug dikembalikan ke nilai yang pernah dipakai, dan tanpa langkah ini artikel akan me-redirect ke dirinya sendiri.
+
+Ada test untuk ketiganya. Form redirect manual juga menolak aturan yang targetnya sendiri sudah jadi sumber redirect.
+
+### H.4 Live preview lewat server
+
+Preview di editor dirender oleh **endpoint server yang memakai pipeline yang sama** dengan yang menulis `body_html` saat simpan. Renderer markdown di klien akan jadi pipeline kedua dengan sanitizer, embed, dan highlighter sendiri — dan begitu keduanya berbeda, preview berhenti jadi preview. Satu renderer, satu jawaban. Di-debounce 400 ms dan permintaan lama di-abort.
+
+Konsekuensinya `carta-md` (§E.2) tidak dipasang: nilainya ada di renderer bawaannya, dan itu justru yang tidak boleh dipakai di sini. Textarea + preview server sudah menutup kebutuhannya.
+
+### H.5 Preview link
+
+HMAC-SHA256 atas `articleId.locale.exp`. Nol tabel, nol baris kedaluwarsa untuk disapu. Signature diverifikasi **sebelum** expiry dipercaya, karena expiry adalah bagian dari yang dilindungi signature — membacanya lebih dulu akan membiarkan siapa pun memperpanjang link-nya sendiri. Ada test yang mencoba persis itu. Merotasi `PREVIEW_TOKEN_SECRET` membatalkan semua link sekaligus; itu seluruh cerita revocation-nya.
+
+Halaman preview `no-store` + `noindex, nofollow, noarchive`: draft yang terindeks lebih buruk daripada tidak ada preview sama sekali.
+
+### H.6 Yang dibuktikan
+
+71 test unit/integrasi (naik dari 29) dan 16 e2e (naik dari 9).
+
+- **Sanitasi**: `<script>` beserta isinya, `onerror=`, `javascript:` URL, `<iframe>` dari penulis, atribut dan tag `style` — semuanya dibuang; markdown biasa utuh.
+- **Direktif**: ID YouTube diterima dari bare id / youtu.be / watch?v= / shorts; ditolak untuk URL asing, path traversal, dan payload `"><script>`; `x.com.evil.example` ditolak sebagai lookalike; direktif salah menghasilkan pesan error yang terlihat, bukan hilang.
+- **Ekstraksi**: TOC punya id yang benar-benar ada di markup; prosa tidak memuat isi code block maupun URL; state tidak bocor antar render.
+- **E2E**: `<script>window.__pwned = true</script>` disimpan lalu dimuat ulang — `window.__pwned` tetap `undefined` dan markup-nya hilang.
+- **E2E**: buat artikel → render → ganti slug (301 tercatat) → tambah locale kedua (kosong, bukan terjemahan) → preview link dibuka tanpa session → token dipalsukan ditolak 404 → publish.
+
+### H.7 Belum dikerjakan
+
+- Upload gambar dan picker media: Fase 4. Editor belum bisa menyisipkan gambar.
+- Halaman topik/dossier: admin-nya belum ada; tabelnya sudah siap sejak Fase 1.
+- Facade klik-untuk-muat pada YouTube. Iframe lazy sudah cukup di bawah lipatan; kalau CWV Fase 8 menunjukkan masalah, ini gantinya.

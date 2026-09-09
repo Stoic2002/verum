@@ -48,6 +48,8 @@ export default defineConfig({
 			urlPatterns: [
 				unlocalized('/admin/:path(.*)?'),
 				unlocalized('/api/:path(.*)?'),
+				// Signed draft links carry their own locale in the token.
+				unlocalized('/preview/:path(.*)?'),
 				unlocalized('/robots.txt'),
 				unlocalized('/ads.txt'),
 				unlocalized('/rss.xml'),

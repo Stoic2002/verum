@@ -75,6 +75,20 @@ Redis kalau nanti berjalan lebih dari satu instance (`docs/PLAN-DEV.md` §G.2).
 tanpa itu semua request terlihat berasal dari satu IP dan rate limit login akan
 memblokir semua orang sekaligus. Lihat `.env.example`.
 
+**Markdown dirender sekali, saat simpan.** Pipeline runtime remark/rehype ada di
+`src/lib/server/content/render.ts` dan hasilnya masuk ke `body_html`. Preview di
+editor memakai endpoint server dengan pipeline yang sama — bukan renderer
+klien, supaya preview tidak pernah berbeda dari hasil terbit.
+
+**Sanitasi berjalan setelah `rehype-raw` dan sebelum ekspansi embed.** Skema
+sanitasi sengaja tidak mengizinkan `<iframe>`: `::youtube{id=…}` bekerja karena
+jalur itu hanya bisa menghasilkan ID yang sudah divalidasi, sementara `<iframe>`
+yang ditempel penulis tetap dibuang. Jangan ubah urutan plugin tanpa membaca
+`docs/PLAN-DEV.md` §H.1.
+
+**Mengganti slug menulis 301 secara otomatis**, dalam transaksi yang sama, dan
+memindahkan redirect lama agar tidak terbentuk rantai.
+
 **Skema database beku.** 15 tabel, migrasi di `drizzle/`. Perubahan hanya lewat
 migrasi baru dengan alasan tertulis (`docs/PLAN-DEV.md` §D.4). Yang berbeda dari
 PRD §11 dan alasannya ada di §F.1.
