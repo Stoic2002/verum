@@ -20,6 +20,7 @@
 		"test:unit": "vitest --passWithNoTests",
 		"test:e2e": "playwright test",
 		"test:e2e:install": "playwright install --with-deps chromium",
+		"smoke": "bash scripts/smoke-build.sh",
 		"db:setup": "bash scripts/db-setup.sh",
 		"db:docker": "docker compose up -d --wait",
 		"db:push": "drizzle-kit push",
@@ -34,6 +35,7 @@
 	"dependencies": {
 		"@node-rs/argon2": "^2.2.0",
 		"@shikijs/rehype": "^4.4.3",
+		"aws4fetch": "^1.0.20",
 		"drizzle-orm": "^0.45.2",
 		"hast-util-to-string": "^3.0.1",
 		"postgres": "^3.4.9",
@@ -45,6 +47,7 @@
 		"remark-gfm": "^4.0.1",
 		"remark-parse": "^11.0.0",
 		"remark-rehype": "^11.1.2",
+		"sharp": "^0.35.4",
 		"shiki": "^4.4.3",
 		"sveltekit-superforms": "^2.30.2",
 		"unified": "^11.0.5",

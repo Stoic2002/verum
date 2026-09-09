@@ -10,6 +10,7 @@
 	const nav = [
 		{ href: resolve('/admin'), label: 'Dashboard' },
 		{ href: resolve('/(admin)/admin/(app)/articles'), label: 'Articles' },
+		{ href: resolve('/(admin)/admin/(app)/media'), label: 'Media' },
 		{ href: resolve('/(admin)/admin/(app)/taxonomy'), label: 'Categories & tags' },
 		{ href: resolve('/(admin)/admin/(app)/redirects'), label: 'Redirects' }
 	];

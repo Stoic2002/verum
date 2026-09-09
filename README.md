@@ -89,6 +89,15 @@ yang ditempel penulis tetap dibuang. Jangan ubah urutan plugin tanpa membaca
 **Mengganti slug menulis 301 secara otomatis**, dalam transaksi yang sama, dan
 memindahkan redirect lama agar tidak terbentuk rantai.
 
+**Upload gambar menghasilkan 7 objek**: 3 lebar × AVIF/WebP, ditambah original
+yang disimpan supaya mengganti breakpoint nanti jadi re-render, bukan meminta
+penulis meng-upload ulang semuanya. SVG ditolak; EXIF (termasuk GPS) dibuang.
+
+**Tanpa kredensial R2, upload ditulis ke direktori lokal** dan disajikan lewat
+`/media/...`. Mengisi _sebagian_ variabel R2 adalah error yang menggagalkan
+start — bukan fallback diam-diam, karena deploy produksi yang kurang satu
+variabel akan kehilangan semua upload saat restart.
+
 **Skema database beku.** 15 tabel, migrasi di `drizzle/`. Perubahan hanya lewat
 migrasi baru dengan alasan tertulis (`docs/PLAN-DEV.md` §D.4). Yang berbeda dari
 PRD §11 dan alasannya ada di §F.1.

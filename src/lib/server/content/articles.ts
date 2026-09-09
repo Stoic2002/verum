@@ -8,7 +8,8 @@ import {
 	type ArticleStatus,
 	type Locale
 } from '../db/schema';
-import { renderMarkdown } from './render';
+import { getMediaByIds, getStorage } from '../media';
+import { referencedMediaIds, renderMarkdown } from './render';
 
 /**
  * Writing an article is the only place markdown is rendered.
@@ -85,7 +86,12 @@ async function writeLocale(
 	locale: Locale,
 	content: ArticleLocaleInput
 ) {
-	const rendered = await renderMarkdown(content.bodyMd);
+	// Images are looked up before rendering, so the pipeline itself does no I/O
+	// and stays a pure function of (markdown, media).
+	const rendered = await renderMarkdown(content.bodyMd, {
+		media: await getMediaByIds(tx, referencedMediaIds(content.bodyMd)),
+		mediaUrl: (key) => getStorage().url(key)
+	});
 
 	const [existing] = await tx
 		.select({ slug: articleLocales.slug, publishedAt: articleLocales.publishedAt })

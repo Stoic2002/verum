@@ -108,6 +108,31 @@
 			{#if $errors.publishAt}<p class="error">{$errors.publishAt}</p>{/if}
 		{/if}
 
+		<fieldset>
+			<legend>Cover image</legend>
+			<div class="covers">
+				<button
+					type="button"
+					class="cover"
+					class:selected={$form.coverMediaId === 0}
+					onclick={() => ($form.coverMediaId = 0)}
+				>
+					None
+				</button>
+				{#each data.media as item (item.id)}
+					<button
+						type="button"
+						class="cover"
+						class:selected={$form.coverMediaId === item.id}
+						title={item.alt}
+						onclick={() => ($form.coverMediaId = item.id)}
+					>
+						<img src={item.thumb} alt={item.alt} loading="lazy" />
+					</button>
+				{/each}
+			</div>
+		</fieldset>
+
 		<label class="check">
 			<input type="checkbox" bind:checked={$form.isLiving} />
 			Living article — updated in place rather than replaced (PRD §12.4)
@@ -198,6 +223,33 @@
 		font-size: 0.8125rem;
 		font-weight: 600;
 		padding: 0 0.25rem;
+	}
+	.covers {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.375rem;
+		max-height: 11rem;
+		overflow-y: auto;
+	}
+	.covers :global(button.cover) {
+		padding: 0;
+		border: 2px solid transparent;
+		border-radius: 4px;
+		background: #f3f3f3;
+		color: #555;
+		font-size: 0.75rem;
+		min-width: 5rem;
+		min-height: 3.5rem;
+		line-height: 0;
+		overflow: hidden;
+	}
+	.covers :global(button.cover.selected) {
+		border-color: #111;
+	}
+	.covers img {
+		width: 5rem;
+		height: 3.5rem;
+		object-fit: cover;
 	}
 	.danger h2 {
 		color: #b00020;

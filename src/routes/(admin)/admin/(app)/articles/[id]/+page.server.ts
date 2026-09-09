@@ -13,6 +13,7 @@ import {
 } from '$lib/server/content/articles';
 import { createPreviewToken } from '$lib/server/content/preview-token';
 import { articleSettingsSchema } from '$lib/server/content/schemas';
+import { getStorage, listMedia, pictureFor } from '$lib/server/media';
 import { LOCALES, articles, type Locale } from '$lib/server/db/schema';
 import type { PageServerLoad } from './$types';
 
@@ -43,6 +44,7 @@ export const load: PageServerLoad = async ({ params }) => {
 	const form = await superValidate(
 		{
 			categoryId: article.categoryId,
+			coverMediaId: article.coverMediaId ?? 0,
 			status: article.status,
 			isLiving: article.isLiving,
 			publishAt: toLocalInput(firstPublished),
@@ -51,9 +53,17 @@ export const load: PageServerLoad = async ({ params }) => {
 		adapter
 	);
 
+	const storage = getStorage();
+	const library = await listMedia(db, 60);
+
 	return {
 		article,
 		form,
+		media: library.map((row) => ({
+			id: row.id,
+			alt: row.alt,
+			thumb: pictureFor(row, (key) => storage.url(key)).src
+		})),
 		categories: await categoryOptions(db, 'en'),
 		tags: await tagOptions(db),
 		missingLocales: LOCALES.filter((l) => !article.locales.some((row) => row.locale === l)),
@@ -69,9 +79,12 @@ export const actions: Actions = {
 		const form = await superValidate(request, adapter);
 		if (!form.valid) return message(form, 'Fix the errors below.', { status: 400 });
 
-		const { categoryId, status, isLiving, publishAt, tagIds } = form.data;
+		const { categoryId, coverMediaId, status, isLiving, publishAt, tagIds } = form.data;
 
-		await db.update(articles).set({ categoryId, isLiving }).where(eq(articles.id, id));
+		await db
+			.update(articles)
+			.set({ categoryId, isLiving, coverMediaId: coverMediaId || null })
+			.where(eq(articles.id, id));
 
 		await setArticleStatus(db, id, status, parsePublishAt(publishAt));
 		await setArticleTags(db, id, tagIds);

@@ -424,3 +424,69 @@ Halaman preview `no-store` + `noindex, nofollow, noarchive`: draft yang terindek
 - Upload gambar dan picker media: Fase 4. Editor belum bisa menyisipkan gambar.
 - Halaman topik/dossier: admin-nya belum ada; tabelnya sudah siap sejak Fase 1.
 - Facade klik-untuk-muat pada YouTube. Iframe lazy sudah cukup di bawah lipatan; kalau CWV Fase 8 menunjukkan masalah, ini gantinya.
+
+---
+
+## Bagian I — Catatan implementasi Fase 4 (media)
+
+### I.1 Storage bisa ditukar, dan konfigurasi separuh adalah error
+
+Satu antarmuka `Storage` dengan dua driver: **R2** untuk produksi, **direktori lokal** untuk pengembangan dan CI. Itu yang membuat Fase 4 bisa dibangun dan diuji lengkap sebelum akun R2 ada.
+
+Yang penting: **mengisi sebagian variabel R2 melempar error, bukan diam-diam jatuh ke filesystem.** Deploy produksi yang kurang satu variabel akan menulis upload ke disk container dan kehilangannya saat restart berikutnya — kegagalan yang baru ketahuan berminggu-minggu kemudian. Sekarang ia menolak start.
+
+Route `/media/[...path]` yang menyajikan file lokal **menolak melayani apa pun saat driver R2 aktif**, jadi ia tidak bisa jadi origin produksi secara tidak sengaja.
+
+### I.2 Satu upload = 7 objek, bukan 6
+
+Exit criteria saya sendiri di §B menyebut 6 (3 ukuran × AVIF/WebP). Saya menyimpan **originalnya juga**.
+
+Alasannya: ia berbiaya beberapa sen setahun di R2, dan ia satu-satunya hal yang membuat mengganti breakpoint — atau menambah format baru nanti — jadi pekerjaan re-render, bukan meminta penulis mencari dan meng-upload ulang setiap gambar yang pernah dipakainya. Tanpa original, keputusan ukuran hari ini jadi pintu satu arah.
+
+Tidak ada fallback JPEG. Semua browser yang masih dipakai bisa membaca WebP; format ketiga hanya byte yang disimpan untuk tidak ada siapa-siapa.
+
+### I.3 Keamanan dan privasi upload
+
+| Kontrol                                        | Alasan                                                                                                                                                                                       |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SVG ditolak**                                | SVG bukan format gambar di sini, ia wadah script.                                                                                                                                            |
+| Semua input di-decode ulang oleh sharp         | Apa pun yang diklaim file itu, yang tersimpan adalah keluaran sharp.                                                                                                                         |
+| `limitInputPixels` + batas dimensi             | Decompression bomb: file kecil yang mengembang jadi gigapixel.                                                                                                                               |
+| `rotate()` tanpa argumen                       | Membakar orientasi EXIF lalu **membuang metadatanya** — termasuk **koordinat GPS** dari foto ponsel. sharp tidak menulis metadata kecuali diminta, jadi itu seluruh ceritanya. Ada test-nya. |
+| `alt` wajib di form, bukan hanya default kolom | Gambar tanpa alt text adalah cacat aksesibilitas, dan saat yang tepat memperbaikinya adalah sekarang.                                                                                        |
+| Key = hash konten                              | Objek di sebuah key tidak pernah berubah arti, jadi bisa `immutable` setahun (§10.3). Upload ulang file yang sama mengembalikan baris yang ada, bukan duplikat.                              |
+
+### I.4 CLS: dimensi bukan hiasan
+
+`::image{id=N}` dirender jadi `<picture>` lengkap: `<source>` AVIF lalu WebP dengan `srcset`, `sizes`, dan `<img>` dengan **`width` dan `height` intrinsik**, `loading="lazy"`, `decoding="async"`.
+
+Tanpa `width`/`height`, browser tidak bisa memesan kotaknya sebelum byte-nya tiba, dan setiap gambar di halaman jadi layout shift. Ada e2e yang mengukur CLS sungguhan lewat `PerformanceObserver` dan menuntut **tepat 0** — bukan 0,1 yang diizinkan §12.5.
+
+### I.5 Bug yang ditemukan dan diperbaiki di Fase 3
+
+Pipeline render Fase 3 menyimpan hasil ekstraksi TOC/prosa di **variabel module-scope**. `renderMarkdown` menunggu Shiki, jadi render kedua bisa mendarat di antara ekstraksi render pertama dan pembacaannya — lalu menyerahkan heading artikel yang salah.
+
+Ini persis kegagalan yang PRD §10.4 uraikan untuk locale, dan **tidak akan pernah muncul dengan satu request pada satu waktu**. Sekarang state per-render hidup di `VFile`, dan ada test yang menjalankan tiga render bersamaan lewat `Promise.all` untuk membuktikannya.
+
+### I.6 Smoke test build produksi
+
+`vite preview` bukan yang berjalan di produksi. `scripts/smoke-build.sh` menjalankan `node build/index.js` — entry yang sama yang akan distart systemd — dan memeriksa lima path. Sudah masuk CI.
+
+Alasannya konkret: `sharp` dan `@node-rs/argon2` adalah native module, dan itu justru kelas dependensi yang bekerja di dev server lalu gagal di bundle adapter-node. `bun.lock` sudah memuat `@img/sharp-linux-x64`, jadi CI Linux aman dengan `--frozen-lockfile`.
+
+### I.7 Yang dibuktikan
+
+85 test unit/integrasi (naik dari 71) dan 21 e2e (naik dari 16).
+
+- 2400×1600 → tepat 6 rendition + original; 400×300 → 2 rendition, **tidak pernah di-upscale**.
+- Byte yang sama → hash sama → key sama; upload ulang tidak menduplikasi baris.
+- EXIF termasuk GPS hilang dari hasil.
+- SVG, teks biasa, dan file kosong ditolak sebagai `UploadError`, bukan 500.
+- Hapus media membuang baris **dan** ketujuh objeknya.
+- `::image{id=999}` yang tidak ada di library menghasilkan error terlihat, bukan `<img>` rusak.
+- E2E: upload → 6 rendition → sisipkan ke artikel → `<picture>` dengan `width="2000" height="1250"` → **CLS terukur 0**.
+
+### I.8 Belum dikerjakan
+
+- Halaman publik belum memakai `pictureFor`; Fase 5 yang memasangnya di homepage, kategori, dan artikel.
+- Belum ada pembersihan objek yatim (upload yang gagal di tengah meninggalkan objek tanpa baris). Sengaja: baris ditulis **setelah** objek, karena objek yatim berharga beberapa sen sementara baris yang menunjuk file tidak ada adalah gambar rusak di artikel terbit. Skrip pembersih masuk Fase 8 kalau memang perlu.

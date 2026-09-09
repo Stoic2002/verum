@@ -1,5 +1,7 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
-import { renderMarkdown } from '$lib/server/content/render';
+import { db } from '$lib/server/db';
+import { getMediaByIds, getStorage } from '$lib/server/media';
+import { referencedMediaIds, renderMarkdown } from '$lib/server/content/render';
 
 /**
  * Renders the editor's markdown for live preview.
@@ -21,7 +23,10 @@ export const POST: RequestHandler = async ({ request }) => {
 		return json({ error: 'markdown too large' }, { status: 413 });
 	}
 
-	const { html, toc, wordCount, readingMinutes } = await renderMarkdown(markdown);
+	const { html, toc, wordCount, readingMinutes } = await renderMarkdown(markdown, {
+		media: await getMediaByIds(db, referencedMediaIds(markdown)),
+		mediaUrl: (key) => getStorage().url(key)
+	});
 
 	return json({ html, toc, wordCount, readingMinutes });
 };

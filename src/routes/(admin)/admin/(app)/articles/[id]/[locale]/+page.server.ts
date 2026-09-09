@@ -6,6 +6,7 @@ import { getArticleForAdmin, getArticleLocale } from '$lib/server/db/queries/adm
 import { saveArticleLocale } from '$lib/server/content/articles';
 import { createPreviewToken } from '$lib/server/content/preview-token';
 import { articleLocaleSchema } from '$lib/server/content/schemas';
+import { getStorage, listMedia, pictureFor } from '$lib/server/media';
 import { LOCALES, type Locale } from '$lib/server/db/schema';
 import type { PageServerLoad } from './$types';
 
@@ -21,7 +22,15 @@ export const load: PageServerLoad = async ({ params }) => {
 	const row = article && (await getArticleLocale(db, id, locale));
 	if (!article || !row) error(404, 'Not found');
 
+	const storage = getStorage();
+	const library = await listMedia(db, 60);
+
 	return {
+		media: library.map((row) => ({
+			id: row.id,
+			alt: row.alt,
+			thumb: pictureFor(row, (key) => storage.url(key)).src
+		})),
 		articleId: id,
 		locale,
 		categorySlug: article.categorySlug,

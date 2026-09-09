@@ -50,6 +50,8 @@ export default defineConfig({
 				unlocalized('/api/:path(.*)?'),
 				// Signed draft links carry their own locale in the token.
 				unlocalized('/preview/:path(.*)?'),
+				// Uploads are content-addressed; a locale prefix would mean nothing.
+				unlocalized('/media/:path(.*)?'),
 				unlocalized('/robots.txt'),
 				unlocalized('/ads.txt'),
 				unlocalized('/rss.xml'),

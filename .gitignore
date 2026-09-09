@@ -36,3 +36,6 @@ blob-report
 
 # Backups
 backups/
+
+# Local media uploads (fs storage driver)
+.media/

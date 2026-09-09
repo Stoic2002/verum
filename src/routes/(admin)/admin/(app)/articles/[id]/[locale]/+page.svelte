@@ -60,6 +60,31 @@
 		};
 	});
 
+	let bodyEl: HTMLTextAreaElement | undefined = $state();
+	let showLibrary = $state(false);
+
+	/** Inserts at the cursor rather than appending, so it lands where you are. */
+	function insertAtCursor(snippet: string) {
+		const el = bodyEl;
+		if (!el) {
+			$form.bodyMd += `\n\n${snippet}\n`;
+			return;
+		}
+
+		const { selectionStart: start, selectionEnd: end } = el;
+		const before = $form.bodyMd.slice(0, start);
+		const after = $form.bodyMd.slice(end);
+		const padded = `${before.endsWith('\n') || !before ? '' : '\n\n'}${snippet}\n`;
+
+		$form.bodyMd = before + padded + after;
+
+		const caret = before.length + padded.length;
+		queueMicrotask(() => {
+			el.focus();
+			el.setSelectionRange(caret, caret);
+		});
+	}
+
 	let slugTouched = $state(false);
 	const publicPath = $derived(`/${data.locale}/${data.categorySlug}/${$form.slug}`);
 </script>
@@ -118,7 +143,47 @@
 					· <code>:::callout&#123;type=warning&#125;</code>
 				</span>
 			</label>
-			<textarea id="bodyMd" class="editor" bind:value={$form.bodyMd} spellcheck="false"></textarea>
+			<div class="toolbar">
+				<button type="button" onclick={() => (showLibrary = !showLibrary)}>
+					{showLibrary ? 'Hide images' : 'Insert image'}
+				</button>
+				<button type="button" onclick={() => insertAtCursor(':::callout{type="note"}\n\n:::')}>
+					Callout
+				</button>
+				<button type="button" onclick={() => insertAtCursor('::youtube{id=""}')}>YouTube</button>
+				<button type="button" onclick={() => insertAtCursor('::x{url=""}')}>X post</button>
+			</div>
+
+			{#if showLibrary}
+				<div class="library">
+					{#if data.media.length === 0}
+						<p class="meta">
+							Nothing in the library yet. Upload on the
+							<a href={resolve('/(admin)/admin/(app)/media')}>Media</a> page.
+						</p>
+					{:else}
+						{#each data.media as item (item.id)}
+							<button
+								type="button"
+								title={item.alt}
+								onclick={() => {
+									insertAtCursor(`::image{id=${item.id}}`);
+									showLibrary = false;
+								}}
+							>
+								<img src={item.thumb} alt={item.alt} loading="lazy" />
+							</button>
+						{/each}
+					{/if}
+				</div>
+			{/if}
+
+			<textarea
+				id="bodyMd"
+				class="editor"
+				bind:this={bodyEl}
+				bind:value={$form.bodyMd}
+				spellcheck="false"></textarea>
 
 			<details>
 				<summary>SEO and corrections</summary>
@@ -212,6 +277,41 @@
 		gap: 1.5rem;
 		align-items: start;
 		margin-top: 1rem;
+	}
+	.toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.375rem;
+	}
+	.toolbar :global(button) {
+		border-color: #d0d0d0;
+		background: #fff;
+		color: #333;
+		font-size: 0.75rem;
+		padding: 0.25rem 0.5rem;
+	}
+	.library {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.375rem;
+		padding: 0.5rem;
+		border: 1px solid #e5e5e5;
+		border-radius: 6px;
+		max-height: 12rem;
+		overflow-y: auto;
+	}
+	.library :global(button) {
+		padding: 0;
+		border: 1px solid #ddd;
+		border-radius: 4px;
+		background: none;
+		overflow: hidden;
+		line-height: 0;
+	}
+	.library img {
+		width: 5rem;
+		height: 3.5rem;
+		object-fit: cover;
 	}
 	.editor {
 		min-height: 26rem;

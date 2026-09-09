@@ -1,6 +1,8 @@
 import type { Nodes as MdastNodes, Parents as MdastParents, Root as MdastRoot } from 'mdast';
-import type { VFile } from 'vfile';
 import type { Element, Properties, Root as HastRoot } from 'hast';
+import type { VFile } from 'vfile';
+import type { MediaRecord } from '../media';
+import { ARTICLE_IMAGE_SIZES, pictureFor } from '../media';
 import { visit } from 'unist-util-visit';
 
 /**
@@ -71,7 +73,7 @@ type DirectiveNode = {
 	children?: unknown[];
 };
 
-const KNOWN = new Set(['youtube', 'tweet', 'x', 'callout']);
+const KNOWN = new Set(['youtube', 'tweet', 'x', 'callout', 'image']);
 
 /**
  * Rewrites known directives into sanitiser-safe placeholders.
@@ -168,6 +170,25 @@ export function remarkEmbeds() {
 				return;
 			}
 
+			if (directive.name === 'image' && directive.type === 'leafDirective') {
+				const id = Number(attrs.id);
+				if (!Number.isInteger(id) || id <= 0) {
+					errored(directive, `Invalid image id: ${attrs.id ?? '(missing)'}`);
+					return;
+				}
+
+				directive.data = {
+					hName: 'div',
+					hProperties: {
+						'data-embed': 'image',
+						'data-id': String(id),
+						'data-title': attrs.caption ?? ''
+					}
+				};
+				directive.children = [];
+				return;
+			}
+
 			if (directive.name === 'callout') {
 				const type = CALLOUT_TYPES.has(attrs.type ?? '') ? attrs.type! : 'note';
 				directive.data = {
@@ -194,7 +215,10 @@ const el = (
  * everything it emits is trusted by construction.
  */
 export function rehypeEmbeds() {
-	return (tree: HastRoot) => {
+	return (tree: HastRoot, file: VFile) => {
+		const mediaById = (file.data.media as Map<number, MediaRecord> | undefined) ?? new Map();
+		const mediaUrl = (file.data.mediaUrl as ((key: string) => string) | undefined) ?? ((k) => k);
+
 		visit(tree, 'element', (node: Element) => {
 			const kind = node.properties?.['dataEmbed'];
 			if (typeof kind !== 'string') return;
@@ -245,6 +269,49 @@ export function rehypeEmbeds() {
 							{ type: 'text', value: `@${handle} on X` }
 						])
 					])
+				];
+				return;
+			}
+
+			if (kind === 'image') {
+				const id = Number(node.properties?.['dataId'] ?? 0);
+				const caption = String(node.properties?.['dataTitle'] ?? '');
+				const record = mediaById.get(id);
+
+				if (!record) {
+					node.tagName = 'p';
+					node.properties = { className: ['embed-error'] };
+					node.children = [{ type: 'text', value: `Image #${id} is missing from the library` }];
+					return;
+				}
+
+				const picture = pictureFor(record, mediaUrl);
+
+				node.tagName = 'figure';
+				node.properties = { className: ['embed', 'embed--image'] };
+				node.children = [
+					el('picture', {}, [
+						...picture.sources.map((source) =>
+							el('source', {
+								type: source.type,
+								srcSet: source.srcset,
+								sizes: ARTICLE_IMAGE_SIZES
+							})
+						),
+						el('img', {
+							src: picture.src,
+							alt: picture.alt,
+							// Intrinsic dimensions are what let the browser reserve the box
+							// before any bytes arrive. Without them every image on the page
+							// is a layout shift (PRD §12.5).
+							width: picture.width,
+							height: picture.height,
+							sizes: ARTICLE_IMAGE_SIZES,
+							loading: 'lazy',
+							decoding: 'async'
+						})
+					]),
+					...(caption ? [el('figcaption', {}, [{ type: 'text' as const, value: caption }])] : [])
 				];
 				return;
 			}

@@ -213,4 +213,20 @@ describe('extraction', () => {
 		expect(second.toc).toHaveLength(0);
 		expect(second.text).not.toContain('Only heading');
 	});
+
+	it('keeps concurrent renders separate', async () => {
+		// The processor is reused across calls, so per-render state has to live on
+		// the VFile. Held in module scope, these two would overwrite each other.
+		const [a, b, c] = await Promise.all([
+			renderMarkdown('## Alpha heading\n\nAlpha prose.'),
+			renderMarkdown('## Beta heading\n\nBeta prose.'),
+			renderMarkdown('No heading, gamma prose.')
+		]);
+
+		expect(a.toc[0].text).toBe('Alpha heading');
+		expect(b.toc[0].text).toBe('Beta heading');
+		expect(c.toc).toHaveLength(0);
+		expect(a.text).not.toContain('Beta');
+		expect(b.text).not.toContain('Alpha');
+	});
 });

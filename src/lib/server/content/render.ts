@@ -9,7 +9,9 @@ import remarkGfm from 'remark-gfm';
 import remarkParse from 'remark-parse';
 import remarkRehype from 'remark-rehype';
 import { unified } from 'unified';
+import { VFile } from 'vfile';
 import type { TocEntry } from '../db/schema';
+import type { MediaRecord } from '../media';
 import { rehypeEmbeds, remarkEmbeds } from './embeds';
 
 /**
@@ -109,9 +111,18 @@ function extract(tree: Root): Extracted {
 	return { toc, text: prose.join(' ').replace(/\s+/g, ' ').trim() };
 }
 
-function rehypeExtract(store: { current?: Extracted }) {
-	return (tree: Root) => {
-		store.current = extract(tree);
+/**
+ * Writes into the VFile, never into module scope.
+ *
+ * A module-level slot would be shared by every render in flight on the process:
+ * renderMarkdown awaits Shiki, so a second call can land between the first
+ * call's extraction and its read and hand it the wrong article's headings.
+ * Exactly the failure PRD §10.4 describes for locale, and it would never
+ * reproduce with one request at a time.
+ */
+function rehypeExtract() {
+	return (tree: Root, file: VFile) => {
+		file.data.extracted = extract(tree);
 	};
 }
 
@@ -125,12 +136,10 @@ export type RenderedMarkdown = {
 };
 
 /**
- * The processor is built once and reused. Shiki loads a grammar and two themes
- * on construction; doing that per render would make saving an article
- * noticeably slow.
+ * The processor is built once and reused. Shiki loads grammars and two themes
+ * on construction; doing that per render would make saving an article slow.
+ * Per-call state travels on the VFile, so reuse is safe under concurrency.
  */
-const store: { current?: Extracted } = {};
-
 const processor = unified()
 	.use(remarkParse)
 	.use(remarkGfm)
@@ -144,7 +153,7 @@ const processor = unified()
 	// Placeholders become real markup only now, on the trusted side of the
 	// sanitiser — which is why the schema never has to allow <iframe>.
 	.use(rehypeEmbeds)
-	.use(rehypeExtract, store)
+	.use(rehypeExtract)
 	// Shiki emits inline styles, which sanitisation would strip — so it runs
 	// after it, on markup that is already trusted.
 	.use(rehypeShiki, {
@@ -173,11 +182,33 @@ const processor = unified()
 	})
 	.use(rehypeStringify, { allowDangerousHtml: false });
 
-export async function renderMarkdown(markdown: string): Promise<RenderedMarkdown> {
-	store.current = undefined;
+type MediaMap = Map<number, MediaRecord>;
 
-	const file = await processor.process(markdown ?? '');
-	const { toc, text } = store.current ?? { toc: [], text: '' };
+/** Images referenced by `::image{id=N}`, resolved by the caller before rendering. */
+export type RenderContext = {
+	media?: MediaMap;
+	mediaUrl?: (key: string) => string;
+};
+
+/** Ids to fetch before rendering, so the pipeline itself stays free of I/O. */
+export function referencedMediaIds(markdown: string): number[] {
+	const ids = new Set<number>();
+	for (const match of (markdown ?? '').matchAll(/::image\{[^}]*\bid=["']?(\d+)/g)) {
+		ids.add(Number(match[1]));
+	}
+	return [...ids];
+}
+
+export async function renderMarkdown(
+	markdown: string,
+	context: RenderContext = {}
+): Promise<RenderedMarkdown> {
+	const file = new VFile({ value: markdown ?? '' });
+	file.data.media = context.media;
+	file.data.mediaUrl = context.mediaUrl;
+	await processor.process(file);
+
+	const { toc, text } = (file.data.extracted as Extracted | undefined) ?? { toc: [], text: '' };
 
 	const wordCount = text ? text.split(/\s+/).filter(Boolean).length : 0;
 
@@ -188,4 +219,12 @@ export async function renderMarkdown(markdown: string): Promise<RenderedMarkdown
 		wordCount,
 		readingMinutes: wordCount ? Math.max(1, Math.round(wordCount / WORDS_PER_MINUTE)) : 0
 	};
+}
+
+declare module 'vfile' {
+	interface DataMap {
+		extracted: Extracted;
+		media: MediaMap | undefined;
+		mediaUrl: ((key: string) => string) | undefined;
+	}
 }

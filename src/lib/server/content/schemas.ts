@@ -43,6 +43,8 @@ export const newArticleSchema = v.object({
 
 export const articleSettingsSchema = v.object({
 	categoryId: v.pipe(v.number(), v.integer(), v.minValue(1)),
+	/** 0 means no cover image. */
+	coverMediaId: v.pipe(v.number(), v.integer(), v.minValue(0)),
 	status: v.picklist(ARTICLE_STATUSES),
 	isLiving: v.boolean(),
 	/** Local datetime string from <input type="datetime-local">; empty means now. */
