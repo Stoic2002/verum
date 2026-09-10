@@ -1,4 +1,6 @@
 <script lang="ts">
+	import '$lib/styles/tokens.css';
+	import '$lib/styles/forms.css';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 
@@ -35,7 +37,7 @@
 
 		<form method="POST" action="/admin/logout" class="account">
 			<span title={data.user.email}>{data.user.email}</span>
-			<button type="submit">Sign out</button>
+			<button type="submit" class="btn btn--secondary btn--sm">Sign out</button>
 		</form>
 	</aside>
 
@@ -49,70 +51,90 @@
 		display: grid;
 		grid-template-columns: 15rem 1fr;
 		min-height: 100vh;
-		font-family: system-ui, sans-serif;
-		color: #111;
+		background: var(--bg);
+		color: var(--text);
 	}
 	aside {
 		display: flex;
 		flex-direction: column;
-		gap: 1.5rem;
-		padding: 1.25rem;
-		border-right: 1px solid #e5e5e5;
-		background: #fafafa;
+		gap: 1.75rem;
+		padding: 1.25rem 1rem;
+		border-right: 1px solid var(--border);
+		background: var(--surface);
+		position: sticky;
+		top: 0;
+		height: 100vh;
 	}
 	.brand {
-		font-weight: 700;
-		letter-spacing: 0.08em;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0 0.5rem;
+		color: var(--text);
+		font-weight: var(--weight-strong);
+		letter-spacing: 0.16em;
 		text-decoration: none;
-		color: inherit;
+	}
+	.brand::before {
+		content: '';
+		width: 0.4375rem;
+		height: 0.4375rem;
+		border-radius: 50%;
+		background: var(--accent);
 	}
 	nav {
 		display: grid;
 		gap: 0.125rem;
 	}
 	nav a {
-		padding: 0.375rem 0.5rem;
-		border-radius: 4px;
-		color: #444;
+		padding: 0.4375rem 0.5rem;
+		border-radius: var(--r-md);
+		color: var(--text-2);
 		text-decoration: none;
 		font-size: 0.875rem;
+		transition:
+			background var(--dur) var(--ease),
+			color var(--dur) var(--ease);
+	}
+	nav a:hover {
+		background: var(--surface-2);
+		color: var(--text);
 	}
 	nav a[aria-current='page'] {
-		background: #111;
-		color: #fff;
+		background: var(--accent-tint);
+		color: var(--accent);
+		font-weight: var(--weight-strong);
 	}
 	.account {
 		margin-top: auto;
 		display: grid;
 		gap: 0.5rem;
 		font-size: 0.75rem;
-		color: #666;
+		color: var(--text-3);
 	}
 	.account span {
+		padding: 0 0.5rem;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
-	.account button {
-		padding: 0.375rem;
-		border: 1px solid #ccc;
-		border-radius: 4px;
-		background: #fff;
-		font: inherit;
-		cursor: pointer;
-	}
 	main {
-		padding: 1.75rem 2rem;
+		padding: 2rem 2.25rem 4rem;
+		min-width: 0;
 	}
-	/* Shared admin chrome. Defined once here rather than repeated per page. */
+
+	/* ── Shared admin chrome ──────────────────────────────────────────── */
+
 	main :global(h1) {
-		margin: 0 0 0.25rem;
-		font-size: 1.375rem;
+		margin: 0 0 0.375rem;
+		font-size: 1.5rem;
+		letter-spacing: var(--track-display);
 	}
 	main :global(.meta) {
-		color: #666;
+		color: var(--text-3);
 		font-size: 0.8125rem;
-		font-weight: 400;
+		font-weight: var(--weight-body);
+		line-height: 1.55;
 	}
 	main :global(.stack) {
 		display: grid;
@@ -122,73 +144,26 @@
 	main :global(.stack > label) {
 		margin-top: 0.625rem;
 		font-size: 0.8125rem;
-		font-weight: 600;
-	}
-	main :global(input),
-	main :global(select),
-	main :global(textarea) {
-		padding: 0.4375rem 0.5625rem;
-		border: 1px solid #ccc;
-		border-radius: 4px;
-		font: inherit;
-		background: #fff;
-		color: inherit;
-	}
-	main :global(textarea) {
-		font-family: inherit;
-		line-height: 1.6;
-	}
-	main :global(button),
-	main :global(.button) {
-		padding: 0.4375rem 0.75rem;
-		border: 1px solid #111;
-		border-radius: 4px;
-		background: #111;
-		color: #fff;
-		font: inherit;
-		font-size: 0.875rem;
-		text-decoration: none;
-		cursor: pointer;
-	}
-	main :global(button:disabled) {
-		opacity: 0.6;
-		cursor: default;
-	}
-	main :global(button.destructive) {
-		border-color: #d0d0d0;
-		background: #fff;
-		color: #b00020;
-	}
-	main :global(.check) {
-		display: flex;
-		align-items: center;
-		gap: 0.4375rem;
-		font-size: 0.875rem;
-		font-weight: 400;
-	}
-	main :global(.check input) {
-		width: auto;
+		font-weight: var(--weight-strong);
 	}
 	main :global(.error) {
 		margin: 0;
-		color: #b00020;
+		color: var(--danger);
 		font-size: 0.8125rem;
 	}
 	main :global(.notice) {
-		margin: 0 0 0.5rem;
-		padding: 0.5rem 0.75rem;
-		border-radius: 4px;
-		background: #eef6ee;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin: 0 0 0.75rem;
+		padding: 0.5625rem 0.875rem;
+		border-radius: var(--r-md);
+		background: var(--success-tint);
+		color: var(--success);
 		font-size: 0.8125rem;
 	}
-	main :global(.pill) {
-		display: inline-block;
-		padding: 0.0625rem 0.375rem;
-		border-radius: 999px;
-		background: #eee;
-		font-size: 0.6875rem;
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
+	main :global(.empty) {
+		color: var(--text-3);
 	}
 	main :global(table) {
 		width: 100%;
@@ -197,36 +172,66 @@
 	}
 	main :global(th) {
 		text-align: left;
-		font-size: 0.75rem;
+		font-size: 0.6875rem;
+		font-weight: var(--weight-strong);
 		text-transform: uppercase;
-		letter-spacing: 0.04em;
-		color: #666;
+		letter-spacing: var(--track-label);
+		color: var(--text-3);
 	}
 	main :global(th),
 	main :global(td) {
-		padding: 0.5rem 0.5rem 0.5rem 0;
-		border-bottom: 1px solid #eee;
+		padding: 0.625rem 0.625rem 0.625rem 0;
+		border-bottom: 1px solid var(--border);
 		vertical-align: top;
 	}
+	main :global(tbody tr:hover) {
+		background: var(--surface-2);
+	}
 	main :global(code) {
+		padding: 0.0625rem 0.3125rem;
+		border-radius: var(--r-sm);
+		background: var(--surface-3);
+		font-family: var(--font-mono);
 		font-size: 0.8125rem;
-		background: #f3f3f3;
-		padding: 0.0625rem 0.25rem;
-		border-radius: 3px;
 	}
 	main :global(details summary) {
 		cursor: pointer;
 		font-size: 0.875rem;
+		font-weight: var(--weight-strong);
 		margin-top: 0.75rem;
+		padding: 0.4375rem 0;
+	}
+	main :global(.num) {
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
 	}
 
-	@media (max-width: 48rem) {
+	@media (max-width: 60rem) {
 		.shell {
 			grid-template-columns: 1fr;
 		}
 		aside {
+			position: static;
+			height: auto;
 			border-right: 0;
-			border-bottom: 1px solid #e5e5e5;
+			border-bottom: 1px solid var(--border);
+			flex-direction: row;
+			align-items: center;
+			flex-wrap: wrap;
+			gap: 0.75rem 1rem;
+		}
+		nav {
+			display: flex;
+			flex-wrap: wrap;
+			flex: 1;
+		}
+		.account {
+			margin-top: 0;
+			grid-auto-flow: column;
+			align-items: center;
+		}
+		main {
+			padding: 1.5rem 1.125rem 3rem;
 		}
 	}
 </style>

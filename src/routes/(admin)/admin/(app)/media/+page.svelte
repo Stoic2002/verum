@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { Button, Field, FileInput } from '$lib/components/ui';
 
 	let { data, form } = $props();
 
@@ -26,7 +27,7 @@
 	method="POST"
 	action="?/upload"
 	enctype="multipart/form-data"
-	class="stack upload"
+	class="form-grid upload"
 	use:enhance={() => {
 		uploading = true;
 		return async ({ update }) => {
@@ -40,29 +41,36 @@
 		<p class="notice">Uploaded #{form.uploaded} — {form.variants} renditions written.</p>
 	{/if}
 
-	<label for="file">Image <span class="meta">max {kb(data.maxBytes)}, no SVG</span></label>
-	<input
+	<Field
 		id="file"
-		name="file"
-		type="file"
-		accept="image/jpeg,image/png,image/webp,image/avif,image/gif,image/tiff"
-		required
-	/>
-
-	<label for="alt">
-		Alt text <span class="meta"
-			>Required. What the image shows, for a reader who cannot see it.</span
-		>
-	</label>
-	<input id="alt" name="alt" required />
-
-	<label for="credit"
-		>Credit <span class="meta">Optional. Source and licence (PRD §14).</span></label
+		label="Image"
+		hint="Drag one in, or choose a file. Max {kb(data.maxBytes)}. SVG is refused."
 	>
-	<input id="credit" name="credit" placeholder="Unsplash / Jane Doe" />
+		{#snippet children({ id, describedBy })}
+			<FileInput
+				{id}
+				name="file"
+				required
+				{describedBy}
+				accept="image/jpeg,image/png,image/webp,image/avif,image/gif,image/tiff"
+			/>
+		{/snippet}
+	</Field>
 
-	<div>
-		<button type="submit" disabled={uploading}>{uploading ? 'Processing…' : 'Upload'}</button>
+	<Field id="alt" label="Alt text" hint="What the image shows, for a reader who cannot see it.">
+		{#snippet children({ id, describedBy })}
+			<input {id} name="alt" required aria-describedby={describedBy} />
+		{/snippet}
+	</Field>
+
+	<Field id="credit" label="Credit" optional hint="Source and licence (PRD §14).">
+		{#snippet children({ id, describedBy })}
+			<input {id} name="credit" placeholder="Unsplash / Jane Doe" aria-describedby={describedBy} />
+		{/snippet}
+	</Field>
+
+	<div class="form-actions">
+		<Button type="submit" loading={uploading} loadingLabel="Processing…">Upload</Button>
 	</div>
 </form>
 
@@ -96,7 +104,7 @@
 						Insert: <code>::image&#123;id={item.id}&#125;</code>
 					</p>
 
-					<form method="POST" action="?/updateMeta" use:enhance class="stack tight">
+					<form method="POST" action="?/updateMeta" use:enhance class="tight">
 						<input type="hidden" name="id" value={item.id} />
 						<input name="alt" value={item.alt} aria-label="Alt text" required />
 						<input
@@ -106,17 +114,18 @@
 							placeholder="Credit"
 						/>
 						<div class="row">
-							<button type="submit">Save</button>
-							<button
+							<Button type="submit" size="sm" variant="secondary">Save</Button>
+							<Button
 								type="submit"
-								class="destructive"
+								size="sm"
+								variant="danger"
 								formaction="?/delete"
 								onclick={(e) => {
 									if (!confirm('Delete this image and every rendition?')) e.preventDefault();
 								}}
 							>
 								Delete
-							</button>
+							</Button>
 						</div>
 					</form>
 				</div>
@@ -129,7 +138,7 @@
 	.upload {
 		margin: 1.5rem 0 2rem;
 		padding: 1rem;
-		border: 1px solid #e5e5e5;
+		border: 1px solid var(--border);
 		border-radius: 6px;
 	}
 	.grid {
@@ -141,7 +150,7 @@
 		list-style: none;
 	}
 	.grid li {
-		border: 1px solid #e5e5e5;
+		border: 1px solid var(--border);
 		border-radius: 6px;
 		overflow: hidden;
 	}
@@ -150,7 +159,7 @@
 		width: 100%;
 		height: 9rem;
 		object-fit: cover;
-		background: #f3f3f3;
+		background: var(--surface-2);
 	}
 	.body {
 		padding: 0.625rem;
@@ -167,14 +176,15 @@
 		margin: 0.125rem 0;
 	}
 	.tight {
-		gap: 0.25rem;
-		margin-top: 0.5rem;
+		display: grid;
+		gap: 0.375rem;
+		margin-top: 0.625rem;
 	}
 	.row {
 		display: flex;
 		gap: 0.375rem;
 	}
 	.empty {
-		color: #666;
+		color: var(--text-3);
 	}
 </style>

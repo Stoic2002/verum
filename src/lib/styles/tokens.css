@@ -1,54 +1,52 @@
 /*
  * VERUM design tokens.
  *
- * The reference is app.uniswap.org. What is taken from it, and what is not:
+ * Reference: svelte.dev — restrained, content-first, modest rounding, and a
+ * palette that is comfortable to sit in for a long article rather than one
+ * that photographs well.
  *
- * TAKEN
- *   · Large headings at a LOW weight (Uniswap sets 36–52px at weight 485).
- *     Size carries the hierarchy; weight stays out of the way. This suits a
- *     publication even better than it suits an app.
- *   · Generous, consistent rounding — 12 / 16 / 20 / 24 — and pills for small
- *     controls.
- *   · Accent-tinted surfaces at 6–12% alpha instead of flat grey. It is what
- *     makes the interface feel coloured rather than painted.
- *   · A warm near-black (#131313), not a blue-black and not pure #000.
+ * Three deliberate departures from it:
  *
- * NOT TAKEN
- *   · The centred single-card layout. Uniswap has one action; a publication
- *     is scanned, so it needs a grid and real typographic hierarchy.
- *   · Backdrop blur. It costs paint on every scroll frame and softens text —
- *     the two things PRD §12.5's INP and LCP targets are most sensitive to.
- *   · Uniswap's exact magenta on light backgrounds. #FF37C7 on white is about
- *     2.5:1, which fails WCAG for text. The light theme uses a deeper shade of
- *     the same hue and keeps the bright one for dark, where it belongs.
- *   · A web font. Basel is theirs, and any downloaded face is a request in
- *     front of LCP. The low-weight-at-large-size effect is mostly size, weight
- *     and line-height, not the typeface.
+ *   · Accent is blue, not orange. Blue is the conventional signal for
+ *     trustworthiness, which is what PRD §4 positions this publication on.
+ *   · Light mode is not #fff. A pure white page is the brightest thing on a
+ *     display and the most tiring surface to read for twenty minutes.
+ *   · Dark mode follows svelte.dev's model — hue 220 at 12% lightness with
+ *     text at 92%, not near-black with near-white text. Maximum contrast is
+ *     not maximum legibility; it is glare.
  */
 
 :root {
-	/* ── Colour ────────────────────────────────────────────────────────── */
-	--bg: #fbfbfd;
-	--surface: #ffffff;
-	/* Tinted, not grey: the accent hue at low alpha over the page. */
-	--surface-2: color-mix(in srgb, var(--accent) 4%, #f4f4f6);
-	--surface-3: color-mix(in srgb, var(--accent) 8%, #eeeef1);
-	--border: #e6e6ec;
-	--border-strong: #d3d3dc;
+	/* Every neutral is mixed from one hue, so light and dark feel related. */
+	--hue: 220;
 
-	--text: #101014;
-	--text-2: #4a4a56;
-	--text-3: #74747f;
+	/* ── Ground and surfaces ───────────────────────────────────────────── */
+	--bg: hsl(var(--hue) 24% 97.5%);
+	--surface: hsl(var(--hue) 30% 99.5%);
+	--surface-2: hsl(var(--hue) 22% 95%);
+	--surface-3: hsl(var(--hue) 20% 91.5%);
+	--border: hsl(var(--hue) 18% 88%);
+	--border-strong: hsl(var(--hue) 16% 78%);
 
-	/* Deep enough for body links on white; the bright one lives in dark mode. */
-	--accent: #b3008a;
-	--accent-hover: #8f006e;
+	/* ── Text ──────────────────────────────────────────────────────────── */
+	/* Not #000: pure black on an off-white ground is harsher than it looks. */
+	--text: hsl(var(--hue) 20% 14%);
+	--text-2: hsl(var(--hue) 12% 34%);
+	--text-3: hsl(var(--hue) 10% 48%);
+
+	/* ── Accent ────────────────────────────────────────────────────────── */
+	/* 5.4:1 on the light ground — passes WCAG AA for body-size links. */
+	--accent: hsl(219 78% 44%);
+	--accent-hover: hsl(219 80% 36%);
 	--accent-contrast: #ffffff;
-	--accent-tint: color-mix(in srgb, var(--accent) 10%, transparent);
-	--accent-tint-strong: color-mix(in srgb, var(--accent) 16%, transparent);
+	--accent-tint: hsl(219 78% 44% / 0.09);
+	--accent-tint-strong: hsl(219 78% 44% / 0.16);
 
-	--focus: #0066ff;
-	--danger: #c1121f;
+	--focus: hsl(219 90% 50%);
+	--danger: hsl(0 68% 42%);
+	--danger-tint: hsl(0 68% 42% / 0.1);
+	--success: hsl(152 55% 30%);
+	--success-tint: hsl(152 55% 30% / 0.1);
 
 	/* ── Type ──────────────────────────────────────────────────────────── */
 	--font-body:
@@ -57,33 +55,30 @@
 	--font-display: var(--font-body);
 	--font-mono: ui-monospace, SFMono-Regular, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
 
-	/*
-	 * The signature: display text is large and light, never bold. 500 in a
-	 * static face lands close to Uniswap's 485.
-	 */
-	--weight-display: 500;
+	/* Size carries the hierarchy; weight stays out of the way. */
+	--weight-display: 550;
 	--weight-body: 400;
 	--weight-strong: 600;
 
-	--track-display: -0.02em;
-	--track-label: 0.06em;
+	--track-display: -0.018em;
+	--track-label: 0.05em;
 
 	/* ── Shape ─────────────────────────────────────────────────────────── */
-	--r-sm: 8px;
-	--r-md: 12px;
-	--r-lg: 16px;
-	--r-xl: 20px;
-	--r-2xl: 24px;
+	/* svelte.dev sits at 0.4rem. Modest rounding reads as a document, not an app. */
+	--r-sm: 5px;
+	--r-md: 8px;
+	--r-lg: 12px;
+	--r-xl: 16px;
 	--r-pill: 999px;
 
 	/* ── Elevation ─────────────────────────────────────────────────────── */
-	--shadow-sm: 0 1px 2px rgb(16 16 20 / 0.04), 0 1px 3px rgb(16 16 20 / 0.06);
-	--shadow-md: 0 2px 4px rgb(16 16 20 / 0.04), 0 8px 24px rgb(16 16 20 / 0.08);
-	--shadow-accent: 0 6px 20px color-mix(in srgb, var(--accent) 18%, transparent);
+	--shadow-sm: 0 1px 2px hsl(var(--hue) 20% 14% / 0.05);
+	--shadow-md: 0 1px 2px hsl(var(--hue) 20% 14% / 0.04), 0 6px 18px hsl(var(--hue) 20% 14% / 0.07);
+	--ring: 0 0 0 3px var(--accent-tint-strong);
 
 	/* ── Motion ────────────────────────────────────────────────────────── */
 	--ease: cubic-bezier(0.32, 0.72, 0, 1);
-	--dur: 160ms;
+	--dur: 150ms;
 
 	/* ── Layout ────────────────────────────────────────────────────────── */
 	--measure: 44rem;
@@ -93,55 +88,68 @@
 }
 
 /*
- * Dark is where the reference's palette belongs, so it gets the bright
- * magenta and the warm near-black verbatim.
+ * Dark. 12% lightness rather than near-black, and text at 92% rather than
+ * near-white — the same relationship svelte.dev uses, and the reason its docs
+ * are readable at night without the page glowing.
  */
 @media (prefers-color-scheme: dark) {
 	:root:not([data-theme='light']) {
-		--bg: #131313;
-		--surface: #1b1b1d;
-		--surface-2: color-mix(in srgb, var(--accent) 6%, #202023);
-		--surface-3: color-mix(in srgb, var(--accent) 10%, #26262a);
-		--border: #2b2b30;
-		--border-strong: #3a3a41;
+		--bg: hsl(var(--hue) 13% 12%);
+		--surface: hsl(var(--hue) 13% 15%);
+		--surface-2: hsl(var(--hue) 13% 17.5%);
+		--surface-3: hsl(var(--hue) 13% 22%);
+		--border: hsl(var(--hue) 13% 25%);
+		--border-strong: hsl(var(--hue) 12% 36%);
 
-		--text: #f4f4f6;
-		--text-2: #b4b4bf;
-		--text-3: #83838f;
+		--text: hsl(var(--hue) 8% 92%);
+		--text-2: hsl(var(--hue) 8% 76%);
+		--text-3: hsl(var(--hue) 8% 60%);
 
-		--accent: #ff37c7;
-		--accent-hover: #ff6bd6;
-		--accent-contrast: #17000f;
-		--focus: #5b9dff;
-		--danger: #ff6b6b;
+		--accent: hsl(214 92% 72%);
+		--accent-hover: hsl(214 95% 80%);
+		--accent-contrast: hsl(var(--hue) 30% 10%);
+		--accent-tint: hsl(214 92% 72% / 0.14);
+		--accent-tint-strong: hsl(214 92% 72% / 0.22);
 
-		--shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
-		--shadow-md: 0 2px 6px rgb(0 0 0 / 0.4), 0 12px 32px rgb(0 0 0 / 0.5);
+		--focus: hsl(214 95% 70%);
+		--danger: hsl(2 80% 70%);
+		--danger-tint: hsl(2 80% 70% / 0.14);
+		--success: hsl(152 50% 62%);
+		--success-tint: hsl(152 50% 62% / 0.14);
+
+		--shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.3);
+		--shadow-md: 0 1px 2px hsl(0 0% 0% / 0.3), 0 8px 24px hsl(0 0% 0% / 0.36);
 
 		color-scheme: dark;
 	}
 }
 
 :root[data-theme='dark'] {
-	--bg: #131313;
-	--surface: #1b1b1d;
-	--surface-2: color-mix(in srgb, var(--accent) 6%, #202023);
-	--surface-3: color-mix(in srgb, var(--accent) 10%, #26262a);
-	--border: #2b2b30;
-	--border-strong: #3a3a41;
+	--bg: hsl(var(--hue) 13% 12%);
+	--surface: hsl(var(--hue) 13% 15%);
+	--surface-2: hsl(var(--hue) 13% 17.5%);
+	--surface-3: hsl(var(--hue) 13% 22%);
+	--border: hsl(var(--hue) 13% 25%);
+	--border-strong: hsl(var(--hue) 12% 36%);
 
-	--text: #f4f4f6;
-	--text-2: #b4b4bf;
-	--text-3: #83838f;
+	--text: hsl(var(--hue) 8% 92%);
+	--text-2: hsl(var(--hue) 8% 76%);
+	--text-3: hsl(var(--hue) 8% 60%);
 
-	--accent: #ff37c7;
-	--accent-hover: #ff6bd6;
-	--accent-contrast: #17000f;
-	--focus: #5b9dff;
-	--danger: #ff6b6b;
+	--accent: hsl(214 92% 72%);
+	--accent-hover: hsl(214 95% 80%);
+	--accent-contrast: hsl(var(--hue) 30% 10%);
+	--accent-tint: hsl(214 92% 72% / 0.14);
+	--accent-tint-strong: hsl(214 92% 72% / 0.22);
 
-	--shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
-	--shadow-md: 0 2px 6px rgb(0 0 0 / 0.4), 0 12px 32px rgb(0 0 0 / 0.5);
+	--focus: hsl(214 95% 70%);
+	--danger: hsl(2 80% 70%);
+	--danger-tint: hsl(2 80% 70% / 0.14);
+	--success: hsl(152 50% 62%);
+	--success-tint: hsl(152 50% 62% / 0.14);
+
+	--shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.3);
+	--shadow-md: 0 1px 2px hsl(0 0% 0% / 0.3), 0 8px 24px hsl(0 0% 0% / 0.36);
 
 	color-scheme: dark;
 }
@@ -168,7 +176,6 @@ body {
 	line-height: 1.6;
 	-webkit-text-size-adjust: 100%;
 	-webkit-font-smoothing: antialiased;
-	text-rendering: optimizeLegibility;
 }
 
 h1,
@@ -177,12 +184,12 @@ h3 {
 	font-family: var(--font-display);
 	font-weight: var(--weight-display);
 	letter-spacing: var(--track-display);
-	line-height: 1.15;
+	line-height: 1.2;
 }
 
 a {
 	color: var(--accent);
-	text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent);
+	text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
 	text-underline-offset: 0.18em;
 	transition: color var(--dur) var(--ease);
 }
@@ -210,7 +217,7 @@ iframe {
 	display: inline-flex;
 	align-items: center;
 	padding: 0.1875rem 0.5rem;
-	border-radius: var(--r-pill);
+	border-radius: var(--r-sm);
 	background: var(--surface-3);
 	color: var(--text-2);
 	font-size: 0.6875rem;
@@ -225,7 +232,6 @@ iframe {
 	color: var(--accent);
 }
 
-/* Small caps label used above sections. */
 .eyebrow {
 	margin: 0;
 	color: var(--text-3);

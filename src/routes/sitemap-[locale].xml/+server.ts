@@ -10,6 +10,7 @@ import { siteOrigin } from '$lib/server/site';
 import { xmlSafe } from '$lib/server/xml';
 import { LOCALES, type Locale } from '$lib/server/db/schema';
 import * as urls from '$lib/urls';
+import { PAGE_SLUGS } from '$lib/server/content/pages';
 
 /**
  * One locale's sitemap, with xhtml:link alternates (PRD §12.7).
@@ -65,6 +66,17 @@ export const GET: RequestHandler = async ({ params, url, setHeaders }) => {
 			loc: abs(urls.home(locale)),
 			alternates: LOCALES.map((l) => ({ locale: l, loc: abs(urls.home(l)) }))
 		},
+
+		/*
+		 * About, Contact, Editorial Policy, Privacy and Terms.
+		 *
+		 * These are the pages AdSense review looks for (PRD §14), and leaving
+		 * them out of the sitemap is the one place the omission costs anything.
+		 */
+		...PAGE_SLUGS.map((slug) => ({
+			loc: abs(`/${locale}/${slug}`),
+			alternates: LOCALES.map((l) => ({ locale: l, loc: abs(`/${l}/${slug}`) }))
+		})),
 
 		...categories.map((row) => ({
 			loc: abs(urls.category(locale, row.slug)),

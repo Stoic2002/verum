@@ -42,7 +42,7 @@
 	.pagination a {
 		display: inline-block;
 		padding: 0.4375rem 0.875rem;
-		border-radius: var(--r-pill);
+		border-radius: var(--r-md);
 		background: var(--surface-2);
 		text-decoration: none;
 		transition: background var(--dur) var(--ease);

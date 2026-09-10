@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { superForm } from 'sveltekit-superforms';
+	import { Button, Field } from '$lib/components/ui';
 	import { slugify } from '$lib/slug';
 
 	let { data } = $props();
@@ -21,35 +22,68 @@
 
 <h1>New article</h1>
 
-<form method="POST" use:enhance class="stack">
+<form method="POST" use:enhance class="form-grid">
 	{#if $message}<p class="notice" role="alert">{$message}</p>{/if}
 
-	<label for="title">Title</label>
-	<input id="title" bind:value={$form.title} oninput={onTitleInput} required />
-	{#if $errors.title}<p class="error">{$errors.title}</p>{/if}
+	<Field id="title" label="Title" error={$errors.title}>
+		{#snippet children({ id, describedBy, invalid })}
+			<input
+				{id}
+				bind:value={$form.title}
+				oninput={onTitleInput}
+				required
+				aria-describedby={describedBy}
+				aria-invalid={invalid || undefined}
+			/>
+		{/snippet}
+	</Field>
 
-	<label for="slug">Slug</label>
-	<input id="slug" bind:value={$form.slug} oninput={() => (slugTouched = true)} required />
-	{#if $errors.slug}<p class="error">{$errors.slug}</p>{/if}
+	<Field
+		id="slug"
+		label="Slug"
+		hint="Follows the title until you edit it. Changing it later records a 301."
+		error={$errors.slug}
+	>
+		{#snippet children({ id, describedBy, invalid })}
+			<input
+				{id}
+				bind:value={$form.slug}
+				oninput={() => (slugTouched = true)}
+				required
+				aria-describedby={describedBy}
+				aria-invalid={invalid || undefined}
+			/>
+		{/snippet}
+	</Field>
 
-	<label for="categoryId">Category</label>
-	<select id="categoryId" bind:value={$form.categoryId}>
-		<option value={0} disabled>Choose a category</option>
-		{#each data.categories as category (category.id)}
-			<option value={category.id}>{category.name ?? category.slug}</option>
-		{/each}
-	</select>
-	{#if $errors.categoryId}<p class="error">{$errors.categoryId}</p>{/if}
+	<div class="form-row">
+		<Field id="categoryId" label="Category" error={$errors.categoryId}>
+			{#snippet children({ id, describedBy, invalid })}
+				<select
+					{id}
+					bind:value={$form.categoryId}
+					aria-describedby={describedBy}
+					aria-invalid={invalid || undefined}
+				>
+					<option value={0} disabled>Choose a category</option>
+					{#each data.categories as category (category.id)}
+						<option value={category.id}>{category.name ?? category.slug}</option>
+					{/each}
+				</select>
+			{/snippet}
+		</Field>
 
-	<label for="locale">First locale</label>
-	<select id="locale" bind:value={$form.locale}>
-		<option value="en">English</option>
-		<option value="id">Bahasa Indonesia</option>
-	</select>
+		<Field id="locale" label="First locale">
+			{#snippet children({ id })}
+				<select {id} bind:value={$form.locale}>
+					<option value="en">English</option>
+					<option value="id">Bahasa Indonesia</option>
+				</select>
+			{/snippet}
+		</Field>
+	</div>
 
-	<div>
-		<button type="submit" disabled={$submitting}>
-			{$submitting ? 'Creating…' : 'Create and edit'}
-		</button>
+	<div class="form-actions">
+		<Button type="submit" loading={$submitting} loadingLabel="Creating…">Create and edit</Button>
 	</div>
 </form>

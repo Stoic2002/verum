@@ -114,7 +114,7 @@
 	.search select {
 		padding: 0.6875rem 0.9375rem;
 		border: 1px solid var(--border-strong);
-		border-radius: var(--r-pill);
+		border-radius: var(--r-md);
 		background: var(--surface);
 		color: var(--text);
 		font: inherit;
@@ -129,7 +129,7 @@
 	.search button {
 		padding: 0.6875rem 1.375rem;
 		border: 0;
-		border-radius: var(--r-pill);
+		border-radius: var(--r-md);
 		background: var(--accent);
 		color: var(--accent-contrast);
 		font: inherit;

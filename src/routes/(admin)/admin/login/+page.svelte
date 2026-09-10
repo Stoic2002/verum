@@ -1,5 +1,8 @@
 <script lang="ts">
+	import '$lib/styles/tokens.css';
+	import '$lib/styles/forms.css';
 	import { enhance } from '$app/forms';
+	import { Button, Field } from '$lib/components/ui';
 
 	let { data, form } = $props();
 	let submitting = $state(false);
@@ -12,6 +15,7 @@
 	<p class="sub">Editor sign-in</p>
 
 	<form
+		class="form-grid"
 		method="POST"
 		use:enhance={() => {
 			submitting = true;
@@ -23,80 +27,74 @@
 	>
 		<input type="hidden" name="next" value={data.next} />
 
-		<label for="email">Email</label>
-		<input
-			id="email"
-			name="email"
-			type="email"
-			autocomplete="username"
-			required
-			value={form?.email ?? ''}
-		/>
+		<Field id="email" label="Email">
+			{#snippet children({ id, describedBy })}
+				<input
+					{id}
+					name="email"
+					type="email"
+					autocomplete="username"
+					required
+					aria-describedby={describedBy}
+					value={form?.email ?? ''}
+				/>
+			{/snippet}
+		</Field>
 
-		<label for="password">Password</label>
-		<input id="password" name="password" type="password" autocomplete="current-password" required />
+		<Field id="password" label="Password">
+			{#snippet children({ id, describedBy })}
+				<input
+					{id}
+					name="password"
+					type="password"
+					autocomplete="current-password"
+					required
+					aria-describedby={describedBy}
+				/>
+			{/snippet}
+		</Field>
 
 		{#if form?.error}
 			<p class="error" role="alert">{form.error}</p>
 		{/if}
 
-		<button type="submit" disabled={submitting}>
-			{submitting ? 'Signing in…' : 'Sign in'}
-		</button>
+		<Button type="submit" loading={submitting} loadingLabel="Signing in…">Sign in</Button>
 	</form>
 </main>
 
 <style>
 	main {
-		max-width: 22rem;
-		margin: 12vh auto;
+		max-width: 21rem;
+		margin: 14vh auto;
 		padding: 0 1.5rem;
-		font-family: system-ui, sans-serif;
+		color: var(--text);
 	}
 	h1 {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
 		margin: 0;
-		font-size: 1.5rem;
-		letter-spacing: 0.08em;
+		font-size: 1.25rem;
+		letter-spacing: 0.16em;
+	}
+	h1::before {
+		content: '';
+		width: 0.4375rem;
+		height: 0.4375rem;
+		border-radius: 50%;
+		background: var(--accent);
 	}
 	.sub {
-		margin: 0.25rem 0 2rem;
-		color: #666;
+		margin: 0.375rem 0 2rem;
+		color: var(--text-3);
 		font-size: 0.875rem;
 	}
-	form {
-		display: grid;
-		gap: 0.375rem;
-	}
-	label {
-		font-size: 0.8125rem;
-		font-weight: 600;
-	}
-	label + input {
-		margin-bottom: 0.75rem;
-	}
-	input {
-		padding: 0.5rem 0.625rem;
-		border: 1px solid #ccc;
-		border-radius: 4px;
-		font: inherit;
-	}
-	button {
-		margin-top: 0.5rem;
-		padding: 0.5rem;
-		border: 0;
-		border-radius: 4px;
-		background: #111;
-		color: #fff;
-		font: inherit;
-		cursor: pointer;
-	}
-	button:disabled {
-		opacity: 0.6;
-		cursor: default;
-	}
 	.error {
-		margin: 0.25rem 0 0;
-		color: #b00020;
+		margin: 0;
+		color: var(--danger);
 		font-size: 0.8125rem;
+	}
+	:global(body) {
+		background: var(--bg);
 	}
 </style>

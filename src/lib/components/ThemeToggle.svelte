@@ -72,7 +72,7 @@
 		visibility: hidden;
 		gap: 0.125rem;
 		padding: 0.1875rem;
-		border-radius: var(--r-pill);
+		border-radius: var(--r-md);
 		background: var(--surface-2);
 	}
 	:global(html.js) .theme {
@@ -81,7 +81,7 @@
 	button {
 		padding: 0.25rem 0.625rem;
 		border: 0;
-		border-radius: var(--r-pill);
+		border-radius: var(--r-sm);
 		background: none;
 		color: var(--text-3);
 		font: inherit;

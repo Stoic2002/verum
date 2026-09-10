@@ -73,7 +73,7 @@
 		font-size: 0.875rem;
 		text-transform: uppercase;
 		letter-spacing: 0.06em;
-		color: #666;
+		color: var(--text-3);
 	}
 	.picker {
 		display: grid;
@@ -81,7 +81,7 @@
 		max-height: 18rem;
 		overflow-y: auto;
 		padding: 0.75rem;
-		border: 1px solid #e5e5e5;
+		border: 1px solid var(--border);
 		border-radius: 6px;
 	}
 </style>

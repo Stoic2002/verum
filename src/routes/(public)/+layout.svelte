@@ -142,7 +142,7 @@
 	}
 	.masthead nav a {
 		padding: 0.375rem 0.75rem;
-		border-radius: var(--r-pill);
+		border-radius: var(--r-md);
 		color: var(--text-2);
 		font-size: 0.875rem;
 		text-decoration: none;
@@ -165,7 +165,7 @@
 		align-items: center;
 		gap: 0.375rem;
 		padding: 0.375rem 0.75rem;
-		border-radius: var(--r-pill);
+		border-radius: var(--r-md);
 		background: var(--surface-2);
 		color: var(--text-2);
 		font-size: 0.8125rem;

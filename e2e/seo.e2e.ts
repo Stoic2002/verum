@@ -177,6 +177,11 @@ test.describe('machines', () => {
 		expect(body).toContain('best-ai-coding-tools');
 		expect(body).toContain('<xhtml:link rel="alternate" hreflang="id"');
 
+		// The AdSense prerequisite pages belong in the sitemap too (PRD §14).
+		for (const slug of ['about', 'contact', 'editorial-policy', 'privacy', 'terms']) {
+			expect(body, slug).toContain(`/en/${slug}`);
+		}
+
 		// A sitemap claims a URL is canonical and indexable. Scheduled articles
 		// are neither.
 		expect(body).not.toContain('scheduled-article-not-yet-live');

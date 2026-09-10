@@ -61,7 +61,7 @@
 	.copy {
 		padding: 0.375rem 0.75rem;
 		border: 1px solid var(--border);
-		border-radius: var(--r-pill);
+		border-radius: var(--r-md);
 		background: var(--surface);
 		color: var(--text-2);
 		font: inherit;

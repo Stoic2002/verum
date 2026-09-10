@@ -854,3 +854,75 @@ Sebelumnya prosa artikel memakai serif. Sekarang sans, konsisten dengan referens
 - Tema tersimpan tetap terpasang sebelum paint (`rgb(19,19,19)` sekarang, bukan `rgb(16,16,18)` — asersinya diperbarui).
 - CLS **0** dengan placeholder iklan aktif.
 - Viewport 360px tidak pernah scroll ke samping.
+
+---
+
+## Bagian O — Sistem form, palet biru, dan referensi svelte.dev
+
+Diminta 10 September 2026: komponen form dipikirkan desainnya, palet pink → biru, light theme jangan putih banget, dark theme jangan terlalu gelap, referensi ganti ke svelte.dev.
+
+### O.1 Palet: biru, dan kontras yang lebih rendah di kedua ujung
+
+Token svelte.dev dibaca langsung dari situsnya. Yang paling berguna adalah **hubungan angkanya**, bukan warnanya:
+
+|              | svelte.dev         | VERUM sekarang       | Sebelumnya       |
+| ------------ | ------------------ | -------------------- | ---------------- |
+| Dasar gelap  | `hsl(220 10% 12%)` | `hsl(220 13% 12%)`   | `#131313` (7,5%) |
+| Teks gelap   | `hsl(220 2% 90%)`  | `hsl(220 8% 92%)`    | `#f4f4f6` (96%)  |
+| Dasar terang | `#fff`             | `hsl(220 24% 97.5%)` | `#fbfbfd`        |
+
+**Kontras maksimum bukan keterbacaan maksimum — itu silau.** Dark mode lama (7,5% dasar, 96% teks) adalah rasio hampir 18:1; sekarang sekitar 13:1, masih jauh di atas ambang AA 4,5:1 tapi tidak lagi menyala. Light mode tidak lagi `#fff`: halaman putih murni adalah benda paling terang di layar.
+
+Semua netral dicampur dari satu hue (220), jadi terang dan gelap terasa satu keluarga.
+
+Aksen biru dipilih karena alasan yang Anda sebut, dan angkanya dijaga: `hsl(219 78% 44%)` di terang memberi **5,4:1** — lolos AA untuk tautan seukuran teks. Magenta Uniswap tidak pernah bisa: `#ff37c7` di putih hanya ~2,5:1.
+
+Radius juga turun. svelte.dev memakai 0,4rem; skala sekarang 5/8/12/16 px, bukan 12/16/20/24. Rounding yang modest terbaca sebagai dokumen, bukan aplikasi.
+
+### O.2 Kontrol form: gaya di elemen native, bukan hanya di komponen
+
+`src/lib/styles/forms.css` menata `input`, `select`, `textarea`, `button`, checkbox, radio, switch, date/time, search, dan file input **pada elemen aslinya**. Konsekuensinya: `<input>` polos di mana pun sudah terlihat benar, dan komponen menyusun di atasnya, bukan menggantikannya.
+
+Tiga aturan yang berlaku di semuanya:
+
+- **Target minimal 2,25rem, dan 2,75rem pada perangkat sentuh** (`@media (pointer: coarse)`). Lebih kecil dari itu adalah target yang meleset.
+- **Fokus selalu punya ring yang terlihat.** Tidak pernah `outline: none` sendirian — menghapus indikator fokus adalah cara paling umum sebuah form jadi tidak bisa dipakai lewat keyboard.
+- **State tidak pernah warna saja.** Error membawa teks dan `aria-invalid`, disabled membawa cursor, checked membawa tanda centang.
+
+Komponen yang dibuat:
+
+| Komponen    | Kenapa ada                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Field`     | Menyambungkan `for`/`id`, `aria-describedby`, dan `aria-invalid`. Ini mudah lupa per form dan mustahil terlihat hilang tanpa screen reader. Juga membawa counter karakter — dipakai untuk batas 60/155 di meta SEO (§12.2).                                                                                                                                                   |
+| `Button`    | Merender `<button>` atau `<a>` dari props yang sama. Tautan yang terlihat seperti tombol harus tetap tautan: klik kanan, klik tengah, dan "buka di tab baru" semuanya rusak kalau navigasi diimplementasikan sebagai tombol dengan onclick. State loading mengganti **label**, bukan hanya menampilkan spinner — spinner sendirian tidak mengatakan apa pun ke screen reader. |
+| `Switch`    | Untuk boolean yang labelnya berbunyi seperti keadaan ("Living article"), bukan seperti item yang dipilih.                                                                                                                                                                                                                                                                     |
+| `FileInput` | Drop zone + preview gambar + ukuran file. `<input type="file">` aslinya **tetap** di DOM dan tetap yang menerima file — drop ditambahkan di atasnya, jadi jalur keyboard dan pengiriman form tidak berubah. Object URL di-revoke saat komponen dilepas.                                                                                                                       |
+
+Admin juga akhirnya ikut token yang sama, jadi ia punya dark mode — sebelumnya warnanya hardcoded terang.
+
+### O.3 Bug CSS yang ketahuan dari screenshot
+
+Semua tombol varian dirender biru primer. Penyebabnya specificity: `button:not(.unstyled)` bernilai (0,2,1) sementara `.btn--secondary` hanya (0,1,0), jadi aturan dasar selalu menang.
+
+Perbaikannya `:where()`: `button:where(:not(.unstyled))` menyumbang **nol** specificity, sehingga kelas varian menang seperti seharusnya. Ini kelas bug yang tidak terlihat di typecheck maupun test — hanya terlihat dengan mata.
+
+### O.4 Temuan produksi: `ORIGIN` wajib, atau semua form 403
+
+Saat mencoba login di build produksi, semua POST ditolak:
+
+```
+403 Cross-site POST form submissions are forbidden
+```
+
+`adapter-node` tidak tahu alamatnya sendiri kecuali diberi tahu, dan proteksi CSRF bawaan SvelteKit membandingkan header `Origin` dengan alamat itu. Tanpa `ORIGIN`, **login dan setiap form action di admin mengembalikan 403 di produksi** — sementara seluruh situs publik terlihat sehat sempurna.
+
+`vite dev` dan `vite preview` tahu alamatnya sendiri, jadi ini **hanya muncul di build produksi** — dan smoke test tidak menangkapnya karena hanya melakukan GET.
+
+Dua perbaikan:
+
+1. `ORIGIN` masuk `.env.example` dengan penjelasan lengkap.
+2. **Smoke test sekarang melakukan POST**, dan secara khusus melaporkan 403 sebagai "set ORIGIN". Suite yang seluruhnya GET tidak akan pernah melihat kegagalan ini.
+
+### O.5 Celah Fase 7 yang tertutup
+
+Halaman statis (About, Contact, Editorial Policy, Privacy, Terms) **tidak ada di sitemap**. Itu justru halaman yang dicari review AdSense (§14). Sekarang masuk, dengan anotasi `xhtml:link`, dan ada e2e yang memeriksa kelimanya.

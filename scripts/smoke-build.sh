@@ -15,7 +15,11 @@ PORT="${PORT:-4183}"
 # stdout keeps a pipe open after the script exits, so `bun run smoke | tail`
 # hangs forever waiting for an EOF the background process never sends.
 LOG=$(mktemp)
-PORT="$PORT" node build/index.js >"$LOG" 2>&1 &
+# ORIGIN is what lets SvelteKit recognise its own address; without it every
+# form POST is rejected as cross-site. Set from this script's own port rather
+# than inherited: an ORIGIN pointing at the real site would not match this
+# ephemeral server, and the check below would fail for the wrong reason.
+ORIGIN="http://localhost:$PORT" PORT="$PORT" node build/index.js >"$LOG" 2>&1 &
 SERVER=$!
 trap 'kill $SERVER 2>/dev/null || true; rm -f "$LOG"' EXIT
 
@@ -74,5 +78,29 @@ check /en/about 200
 check /en/privacy 200
 check /en/editorial-policy 200
 check /id/terms 200
+
+# A POST, not just GETs.
+#
+# adapter-node refuses form submissions whose origin it cannot verify, and a
+# suite of GET checks will never see it: the site looks perfectly healthy while
+# login and every editor action return 403.
+post_code() {
+	curl -s -o /dev/null -w '%{http_code}' \
+		-X POST "http://localhost:$PORT$1" \
+		-H 'content-type: application/x-www-form-urlencoded' \
+		-H "origin: http://localhost:$PORT" \
+		--data "$2"
+}
+
+login=$(post_code /admin/login 'email=nobody@example.test&password=wrong')
+if [ "$login" = "403" ]; then
+	echo "  FAIL POST /admin/login -> 403 (set ORIGIN; form submissions are being rejected)" >&2
+	fail=1
+elif [ "$login" = "200" ] || [ "$login" = "400" ]; then
+	echo "  ok   POST /admin/login -> $login (form submissions accepted)"
+else
+	echo "  FAIL POST /admin/login -> $login" >&2
+	fail=1
+fi
 
 [ "$fail" = "0" ] && echo "Production build serves correctly." || exit 1

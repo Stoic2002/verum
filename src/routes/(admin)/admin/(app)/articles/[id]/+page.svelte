@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { superForm } from 'sveltekit-superforms';
+	import { Button, Switch } from '$lib/components/ui';
 
 	let { data } = $props();
 
@@ -59,12 +60,12 @@
 
 	{#if data.missingLocales.length}
 		<form method="POST" action="?/addLocale" class="inline">
-			<select name="locale">
+			<select name="locale" aria-label="Locale to add">
 				{#each data.missingLocales as locale (locale)}
 					<option value={locale}>{locale}</option>
 				{/each}
 			</select>
-			<button type="submit">Add language version</button>
+			<Button type="submit" variant="secondary">Add language version</Button>
 		</form>
 		<p class="meta">
 			Starts empty on purpose. The other locale is a rewrite, not a translation (PRD §7).
@@ -94,17 +95,15 @@
 		</select>
 
 		{#if $form.status === 'scheduled' || $form.status === 'published'}
-			<label for="publishAt">
-				Publish at
-				<span class="meta">
-					{#if $form.status === 'scheduled'}
-						Goes live by itself when this time passes — no job runs.
-					{:else}
-						Leave blank to keep the existing date.
-					{/if}
-				</span>
-			</label>
+			<label for="publishAt">Publish at</label>
 			<input id="publishAt" type="datetime-local" bind:value={$form.publishAt} />
+			<p class="meta">
+				{#if $form.status === 'scheduled'}
+					Goes live by itself when this time passes — no job runs.
+				{:else}
+					Leave blank to keep the existing date.
+				{/if}
+			</p>
 			{#if $errors.publishAt}<p class="error">{$errors.publishAt}</p>{/if}
 		{/if}
 
@@ -133,23 +132,29 @@
 			</div>
 		</fieldset>
 
-		<label class="check">
-			<input type="checkbox" bind:checked={$form.isLiving} />
-			Living article — updated in place rather than replaced (PRD §12.4)
-		</label>
+		<div class="switch-row">
+			<Switch
+				id="isLiving"
+				bind:checked={$form.isLiving}
+				label="Living article"
+				hint="Updated in place rather than replaced by a new post (PRD §12.4)."
+			/>
+		</div>
 
 		<fieldset>
 			<legend>Tags</legend>
-			{#each data.tags as tag (tag.id)}
-				<label class="check">
-					<input
-						type="checkbox"
-						checked={$form.tagIds.includes(tag.id)}
-						onchange={(e) => toggleTag(tag.id, e.currentTarget.checked)}
-					/>
-					{tag.name}
-				</label>
-			{/each}
+			<div class="checks">
+				{#each data.tags as tag (tag.id)}
+					<label class="check">
+						<input
+							type="checkbox"
+							checked={$form.tagIds.includes(tag.id)}
+							onchange={(e) => toggleTag(tag.id, e.currentTarget.checked)}
+						/>
+						{tag.name}
+					</label>
+				{/each}
+			</div>
 		</fieldset>
 
 		<div>
@@ -171,7 +176,7 @@
 			}
 		}}
 	>
-		<button type="submit" class="destructive">Delete article</button>
+		<Button type="submit" variant="danger">Delete article</Button>
 	</form>
 </section>
 
@@ -203,7 +208,7 @@
 		justify-content: space-between;
 		gap: 1rem;
 		padding: 0.75rem;
-		border: 1px solid #e5e5e5;
+		border: 1px solid var(--border);
 		border-radius: 6px;
 	}
 	.preview {
@@ -212,10 +217,24 @@
 	}
 	.inline {
 		display: flex;
+		flex-wrap: wrap;
 		gap: 0.5rem;
+		align-items: center;
+	}
+	.inline select {
+		width: auto;
+		min-width: 7rem;
+	}
+	.switch-row {
+		margin: 0.625rem 0 0.25rem;
+	}
+	.checks {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.375rem 1.25rem;
 	}
 	fieldset {
-		border: 1px solid #e5e5e5;
+		border: 1px solid var(--border);
 		border-radius: 6px;
 		padding: 0.75rem;
 	}
@@ -235,8 +254,8 @@
 		padding: 0;
 		border: 2px solid transparent;
 		border-radius: 4px;
-		background: #f3f3f3;
-		color: #555;
+		background: var(--surface-2);
+		color: var(--text-2);
 		font-size: 0.75rem;
 		min-width: 5rem;
 		min-height: 3.5rem;
@@ -244,7 +263,7 @@
 		overflow: hidden;
 	}
 	.covers :global(button.cover.selected) {
-		border-color: #111;
+		border-color: var(--text);
 	}
 	.covers img {
 		width: 5rem;
@@ -252,6 +271,6 @@
 		object-fit: cover;
 	}
 	.danger h2 {
-		color: #b00020;
+		color: var(--danger);
 	}
 </style>

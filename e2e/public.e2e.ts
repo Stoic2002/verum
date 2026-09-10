@@ -95,8 +95,8 @@ test('the chosen theme applies before first paint', async ({ page }) => {
 	expect(applied).toBe('dark');
 
 	const background = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-	// The dark ground from tokens.css, not the light one.
-	expect(background).toBe('rgb(19, 19, 19)');
+	// The dark ground from tokens.css — hsl(220 13% 12%) — not the light one.
+	expect(background).toBe('rgb(27, 29, 35)');
 });
 
 test('the ad placeholders reserve their space and shift nothing', async ({ page }) => {

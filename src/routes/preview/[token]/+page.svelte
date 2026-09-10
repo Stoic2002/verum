@@ -1,4 +1,6 @@
 <script lang="ts">
+	import '$lib/styles/tokens.css';
+
 	let { data } = $props();
 </script>
 
@@ -36,8 +38,8 @@
 <style>
 	.banner {
 		padding: 0.625rem 1rem;
-		background: #fff4d6;
-		border-bottom: 1px solid #e8d8a8;
+		background: var(--surface-2);
+		border-bottom: 1px solid var(--border);
 		font:
 			0.8125rem/1.5 system-ui,
 			sans-serif;
@@ -49,24 +51,24 @@
 		font:
 			1rem/1.7 system-ui,
 			sans-serif;
-		color: #111;
+		color: var(--text);
 	}
 	h1 {
 		font-size: 1.75rem;
 		line-height: 1.25;
 	}
 	.excerpt {
-		color: #444;
+		color: var(--text-2);
 	}
 	.meta {
-		color: #777;
+		color: var(--text-3);
 		font-size: 0.8125rem;
 	}
 	.correction {
 		margin-top: 2rem;
 		padding: 0.75rem 1rem;
-		border-left: 3px solid #b00020;
-		background: #fdf2f4;
+		border-left: 3px solid var(--danger);
+		background: var(--danger-tint);
 	}
 	article :global(img) {
 		max-width: 100%;
@@ -84,7 +86,7 @@
 	}
 	article :global(th),
 	article :global(td) {
-		border: 1px solid #ddd;
+		border: 1px solid var(--border);
 		padding: 0.375rem 0.625rem;
 	}
 	article :global(.embed__frame) {
@@ -99,11 +101,11 @@
 		border: 0;
 	}
 	article :global(.callout) {
-		border-left: 3px solid #888;
+		border-left: 3px solid var(--text-3);
 		padding: 0.625rem 0.875rem;
-		background: #f6f6f6;
+		background: var(--surface-2);
 	}
 	article :global(.embed-error) {
-		color: #b00020;
+		color: var(--danger);
 	}
 </style>

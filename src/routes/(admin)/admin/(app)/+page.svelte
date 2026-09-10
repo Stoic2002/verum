@@ -108,7 +108,7 @@
 <style>
 	.who {
 		margin: 0 0 2rem;
-		color: #666;
+		color: var(--text-3);
 		font-size: 0.875rem;
 	}
 	.cards {
@@ -123,7 +123,7 @@
 		display: grid;
 		gap: 0.25rem;
 		padding: 1rem;
-		border: 1px solid #e5e5e5;
+		border: 1px solid var(--border);
 		border-radius: 6px;
 	}
 	.n {
@@ -133,7 +133,7 @@
 	}
 	.l {
 		font-size: 0.8125rem;
-		color: #666;
+		color: var(--text-3);
 	}
 	section {
 		margin-top: 2.5rem;
@@ -143,7 +143,7 @@
 		font-size: 0.875rem;
 		text-transform: uppercase;
 		letter-spacing: 0.06em;
-		color: #666;
+		color: var(--text-3);
 	}
 	.num {
 		font-variant-numeric: tabular-nums;

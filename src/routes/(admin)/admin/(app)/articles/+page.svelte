@@ -79,7 +79,7 @@
 		max-width: 20rem;
 	}
 	.empty {
-		color: #666;
+		color: var(--text-3);
 	}
 	.locales {
 		display: flex;
@@ -87,19 +87,19 @@
 	}
 	.num {
 		font-variant-numeric: tabular-nums;
-		color: #666;
+		color: var(--text-3);
 		white-space: nowrap;
 	}
 	.status {
 		text-transform: capitalize;
 	}
 	.status--published {
-		color: #0a7c2f;
+		color: var(--success);
 	}
 	.status--scheduled {
-		color: #9a6700;
+		color: var(--accent);
 	}
 	.status--archived {
-		color: #888;
+		color: var(--text-3);
 	}
 </style>

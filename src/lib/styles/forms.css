@@ -1,0 +1,517 @@
+/*
+ * Form controls.
+ *
+ * Styled on the native elements rather than only on components, so a plain
+ * <input> anywhere in the app already looks right. The components in
+ * $lib/components/ui compose these; they do not replace them.
+ *
+ * Three rules run through all of it:
+ *
+ *   · Every control is at least 2.25rem tall and 44px on touch. Anything
+ *     smaller is a target people miss.
+ *   · Focus is a visible ring, never `outline: none` alone. Removing the
+ *     focus indicator is the single most common way a form becomes unusable
+ *     by keyboard.
+ *   · State is never colour alone. Errors carry text, disabled carries a
+ *     cursor, checked carries a mark.
+ */
+
+.field {
+	display: grid;
+	gap: 0.3125rem;
+}
+
+.field__label {
+	display: flex;
+	align-items: baseline;
+	gap: 0.5rem;
+	font-size: 0.8125rem;
+	font-weight: var(--weight-strong);
+	color: var(--text);
+}
+
+.field__optional {
+	color: var(--text-3);
+	font-weight: var(--weight-body);
+	font-size: 0.75rem;
+}
+
+.field__hint {
+	margin: 0;
+	color: var(--text-3);
+	font-size: 0.8125rem;
+	line-height: 1.5;
+}
+
+.field__error {
+	display: flex;
+	align-items: center;
+	gap: 0.3125rem;
+	margin: 0;
+	color: var(--danger);
+	font-size: 0.8125rem;
+}
+
+.field__counter {
+	margin-left: auto;
+	color: var(--text-3);
+	font-size: 0.75rem;
+	font-variant-numeric: tabular-nums;
+	font-weight: var(--weight-body);
+}
+.field__counter[data-over='true'] {
+	color: var(--danger);
+	font-weight: var(--weight-strong);
+}
+
+/* ── Text-like controls ──────────────────────────────────────────────── */
+
+.input,
+.textarea,
+.select,
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='search'],
+input[type='url'],
+input[type='number'],
+input[type='date'],
+input[type='datetime-local'],
+input[type='time'],
+textarea,
+select {
+	width: 100%;
+	min-height: 2.25rem;
+	padding: 0.4375rem 0.6875rem;
+	border: 1px solid var(--border-strong);
+	border-radius: var(--r-md);
+	background: var(--surface);
+	color: var(--text);
+	font: inherit;
+	font-size: 0.875rem;
+	line-height: 1.5;
+	transition:
+		border-color var(--dur) var(--ease),
+		box-shadow var(--dur) var(--ease),
+		background var(--dur) var(--ease);
+}
+
+textarea,
+.textarea {
+	min-height: 5rem;
+	resize: vertical;
+}
+
+input::placeholder,
+textarea::placeholder {
+	color: var(--text-3);
+}
+
+input:hover:not(:disabled),
+textarea:hover:not(:disabled),
+select:hover:not(:disabled) {
+	border-color: var(--text-3);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+	outline: none;
+	border-color: var(--accent);
+	box-shadow: var(--ring);
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+	background: var(--surface-2);
+	color: var(--text-3);
+	cursor: not-allowed;
+	border-color: var(--border);
+}
+
+/* The error state is announced by text too; this only reinforces it. */
+[aria-invalid='true'],
+.input--error {
+	border-color: var(--danger) !important;
+}
+[aria-invalid='true']:focus,
+.input--error:focus {
+	box-shadow: 0 0 0 3px var(--danger-tint) !important;
+}
+
+/* ── Select ──────────────────────────────────────────────────────────── */
+
+select {
+	appearance: none;
+	padding-right: 2rem;
+	cursor: pointer;
+	/*
+	 * The chevron is an inline SVG in the background so no icon font or extra
+	 * element is needed. currentColor is not available here, so it is drawn in
+	 * a mid grey that reads on both themes.
+	 */
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%23888f9c' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 0.625rem center;
+	background-size: 0.75rem;
+}
+
+select[multiple] {
+	background-image: none;
+	padding-right: 0.6875rem;
+}
+
+/* ── Date and time ───────────────────────────────────────────────────── */
+
+input[type='date'],
+input[type='datetime-local'],
+input[type='time'] {
+	/* Otherwise Safari collapses these to their intrinsic width. */
+	min-width: 0;
+}
+input[type='date']::-webkit-calendar-picker-indicator,
+input[type='datetime-local']::-webkit-calendar-picker-indicator,
+input[type='time']::-webkit-calendar-picker-indicator {
+	cursor: pointer;
+	opacity: 0.55;
+	transition: opacity var(--dur) var(--ease);
+}
+input[type='date']:hover::-webkit-calendar-picker-indicator,
+input[type='datetime-local']:hover::-webkit-calendar-picker-indicator,
+input[type='time']:hover::-webkit-calendar-picker-indicator {
+	opacity: 1;
+}
+:root[data-theme='dark'] input[type='date']::-webkit-calendar-picker-indicator,
+:root[data-theme='dark'] input[type='datetime-local']::-webkit-calendar-picker-indicator,
+:root[data-theme='dark'] input[type='time']::-webkit-calendar-picker-indicator {
+	filter: invert(1);
+}
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme='light']) input[type='date']::-webkit-calendar-picker-indicator,
+	:root:not([data-theme='light']) input[type='datetime-local']::-webkit-calendar-picker-indicator,
+	:root:not([data-theme='light']) input[type='time']::-webkit-calendar-picker-indicator {
+		filter: invert(1);
+	}
+}
+
+/* ── Search ──────────────────────────────────────────────────────────── */
+
+input[type='search']::-webkit-search-cancel-button {
+	appearance: none;
+	width: 0.875rem;
+	height: 0.875rem;
+	cursor: pointer;
+	background: currentColor;
+	opacity: 0.4;
+	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M3 3l8 8M11 3l-8 8' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E")
+		center / contain no-repeat;
+}
+input[type='search']::-webkit-search-cancel-button:hover {
+	opacity: 0.8;
+}
+
+/* ── Checkbox and radio ──────────────────────────────────────────────── */
+
+.check {
+	display: inline-flex;
+	align-items: flex-start;
+	gap: 0.5rem;
+	font-size: 0.875rem;
+	line-height: 1.45;
+	cursor: pointer;
+	/* A comfortable target without making the row look padded. */
+	padding: 0.1875rem 0;
+}
+
+.check input[type='checkbox'],
+.check input[type='radio'],
+input[type='checkbox'],
+input[type='radio'] {
+	appearance: none;
+	flex: none;
+	width: 1.0625rem;
+	height: 1.0625rem;
+	margin: 0.125rem 0 0;
+	border: 1px solid var(--border-strong);
+	border-radius: var(--r-sm);
+	background: var(--surface);
+	cursor: pointer;
+	transition:
+		background var(--dur) var(--ease),
+		border-color var(--dur) var(--ease),
+		box-shadow var(--dur) var(--ease);
+}
+
+input[type='radio'] {
+	border-radius: 50%;
+}
+
+input[type='checkbox']:hover:not(:disabled),
+input[type='radio']:hover:not(:disabled) {
+	border-color: var(--accent);
+}
+
+input[type='checkbox']:checked,
+input[type='radio']:checked {
+	background-color: var(--accent);
+	border-color: var(--accent);
+}
+
+/* The tick is a mask so it inherits the contrast colour in both themes. */
+input[type='checkbox']:checked {
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-6.5' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+	background-size: 0.8125rem;
+	background-position: center;
+	background-repeat: no-repeat;
+}
+input[type='radio']:checked {
+	box-shadow: inset 0 0 0 3px var(--surface);
+}
+
+input[type='checkbox']:focus-visible,
+input[type='radio']:focus-visible {
+	outline: none;
+	box-shadow: var(--ring);
+}
+
+input[type='checkbox']:disabled,
+input[type='radio']:disabled {
+	background: var(--surface-2);
+	border-color: var(--border);
+	cursor: not-allowed;
+}
+.check:has(input:disabled) {
+	color: var(--text-3);
+	cursor: not-allowed;
+}
+
+/* ── Switch ──────────────────────────────────────────────────────────── */
+
+.switch {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.625rem;
+	font-size: 0.875rem;
+	cursor: pointer;
+}
+.switch input {
+	appearance: none;
+	position: relative;
+	flex: none;
+	width: 2.25rem;
+	height: 1.3125rem;
+	margin: 0;
+	border: 1px solid var(--border-strong);
+	border-radius: var(--r-pill);
+	background: var(--surface-2);
+	cursor: pointer;
+	transition:
+		background var(--dur) var(--ease),
+		border-color var(--dur) var(--ease);
+}
+.switch input::after {
+	content: '';
+	position: absolute;
+	top: 50%;
+	left: 0.1875rem;
+	width: 0.875rem;
+	height: 0.875rem;
+	border-radius: 50%;
+	background: var(--surface);
+	box-shadow: var(--shadow-sm);
+	transform: translateY(-50%);
+	transition: transform var(--dur) var(--ease);
+}
+.switch input:checked {
+	background: var(--accent);
+	border-color: var(--accent);
+}
+.switch input:checked::after {
+	transform: translate(0.9375rem, -50%);
+}
+.switch input:focus-visible {
+	outline: none;
+	box-shadow: var(--ring);
+}
+
+/* ── File input ──────────────────────────────────────────────────────── */
+
+input[type='file'] {
+	width: 100%;
+	padding: 0.875rem;
+	border: 1px dashed var(--border-strong);
+	border-radius: var(--r-md);
+	background: var(--surface-2);
+	color: var(--text-2);
+	font: inherit;
+	font-size: 0.8125rem;
+	cursor: pointer;
+	transition:
+		border-color var(--dur) var(--ease),
+		background var(--dur) var(--ease);
+}
+input[type='file']:hover:not(:disabled) {
+	border-color: var(--accent);
+	background: var(--accent-tint);
+}
+input[type='file']:focus-visible {
+	outline: none;
+	border-color: var(--accent);
+	box-shadow: var(--ring);
+}
+input[type='file']::file-selector-button {
+	margin-right: 0.75rem;
+	padding: 0.375rem 0.75rem;
+	border: 1px solid var(--border-strong);
+	border-radius: var(--r-sm);
+	background: var(--surface);
+	color: var(--text);
+	font: inherit;
+	font-size: 0.8125rem;
+	font-weight: var(--weight-strong);
+	cursor: pointer;
+	transition: background var(--dur) var(--ease);
+}
+input[type='file']::file-selector-button:hover {
+	background: var(--surface-3);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+
+/*
+ * The base rule uses :where() so it contributes no specificity. A plain
+ * `button:not(.unstyled)` selector scores higher than `.btn--secondary`, which
+ * silently rendered every variant as the primary button.
+ */
+
+.btn,
+button:where(:not(.unstyled)) {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.4375rem;
+	min-height: 2.25rem;
+	padding: 0.4375rem 0.9375rem;
+	border: 1px solid transparent;
+	border-radius: var(--r-md);
+	background: var(--accent);
+	color: var(--accent-contrast);
+	font: inherit;
+	font-size: 0.875rem;
+	font-weight: var(--weight-strong);
+	line-height: 1.4;
+	text-decoration: none;
+	white-space: nowrap;
+	cursor: pointer;
+	transition:
+		background var(--dur) var(--ease),
+		border-color var(--dur) var(--ease),
+		color var(--dur) var(--ease),
+		transform var(--dur) var(--ease);
+}
+
+.btn:hover:not(:disabled),
+button:where(:not(.unstyled)):hover:not(:disabled) {
+	background: var(--accent-hover);
+	color: var(--accent-contrast);
+}
+.btn:active:not(:disabled),
+button:where(:not(.unstyled)):active:not(:disabled) {
+	transform: translateY(1px);
+}
+.btn:disabled,
+button:where(:not(.unstyled)):disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+	transform: none;
+}
+
+.btn--secondary {
+	background: var(--surface);
+	border-color: var(--border-strong);
+	color: var(--text);
+}
+.btn--secondary:hover:not(:disabled) {
+	background: var(--surface-2);
+	border-color: var(--text-3);
+	color: var(--text);
+}
+
+.btn--ghost {
+	background: transparent;
+	color: var(--text-2);
+}
+.btn--ghost:hover:not(:disabled) {
+	background: var(--surface-2);
+	color: var(--text);
+}
+
+.btn--danger,
+button.destructive {
+	background: var(--surface);
+	border-color: var(--border-strong);
+	color: var(--danger);
+}
+.btn--danger:hover:not(:disabled),
+button.destructive:hover:not(:disabled) {
+	background: var(--danger-tint);
+	border-color: var(--danger);
+	color: var(--danger);
+}
+
+.btn--sm {
+	min-height: 1.875rem;
+	padding: 0.25rem 0.625rem;
+	font-size: 0.8125rem;
+}
+
+/* ── Touch targets ───────────────────────────────────────────────────── */
+
+@media (pointer: coarse) {
+	.btn,
+	button:where(:not(.unstyled)),
+	input:not([type='checkbox']):not([type='radio']),
+	select,
+	textarea {
+		min-height: 2.75rem;
+	}
+	input[type='checkbox'],
+	input[type='radio'] {
+		width: 1.25rem;
+		height: 1.25rem;
+	}
+}
+
+/* ── Form layout helpers ─────────────────────────────────────────────── */
+
+.form-grid {
+	display: grid;
+	gap: 1rem;
+}
+.form-row {
+	display: grid;
+	gap: 1rem;
+	grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+	align-items: end;
+}
+.form-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75rem;
+	padding-top: 0.25rem;
+}
+
+fieldset {
+	margin: 0;
+	padding: 0.875rem 1rem 1rem;
+	border: 1px solid var(--border);
+	border-radius: var(--r-md);
+	background: var(--surface);
+}
+legend {
+	padding: 0 0.375rem;
+	font-size: 0.8125rem;
+	font-weight: var(--weight-strong);
+}

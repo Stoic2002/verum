@@ -28,7 +28,7 @@
 	article {
 		margin: 1rem 0;
 		padding: 0.875rem 1rem;
-		border: 1px solid #e5e5e5;
+		border: 1px solid var(--border);
 		border-radius: 6px;
 		max-width: 46rem;
 	}
@@ -42,6 +42,6 @@
 		white-space: pre-wrap;
 		word-break: break-word;
 		font-size: 0.8125rem;
-		color: #333;
+		color: var(--text-2);
 	}
 </style>

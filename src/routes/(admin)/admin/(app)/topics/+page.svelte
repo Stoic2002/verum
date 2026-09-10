@@ -50,6 +50,6 @@
 		font-variant-numeric: tabular-nums;
 	}
 	.empty {
-		color: #666;
+		color: var(--text-3);
 	}
 </style>

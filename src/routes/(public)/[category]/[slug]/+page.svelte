@@ -196,7 +196,7 @@
 		margin: 0 0 2rem;
 	}
 	.lede-image :global(img) {
-		border-radius: var(--r-2xl);
+		border-radius: var(--r-xl);
 	}
 
 	.toc {
@@ -410,7 +410,7 @@
 	}
 	.tags a {
 		padding: 0.25rem 0.625rem;
-		border-radius: var(--r-pill);
+		border-radius: var(--r-sm);
 		background: var(--surface-2);
 		color: var(--text-2);
 		text-decoration: none;

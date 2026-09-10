@@ -65,7 +65,7 @@
 	}
 	.card--featured .card__image {
 		aspect-ratio: 16 / 9;
-		border-radius: var(--r-2xl);
+		border-radius: var(--r-xl);
 	}
 	.card__image :global(img) {
 		height: 100%;
@@ -87,7 +87,7 @@
 	}
 	.card__category {
 		padding: 0.1875rem 0.5rem;
-		border-radius: var(--r-pill);
+		border-radius: var(--r-sm);
 		background: var(--accent-tint);
 		color: var(--accent);
 		font-weight: var(--weight-strong);

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { superForm } from 'sveltekit-superforms';
+	import { Button, Field } from '$lib/components/ui';
 	import { slugify } from '$lib/slug';
 	import type { TocEntry } from '$lib/server/db/schema';
 
@@ -113,36 +114,55 @@
 	{#if $message}<p class="notice">{$message}</p>{/if}
 
 	<div class="grid">
-		<div class="stack">
-			<label for="title">Title</label>
-			<input
-				id="title"
-				bind:value={$form.title}
-				oninput={() => {
-					if (!slugTouched) $form.slug = slugify($form.title);
-				}}
-			/>
-			{#if $errors.title}<p class="error">{$errors.title}</p>{/if}
+		<div class="form-grid">
+			<Field id="title" label="Title" error={$errors.title}>
+				{#snippet children({ id, describedBy, invalid })}
+					<input
+						{id}
+						bind:value={$form.title}
+						aria-describedby={describedBy}
+						aria-invalid={invalid || undefined}
+						oninput={() => {
+							if (!slugTouched) $form.slug = slugify($form.title);
+						}}
+					/>
+				{/snippet}
+			</Field>
 
-			<label for="slug">
-				Slug
-				<span class="meta">Changing this records a 301 from the old URL automatically.</span>
-			</label>
-			<input id="slug" bind:value={$form.slug} oninput={() => (slugTouched = true)} />
-			{#if $errors.slug}<p class="error">{$errors.slug}</p>{/if}
+			<Field
+				id="slug"
+				label="Slug"
+				hint="Changing this records a 301 from the old URL automatically."
+				error={$errors.slug}
+			>
+				{#snippet children({ id, describedBy, invalid })}
+					<input
+						{id}
+						bind:value={$form.slug}
+						oninput={() => (slugTouched = true)}
+						aria-describedby={describedBy}
+						aria-invalid={invalid || undefined}
+					/>
+				{/snippet}
+			</Field>
 
-			<label for="excerpt">Excerpt</label>
-			<textarea id="excerpt" rows="2" bind:value={$form.excerpt}></textarea>
-			{#if $errors.excerpt}<p class="error">{$errors.excerpt}</p>{/if}
+			<Field id="excerpt" label="Excerpt" error={$errors.excerpt}>
+				{#snippet children({ id, describedBy, invalid })}
+					<textarea
+						{id}
+						rows="2"
+						bind:value={$form.excerpt}
+						aria-describedby={describedBy}
+						aria-invalid={invalid || undefined}></textarea>
+				{/snippet}
+			</Field>
 
-			<label for="bodyMd">
-				Body
-				<span class="meta">
-					Markdown · <code>::youtube&#123;id=…&#125;</code>
-					· <code>::x&#123;url=…&#125;</code>
-					· <code>:::callout&#123;type=warning&#125;</code>
-				</span>
-			</label>
+			<label for="bodyMd">Body</label>
+			<p class="meta">
+				Markdown · <code>::youtube&#123;id=…&#125;</code>
+				· <code>::x&#123;url=…&#125;</code>
+				· <code>:::callout&#123;type=warning&#125;</code>
+			</p>
 			<div class="toolbar">
 				<button type="button" onclick={() => (showLibrary = !showLibrary)}>
 					{showLibrary ? 'Hide images' : 'Insert image'}
@@ -187,29 +207,62 @@
 
 			<details>
 				<summary>SEO and corrections</summary>
-				<div class="stack">
-					<label for="metaTitle">
-						Meta title <span class="meta">{$form.metaTitle.length}/60</span>
-					</label>
-					<input id="metaTitle" bind:value={$form.metaTitle} placeholder={$form.title} />
-					{#if $errors.metaTitle}<p class="error">{$errors.metaTitle}</p>{/if}
+				<div class="form-grid seo">
+					<Field
+						id="metaTitle"
+						label="Meta title"
+						optional
+						count={$form.metaTitle.length}
+						max={60}
+						hint="Falls back to the article title."
+						error={$errors.metaTitle}
+					>
+						{#snippet children({ id, describedBy, invalid })}
+							<input
+								{id}
+								bind:value={$form.metaTitle}
+								placeholder={$form.title}
+								aria-describedby={describedBy}
+								aria-invalid={invalid || undefined}
+							/>
+						{/snippet}
+					</Field>
 
-					<label for="metaDesc">
-						Meta description <span class="meta">{$form.metaDesc.length}/155</span>
-					</label>
-					<textarea id="metaDesc" rows="2" bind:value={$form.metaDesc}></textarea>
-					{#if $errors.metaDesc}<p class="error">{$errors.metaDesc}</p>{/if}
+					<Field
+						id="metaDesc"
+						label="Meta description"
+						optional
+						count={$form.metaDesc.length}
+						max={155}
+						hint="Falls back to the excerpt."
+						error={$errors.metaDesc}
+					>
+						{#snippet children({ id, describedBy, invalid })}
+							<textarea
+								{id}
+								rows="2"
+								bind:value={$form.metaDesc}
+								aria-describedby={describedBy}
+								aria-invalid={invalid || undefined}></textarea>
+						{/snippet}
+					</Field>
 
-					<label for="correction">
-						Correction note
-						<span class="meta">Shown at the foot of the article, dated (PRD §6.4).</span>
-					</label>
-					<textarea id="correction" rows="3" bind:value={$form.correction}></textarea>
+					<Field
+						id="correction"
+						label="Correction note"
+						optional
+						hint="Shown at the foot of the article, dated (PRD §6.4)."
+					>
+						{#snippet children({ id, describedBy })}
+							<textarea {id} rows="3" bind:value={$form.correction} aria-describedby={describedBy}
+							></textarea>
+						{/snippet}
+					</Field>
 				</div>
 			</details>
 
-			<div class="actions">
-				<button type="submit" disabled={$submitting}>{$submitting ? 'Saving…' : 'Save'}</button>
+			<div class="form-actions">
+				<Button type="submit" loading={$submitting} loadingLabel="Saving…">Save</Button>
 				<span class="meta">
 					{preview.wordCount || data.stats.wordCount} words ·
 					{preview.readingMinutes || data.stats.readingMinutes} min read
@@ -284,25 +337,32 @@
 		gap: 0.375rem;
 	}
 	.toolbar :global(button) {
-		border-color: #d0d0d0;
-		background: #fff;
-		color: #333;
+		min-height: 1.75rem;
+		padding: 0.1875rem 0.5rem;
+		border-color: var(--border);
+		border-radius: var(--r-sm);
+		background: var(--surface);
+		color: var(--text-2);
 		font-size: 0.75rem;
-		padding: 0.25rem 0.5rem;
+		font-weight: var(--weight-body);
+	}
+	.toolbar :global(button:hover) {
+		background: var(--surface-2);
+		color: var(--text);
 	}
 	.library {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.375rem;
 		padding: 0.5rem;
-		border: 1px solid #e5e5e5;
+		border: 1px solid var(--border);
 		border-radius: 6px;
 		max-height: 12rem;
 		overflow-y: auto;
 	}
 	.library :global(button) {
 		padding: 0;
-		border: 1px solid #ddd;
+		border: 1px solid var(--border);
 		border-radius: 4px;
 		background: none;
 		overflow: hidden;
@@ -320,15 +380,13 @@
 		line-height: 1.6;
 		resize: vertical;
 	}
-	.actions {
-		display: flex;
-		align-items: center;
-		gap: 1rem;
+	.seo {
+		margin-top: 0.75rem;
 	}
 	.preview-pane {
 		position: sticky;
 		top: 1rem;
-		border: 1px solid #e5e5e5;
+		border: 1px solid var(--border);
 		border-radius: 6px;
 		padding: 1rem;
 		max-height: calc(100vh - 3rem);
@@ -344,7 +402,7 @@
 	.toc {
 		margin-bottom: 1rem;
 		padding-bottom: 0.75rem;
-		border-bottom: 1px solid #eee;
+		border-bottom: 1px solid var(--border);
 		font-size: 0.8125rem;
 	}
 	.toc ol {
@@ -353,7 +411,7 @@
 	}
 	.toc :global(.toc--3) {
 		margin-left: 0.75rem;
-		color: #666;
+		color: var(--text-3);
 	}
 	.rendered :global(img) {
 		max-width: 100%;
@@ -369,7 +427,7 @@
 	}
 	.rendered :global(th),
 	.rendered :global(td) {
-		border: 1px solid #ddd;
+		border: 1px solid var(--border);
 		padding: 0.25rem 0.5rem;
 	}
 	.rendered :global(.embed__frame) {
@@ -386,10 +444,10 @@
 	.rendered :global(.callout) {
 		border-left: 3px solid #999;
 		padding: 0.5rem 0.75rem;
-		background: #f6f6f6;
+		background: var(--surface-2);
 	}
 	.rendered :global(.embed-error) {
-		color: #b00020;
+		color: var(--danger);
 		font-size: 0.8125rem;
 	}
 	@media (max-width: 60rem) {
