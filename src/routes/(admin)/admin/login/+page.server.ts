@@ -1,9 +1,8 @@
 import { dev } from '$app/environment';
 import { fail, redirect, type Actions } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { adminUsers } from '$lib/server/db/schema';
-import { verifyDecoy, verifyPassword } from '$lib/server/auth/password';
+import { normaliseIdentifier, verifyDecoy, verifyPassword } from '$lib/server/auth/password';
+import { findAdminByIdentifier } from '$lib/server/auth/session';
 import { createSession, deleteExpiredSessions, setSessionCookie } from '$lib/server/auth/session';
 import { loginByEmail, loginByIp } from '$lib/server/rate-limit';
 import type { PageServerLoad } from './$types';
@@ -20,46 +19,48 @@ export const load: PageServerLoad = ({ url }) => ({ next: safeNext(url.searchPar
 export const actions: Actions = {
 	default: async ({ request, cookies, getClientAddress, url }) => {
 		const form = await request.formData();
-		const email = String(form.get('email') ?? '')
-			.trim()
-			.toLowerCase();
+		// The field is still named `email` so existing password managers keep
+		// filling it; what it accepts is a username or an address.
+		const identifier = normaliseIdentifier(String(form.get('email') ?? ''));
 		const password = String(form.get('password') ?? '');
 		const next = safeNext(String(form.get('next') ?? url.searchParams.get('next') ?? ''));
 
-		if (!email || !password) {
-			return fail(400, { email, error: 'Email and password are required.' });
+		if (!identifier || !password) {
+			return fail(400, {
+				email: identifier,
+				error: 'Username or email and password are required.'
+			});
 		}
 
 		// Both limits are consumed before any lookup, so a blocked attacker cannot
 		// use response timing to learn whether the address exists.
 		const ip = loginByIp.check(getClientAddress());
-		const perEmail = loginByEmail.check(email);
-		if (!ip.allowed || !perEmail.allowed) {
-			const retryAfter = Math.max(ip.retryAfter, perEmail.retryAfter);
+		// Keyed on whatever was typed. Someone attacking one account through both
+		// its username and its address gets two budgets rather than one — a real
+		// but small loosening, and the per-IP limit still binds them together.
+		const perIdentifier = loginByEmail.check(identifier);
+		if (!ip.allowed || !perIdentifier.allowed) {
+			const retryAfter = Math.max(ip.retryAfter, perIdentifier.retryAfter);
 			return fail(429, {
-				email,
+				email: identifier,
 				error: `Too many attempts. Try again in ${Math.ceil(retryAfter / 60)} minute(s).`
 			});
 		}
 
-		const [user] = await db
-			.select({ id: adminUsers.id, passwordHash: adminUsers.passwordHash })
-			.from(adminUsers)
-			.where(eq(adminUsers.email, email))
-			.limit(1);
+		const user = await findAdminByIdentifier(db, identifier);
 
 		const ok = user
 			? await verifyPassword(user.passwordHash, password)
 			: await verifyDecoy(password);
 
 		if (!ok || !user) {
-			// One message for both causes: naming which half was wrong hands over
-			// a list of valid addresses.
-			return fail(400, { email, error: 'Incorrect email or password.' });
+			// One message for every cause: naming which half was wrong hands over
+			// a list of valid usernames and addresses.
+			return fail(400, { email: identifier, error: 'Incorrect username, email or password.' });
 		}
 
 		loginByIp.reset(getClientAddress());
-		loginByEmail.reset(email);
+		loginByEmail.reset(identifier);
 
 		// Cheap housekeeping at the only moment sessions are created, so expired
 		// rows never accumulate and no scheduler has to exist for it.

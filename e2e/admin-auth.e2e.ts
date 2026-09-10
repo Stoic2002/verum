@@ -30,9 +30,10 @@ test('rejects a wrong password without revealing which field was wrong', async (
 	await signIn(page, 'not-the-password');
 
 	const error = page.getByRole('alert');
-	await expect(error).toHaveText(/incorrect email or password/i);
-	// The same message for an address that does not exist at all.
-	await expect(error).not.toContainText(/user|account|exist/i);
+	await expect(error).toHaveText(/incorrect username, email or password/i);
+	// The same message whether the account exists or not, so the form never
+	// confirms which usernames or addresses are real.
+	await expect(error).not.toContainText(/account|exists|not found/i);
 	await expect(page).toHaveURL(/\/admin\/login/);
 });
 
@@ -89,4 +90,20 @@ test('rate limits repeated failed logins', async ({ page }) => {
 	}
 
 	expect(limited).toBe(true);
+});
+
+test('signs in with a username as well as an address', async ({ page }) => {
+	// The seed gives the admin account the username `admin`.
+	await page.goto('/admin/login');
+	await signIn(page, PASSWORD, 'admin');
+
+	await expect(page).toHaveURL('/admin');
+	await expect(page.getByTestId('admin-email')).toHaveText(EMAIL);
+});
+
+test('is case-insensitive about the identifier', async ({ page }) => {
+	await page.goto('/admin/login');
+	await signIn(page, PASSWORD, 'ADMIN');
+
+	await expect(page).toHaveURL('/admin');
 });

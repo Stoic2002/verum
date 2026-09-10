@@ -31,7 +31,7 @@ import { getMediaByIds, getStorage } from '../../media';
 import { hashPassword } from '../../auth/password';
 import { adminUsers } from '../schema';
 import { demoImage } from './images';
-import { LONG_EN, LONG_ID, MEDIUM_EN } from './articles';
+import { DRAKOR_ID, LONG_EN, LONG_ID, MEDIUM_EN } from './articles';
 
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error('DATABASE_URL is not set');
@@ -191,6 +191,39 @@ const DRAFTS: Draft[] = [
 		}
 	},
 	{
+		category: 'arts',
+		status: 'published',
+		isLiving: true,
+		publishedAt: ago(4),
+		coverIndex: 4,
+		tags: ['drama', 'listicle'],
+		locales: {
+			id: {
+				slug: 'lima-drama-korea-yang-bertahan-sampai-akhir',
+				title: 'Lima drama Korea yang bertahan sampai episode terakhir',
+				excerpt:
+					'Disusun dengan kriteria yang ditulis lebih dulu — konsistensi paruh kedua, penulisan, akhir yang tuntas, dan bisa ditonton tanpa konteks.',
+				body: DRAKOR_ID
+			}
+		}
+	},
+	{
+		category: 'games',
+		status: 'published',
+		isLiving: false,
+		publishedAt: ago(9),
+		coverIndex: 5,
+		tags: ['listicle'],
+		locales: {
+			en: {
+				slug: 'the-settings-menu-tells-you-everything',
+				title: 'The settings menu tells you everything',
+				excerpt: "What a game's options screen reveals about how it was built.",
+				body: () => SHORT_EN('Game settings menus')
+			}
+		}
+	},
+	{
 		category: 'ai',
 		status: 'scheduled',
 		isLiving: false,
@@ -224,6 +257,16 @@ const DRAFTS: Draft[] = [
 	}
 ];
 
+/**
+ * `active` is what decides whether a category appears in the navigation and
+ * the sitemap. PRD §5.3 closes politics permanently in v1 — YMYL categories
+ * are held to a much stricter standard by Google, carry low CPC, and are the
+ * worst place for an AI-assisted draft to be wrong — and §9 opens games and
+ * reviews one at a time once traffic is proven.
+ *
+ * They are seeded here because they were asked for, and left switchable so
+ * turning one back off is a checkbox rather than a migration.
+ */
 const CATEGORIES = [
 	{
 		slug: 'ai',
@@ -252,6 +295,48 @@ const CATEGORIES = [
 			description:
 				'Perkakas developer, basis data, dan infrastruktur, lengkap dengan angka yang menentukan tiap keputusan.'
 		}
+	},
+	{
+		slug: 'games',
+		sortOrder: 3,
+		active: true,
+		en: {
+			name: 'Games',
+			description: 'Games and the technology behind them, played through rather than previewed.'
+		},
+		id: {
+			name: 'Games',
+			description:
+				'Game dan teknologi di baliknya, dimainkan sampai selesai, bukan sekadar dilihat trailernya.'
+		}
+	},
+	{
+		slug: 'arts',
+		sortOrder: 4,
+		active: true,
+		en: {
+			name: 'Arts',
+			description: 'Music, film and drama, with the criteria for every judgement stated up front.'
+		},
+		id: {
+			name: 'Seni',
+			description: 'Musik, film, dan drama, dengan kriteria penilaian yang dinyatakan lebih dulu.'
+		}
+	},
+	{
+		slug: 'politics',
+		sortOrder: 5,
+		// Seeded but switched off. PRD §5.3 closes this permanently in v1; the
+		// row exists so the decision can be revisited without a migration.
+		active: false,
+		en: {
+			name: 'Politics',
+			description: 'Closed in v1. See the editorial policy for why.'
+		},
+		id: {
+			name: 'Politik',
+			description: 'Ditutup di v1. Alasannya ada di kebijakan editorial.'
+		}
 	}
 ];
 
@@ -263,21 +348,39 @@ const TAGS = [
 	{ slug: 'search', name: 'Search' },
 	{ slug: 'prompting', name: 'Prompting' },
 	{ slug: 'agents', name: 'Agents' },
-	{ slug: 'tooling', name: 'Tooling' }
+	{ slug: 'tooling', name: 'Tooling' },
+	{ slug: 'drama', name: 'Drama' },
+	{ slug: 'listicle', name: 'Listicle' }
 ];
 
 async function main() {
 	console.log('Clearing content…');
 	await truncateAll(db);
 
-	await db.insert(adminUsers).values({
-		email: process.env.SEED_ADMIN_EMAIL ?? 'admin@verum.local',
-		passwordHash: await hashPassword(process.env.SEED_ADMIN_PASSWORD ?? 'verum-dev-password')
-	});
+	await db.insert(adminUsers).values([
+		{
+			email: process.env.SEED_ADMIN_EMAIL ?? 'admin@verum.local',
+			username: 'admin',
+			passwordHash: await hashPassword(process.env.SEED_ADMIN_PASSWORD ?? 'verum-dev-password')
+		},
+		{
+			// A second local account, for checking that sign-in accepts either
+			// identifier. `password123` is fine for a laptop and nowhere else.
+			email: 'test@gmail.com',
+			username: 'test',
+			passwordHash: await hashPassword('password123')
+		}
+	]);
 
 	const categoryRows = await db
 		.insert(categories)
-		.values(CATEGORIES.map((c) => ({ slug: c.slug, sortOrder: c.sortOrder })))
+		.values(
+			CATEGORIES.map((c) => ({
+				slug: c.slug,
+				sortOrder: c.sortOrder,
+				isActive: c.active ?? true
+			}))
+		)
 		.returning({ id: categories.id, slug: categories.slug });
 	const categoryId = new Map(categoryRows.map((r) => [r.slug, r.id]));
 
@@ -403,7 +506,9 @@ async function main() {
 		`\nDemo content ready: ${counts.articles} article versions, ${counts.images} images.`
 	);
 	console.log('  Public:  http://localhost:5173/en');
-	console.log('  Admin:   http://localhost:5173/admin  ·  admin@verum.local / verum-dev-password');
+	console.log('  Admin:   http://localhost:5173/admin');
+	console.log('    admin  ·  admin@verum.local  ·  verum-dev-password');
+	console.log('    test   ·  test@gmail.com     ·  password123');
 }
 
 await main();

@@ -51,6 +51,15 @@
 <ViewBeacon articleId={article.id} />
 
 <div class="layout">
+	<!--
+		Rails appear only where there is room for them without squeezing the
+		measure. Combined with the end slot that is three units on a wide screen
+		and two on a narrow one — never more than PRD §13.1 allows.
+	-->
+	<div class="rail rail--left">
+		<AdSlot slot="rail-left" minHeight={600} variant="rail" />
+	</div>
+
 	<article class="article">
 		<nav class="crumbs" aria-label="Breadcrumb">
 			<a href={urls.home(locale)}>{m.nav_home()}</a>
@@ -125,7 +134,9 @@
 		<div class="prose">{@html article.body.lead}</div>
 
 		{#if article.body.rest}
-			<AdSlot slot="article-top" minHeight={280} />
+			<div class="inline-ad">
+				<AdSlot slot="article-top" minHeight={280} />
+			</div>
 			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 			<div class="prose">{@html article.body.rest}</div>
 		{/if}
@@ -163,6 +174,10 @@
 			</section>
 		{/if}
 	</article>
+
+	<div class="rail rail--right">
+		<AdSlot slot="rail-right" minHeight={600} variant="rail" />
+	</div>
 </div>
 
 <style>
@@ -173,6 +188,36 @@
 	.article {
 		width: 100%;
 		max-width: var(--measure);
+		min-width: 0;
+	}
+
+	/*
+	 * Rails are hidden by default and only appear once the viewport can carry
+	 * them beside a full-width measure. Below that they do not exist, which is
+	 * most traffic — so the in-content slot is what actually earns on mobile.
+	 */
+	.rail {
+		display: none;
+	}
+	@media (min-width: 78rem) {
+		.layout {
+			grid-template-columns: 10rem minmax(0, var(--measure)) 10rem;
+			gap: 2.5rem;
+			align-items: start;
+		}
+		.rail {
+			display: block;
+		}
+		/* Three units on screen at once is the ceiling; the rails take two. */
+		.inline-ad {
+			display: none;
+		}
+	}
+	@media (min-width: 96rem) {
+		.layout {
+			grid-template-columns: 18.75rem minmax(0, var(--measure)) 18.75rem;
+			gap: 3rem;
+		}
 	}
 
 	.crumbs {

@@ -7,6 +7,17 @@ import { bigint, bigserial, index, pgTable, text, timestamp } from 'drizzle-orm/
 export const adminUsers = pgTable('admin_users', {
 	id: bigserial('id', { mode: 'number' }).primaryKey(),
 	email: text('email').notNull().unique(),
+	/**
+	 * Optional second identifier for signing in.
+	 *
+	 * Added after the schema freeze (PLAN-DEV §D.4), with the reason the rule
+	 * asks for: typing a full email address on a phone to reach an editor you
+	 * open several times a day is friction with nothing behind it.
+	 *
+	 * Stored lowercase and unique across the table, so an address can never be
+	 * shadowed by someone else's username.
+	 */
+	username: text('username').unique(),
 	/** argon2id */
 	passwordHash: text('password_hash').notNull(),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()

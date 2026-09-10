@@ -282,3 +282,85 @@ It accepts quoted phrases, OR, and -exclusion the way people already type them, 
 ## Where it stops
 
 No typo tolerance, no synonyms you did not configure, and no cross-language search in one query. If any of those are requirements, this is the wrong tool. If they are not, the second system was never worth running.`;
+
+/**
+ * A curated listicle, the fourth format PRD §5.4 prioritises.
+ *
+ * The selection criteria are stated before the list, which is the part §5.4
+ * actually requires: "harus punya kriteria seleksi eksplisit". A listicle
+ * without them is a ranking nobody can check.
+ *
+ * The titles below are placeholders for the format. Nothing here has been
+ * verified against a current chart, and publishing it as-is would fail the
+ * quality gate in §5.5 — point 2, every factual claim checked against a
+ * primary source.
+ */
+export const DRAKOR_ID = (
+	imageId: number
+) => `Daftar "drama Korea terbaik" biasanya disusun dari apa yang sedang ramai dibicarakan, bukan dari apa yang benar-benar bertahan setelah episode keempat. Yang ini disusun dengan kriteria yang bisa Anda periksa sendiri, dan kriterianya ditulis lebih dulu supaya tidak bisa dikarang belakangan.
+
+Lima judul di bawah dipilih dari drama yang tayang dalam dua belas bulan terakhir dan sudah selesai atau melewati separuh episodenya — cukup untuk menilai, belum cukup lama untuk jadi nostalgia.
+
+## Kriteria seleksi
+
+Empat hal, dengan bobot yang sama:
+
+1. **Konsistensi paruh kedua.** Banyak drama kuat di empat episode pertama lalu runtuh. Yang tidak bertahan tidak masuk daftar.
+2. **Penulisan, bukan pemeran.** Nama besar tidak menaikkan peringkat.
+3. **Selesai dengan tuntas.** Akhir yang menggantung karena mengejar musim kedua dikurangi nilainya.
+4. **Bisa ditonton tanpa konteks.** Tidak menuntut Anda sudah menonton tiga judul lain.
+
+Yang **tidak** dipakai: rating penayangan, jumlah penonton platform, dan tren media sosial. Ketiganya mengukur seberapa banyak orang menonton, bukan apakah tontonannya bagus.
+
+::image{id=${imageId} caption="Distribusi penilaian paruh pertama versus paruh kedua untuk dua puluh judul yang dipertimbangkan."}
+
+:::callout{type="warning" title="Judul di bawah adalah contoh format"}
+Daftar ini belum diverifikasi terhadap data tayang mana pun. Ia ada untuk menunjukkan bagaimana format listicle terbaca di situs ini — sebelum terbit, setiap judul, tanggal, dan klaim harus dicek ke sumber primer sesuai §5.5.
+:::
+
+## 1. Judul Contoh Pertama
+
+Yang membuatnya bekerja adalah pengekangan. Premisnya bisa jadi melodrama besar, tapi naskahnya menolak setiap kesempatan untuk itu.
+
+Paruh keduanya justru lebih tenang daripada paruh pertama, dan itu keputusan yang berani untuk drama yang dipasarkan sebagai thriller.
+
+**Tonton kalau** Anda menyukai cerita yang percaya pada penontonnya.
+**Lewati kalau** Anda ingin sesuatu yang bergerak cepat.
+
+## 2. Judul Contoh Kedua
+
+Enam belas episode tanpa satu pun subplot yang terbuang. Itu jarang.
+
+> Kekuatannya bukan di kejutan, tapi di seberapa masuk akal setiap kejutan terasa setelah terjadi.
+
+**Tonton kalau** Anda lelah dengan drama yang memanjangkan diri.
+**Lewati kalau** Anda mencari romansa sebagai pusat cerita.
+
+## 3. Judul Contoh Ketiga
+
+Satu-satunya di daftar ini yang gagal di episode terakhir, dan tetap masuk karena lima belas episode sebelumnya cukup kuat untuk menahan itu.
+
+**Tonton kalau** Anda tidak keberatan akhir yang tergesa.
+**Lewati kalau** akhir yang buruk merusak keseluruhan bagi Anda.
+
+## 4. Judul Contoh Keempat
+
+Drama paling sepi di daftar ini dan yang paling saya pikirkan setelah selesai.
+
+**Tonton kalau** Anda menonton sendirian, malam hari, tanpa ponsel.
+**Lewati kalau** Anda menonton sambil mengerjakan hal lain.
+
+## 5. Judul Contoh Kelima
+
+Yang paling mudah direkomendasikan ke siapa pun. Tidak menuntut apa-apa, dan tidak menghina siapa pun.
+
+**Tonton kalau** Anda baru mulai menonton drama Korea.
+**Lewati kalau** Anda sudah menonton banyak dan mencari sesuatu yang tidak biasa.
+
+## Yang hampir masuk
+
+Tiga judul lain sampai ke daftar pendek dan gugur di kriteria ketiga — semuanya berakhir dengan menyiapkan musim kedua yang belum tentu ada.
+
+## Cara daftar ini akan diperbarui
+
+Ini artikel hidup: judul baru ditambahkan dan yang lama diturunkan di tempat, bukan lewat artikel baru. Tanggal pembaruan di atas selalu mencerminkan perubahan terakhir.`;

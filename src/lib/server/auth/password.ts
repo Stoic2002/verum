@@ -34,3 +34,18 @@ export async function verifyDecoy(password: string): Promise<false> {
 	await verifyPassword(await decoyHash, password);
 	return false;
 }
+
+/**
+ * Normalises whatever was typed into the sign-in box.
+ *
+ * Both usernames and email addresses are stored lowercase, so the comparison
+ * is case-insensitive without a functional index on either column.
+ */
+export function normaliseIdentifier(value: string): string {
+	return value.trim().toLowerCase();
+}
+
+/** True when the identifier looks like an address rather than a username. */
+export function looksLikeEmail(value: string): boolean {
+	return value.includes('@');
+}

@@ -15,7 +15,7 @@ const PASSWORD = 'verum-dev-password';
 
 async function signIn(page: Page) {
 	await page.goto('/admin/login');
-	await page.getByLabel('Email').fill(EMAIL);
+	await page.getByLabel(/username or email/i).fill(EMAIL);
 	await page.getByLabel('Password').fill(PASSWORD);
 	await page.getByRole('button', { name: /sign in/i }).click();
 	await expect(page).toHaveURL('/admin');

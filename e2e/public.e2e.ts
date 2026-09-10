@@ -153,10 +153,14 @@ test('the page never scrolls sideways on a phone', async ({ page }) => {
 });
 
 test('a long article gets its first ad slot after the opening paragraph', async ({ page }) => {
+	// Narrow enough that the rails are absent and the in-content slot is the
+	// one on screen.
+	await page.setViewportSize({ width: 1100, height: 900 });
 	await page.goto('/en/tech/postgres-full-text-search-for-small-sites');
 
 	const top = page.locator('[data-ad-slot="article-top"]');
-	if ((await top.count()) === 0) return; // Short article; nothing to place.
+	// Absent on a short article, and hidden where the rails take over.
+	if (!(await top.isVisible())) return;
 
 	// Whatever sits above the slot must include prose, not just the byline.
 	const leadText = await page.locator('.prose').first().innerText();
@@ -165,4 +169,72 @@ test('a long article gets its first ad slot after the opening paragraph', async 
 	const leadBottom = (await page.locator('.prose').first().boundingBox())!.y;
 	const slotTop = (await top.boundingBox())!.y;
 	expect(slotTop).toBeGreaterThan(leadBottom);
+});
+
+test.describe('ad rails', () => {
+	/** Slots with a layout box — the only ones the consent loader may fill. */
+	const visibleSlots = (page: import('@playwright/test').Page) =>
+		page
+			.locator('[data-ad-slot]')
+			.evaluateAll((els) =>
+				els
+					.filter((el) => (el as HTMLElement).offsetParent !== null)
+					.map((el) => el.getAttribute('data-ad-slot'))
+			);
+
+	test('a wide screen shows the two rails instead of the in-content slot', async ({ page }) => {
+		await page.setViewportSize({ width: 1500, height: 1000 });
+		await page.goto(ARTICLE);
+
+		const slots = await visibleSlots(page);
+		expect(slots).toContain('rail-left');
+		expect(slots).toContain('rail-right');
+		// Swapped for the rails, not added to them.
+		expect(slots).not.toContain('article-top');
+	});
+
+	test('a laptop shows the in-content slot and no rails', async ({ page }) => {
+		await page.setViewportSize({ width: 1100, height: 900 });
+		await page.goto(ARTICLE);
+
+		const slots = await visibleSlots(page);
+		expect(slots).not.toContain('rail-left');
+		expect(slots).not.toContain('rail-right');
+	});
+
+	test('never puts more than three units on screen at once', async ({ page }) => {
+		// PRD §13.1 caps an article page at three slots.
+		for (const width of [375, 900, 1100, 1500, 1800]) {
+			await page.setViewportSize({ width, height: 1000 });
+			await page.goto(ARTICLE);
+
+			expect((await visibleSlots(page)).length, `at ${width}px`).toBeLessThanOrEqual(3);
+		}
+	});
+
+	test('rails do not squeeze the article or cause a shift', async ({ page }) => {
+		await page.setViewportSize({ width: 1500, height: 1000 });
+		await page.goto(ARTICLE);
+
+		const article = await page.locator('.article').boundingBox();
+		// The measure has to survive: 44rem at the default root size.
+		expect(article!.width).toBeGreaterThan(690);
+
+		const cls = await page.evaluate(async () => {
+			let total = 0;
+			const observer = new PerformanceObserver((list) => {
+				for (const entry of list.getEntries() as (PerformanceEntry & {
+					value: number;
+					hadRecentInput: boolean;
+				})[]) {
+					if (!entry.hadRecentInput) total += entry.value;
+				}
+			});
+			observer.observe({ type: 'layout-shift', buffered: true });
+			await new Promise((done) => setTimeout(done, 600));
+			observer.disconnect();
+			return total;
+		});
+		expect(cls).toBe(0);
+	});
 });

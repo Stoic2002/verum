@@ -190,6 +190,7 @@ async function seed() {
 		.insert(adminUsers)
 		.values({
 			email: process.env.SEED_ADMIN_EMAIL ?? 'admin@verum.local',
+			username: 'admin',
 			passwordHash: await hash(password)
 		})
 		.onConflictDoNothing();

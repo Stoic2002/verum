@@ -3,6 +3,7 @@ import { and, eq, gt, lt } from 'drizzle-orm';
 import type { Database } from '../db/types';
 import type { Cookies } from '@sveltejs/kit';
 import { adminUsers, sessions } from '../db/schema';
+import { or } from 'drizzle-orm';
 
 export const SESSION_COOKIE = 'verum_session';
 
@@ -115,6 +116,23 @@ export function clearSessionCookie(cookies: Cookies, secure: boolean) {
 }
 
 /** Constant-time compare for anything token-shaped that is not a session. */
+/**
+ * Finds the account for a sign-in attempt, by username or by email.
+ *
+ * One query over both columns rather than two lookups: a second round trip
+ * would take measurably longer for a username than for an email, and response
+ * time is exactly the channel the decoy hash exists to close.
+ */
+export async function findAdminByIdentifier(db: Database, identifier: string) {
+	const [row] = await db
+		.select({ id: adminUsers.id, passwordHash: adminUsers.passwordHash })
+		.from(adminUsers)
+		.where(or(eq(adminUsers.email, identifier), eq(adminUsers.username, identifier)))
+		.limit(1);
+
+	return row ?? null;
+}
+
 export function safeEqual(a: string, b: string): boolean {
 	const bufA = Buffer.from(a);
 	const bufB = Buffer.from(b);

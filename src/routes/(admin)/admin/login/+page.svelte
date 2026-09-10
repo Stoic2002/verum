@@ -27,12 +27,19 @@
 	>
 		<input type="hidden" name="next" value={data.next} />
 
-		<Field id="email" label="Email">
+		<Field id="email" label="Username or email">
 			{#snippet children({ id, describedBy })}
+				<!--
+					type="text", not type="email": the browser would otherwise refuse
+					to submit a bare username as an invalid address.
+				-->
 				<input
 					{id}
 					name="email"
-					type="email"
+					type="text"
+					autocapitalize="none"
+					autocorrect="off"
+					spellcheck="false"
 					autocomplete="username"
 					required
 					aria-describedby={describedBy}
