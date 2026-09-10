@@ -63,5 +63,16 @@ check /en/not-a-real-category 404
 check /en/search 200
 check /en/newsletter 200
 check /en/newsletter/confirm 200
+check /robots.txt 200
+check /rss.xml 200
+check /sitemap.xml 200
+check /sitemap-en.xml 200
+check /sitemap-id.xml 200
+check /sitemap-de.xml 404
+check /ads.txt 404
+check /en/about 200
+check /en/privacy 200
+check /en/editorial-policy 200
+check /id/terms 200
 
 [ "$fail" = "0" ] && echo "Production build serves correctly." || exit 1

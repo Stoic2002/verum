@@ -14,6 +14,8 @@ import {
 import { createPreviewToken } from '$lib/server/content/preview-token';
 import { articleSettingsSchema } from '$lib/server/content/schemas';
 import { getStorage, listMedia, pictureFor } from '$lib/server/media';
+import { articleSurfaces, purgeUrls } from '$lib/server/cdn';
+import { siteOrigin } from '$lib/server/site';
 import { LOCALES, articles, type Locale } from '$lib/server/db/schema';
 import type { PageServerLoad } from './$types';
 
@@ -74,7 +76,7 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 export const actions: Actions = {
-	settings: async ({ request, params }) => {
+	settings: async ({ request, params, url }) => {
 		const id = Number(params.id);
 		const form = await superValidate(request, adapter);
 		if (!form.valid) return message(form, 'Fix the errors below.', { status: 400 });
@@ -88,6 +90,17 @@ export const actions: Actions = {
 
 		await setArticleStatus(db, id, status, parsePublishAt(publishAt));
 		await setArticleTags(db, id, tagIds);
+
+		// Publishing, archiving or moving category all change what the cached
+		// listing pages should show.
+		const updated = await getArticleForAdmin(db, id);
+		if (updated) {
+			const origin = siteOrigin(url);
+			const surfaces = updated.locales.flatMap((row) =>
+				articleSurfaces(origin, row.locale, updated.categorySlug, row.slug)
+			);
+			await purgeUrls(surfaces);
+		}
 
 		return message(form, 'Saved.');
 	},

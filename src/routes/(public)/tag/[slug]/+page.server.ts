@@ -2,12 +2,14 @@ import { error } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { articlesByTag, tagBySlug } from '$lib/server/db/queries/public';
 import { toCard } from '$lib/server/cards';
+import { simpleSeo } from '$lib/server/seo';
+import * as urls from '$lib/urls';
 import type { PageServerLoad } from './$types';
 
 /** PRD §8.1: fewer than this and the page is thin, so it is kept out of the index. */
 const NOINDEX_BELOW = 3;
 
-export const load: PageServerLoad = async ({ params, locals, setHeaders }) => {
+export const load: PageServerLoad = async ({ params, url, locals, setHeaders }) => {
 	const locale = locals.locale;
 
 	const tag = await tagBySlug(db, params.slug);
@@ -25,5 +27,19 @@ export const load: PageServerLoad = async ({ params, locals, setHeaders }) => {
 		...(noindex ? { 'x-robots-tag': 'noindex, follow' } : {})
 	});
 
-	return { tag, articles: rows.map(toCard), noindex };
+	const seo = simpleSeo(
+		{ requestUrl: url, locale },
+		{
+			title: locale === 'id' ? `Artikel bertag ${tag.name}` : `Articles tagged ${tag.name}`,
+			description:
+				locale === 'id'
+					? `Semua artikel VERUM yang ditandai ${tag.name}.`
+					: `Every VERUM article tagged ${tag.name}.`,
+			path: urls.tag(locale, tag.slug),
+			altPath: (l) => urls.tag(l, tag.slug),
+			noindex
+		}
+	);
+
+	return { seo, tag, articles: rows.map(toCard), noindex };
 };

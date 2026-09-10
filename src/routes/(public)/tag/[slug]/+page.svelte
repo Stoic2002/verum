@@ -1,19 +1,12 @@
 <script lang="ts">
-	import { page } from '$app/state';
 	import { m } from '$lib/paraglide/messages';
 	import ArticleCard from '$lib/components/ArticleCard.svelte';
+	import Seo from '$lib/components/Seo.svelte';
 
 	let { data } = $props();
 </script>
 
-<svelte:head>
-	<title>{data.tag.name} — VERUM</title>
-	{#if data.noindex}
-		<meta name="robots" content="noindex, follow" />
-	{:else}
-		<link rel="canonical" href={page.url.href.split('?')[0]} />
-	{/if}
-</svelte:head>
+<Seo seo={data.seo} />
 
 <header class="head">
 	<h1>{m.tag_heading({ name: data.tag.name })}</h1>

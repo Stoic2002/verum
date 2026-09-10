@@ -1,23 +1,17 @@
 <script lang="ts">
-	import { page as pageState } from '$app/state';
 	import { m } from '$lib/paraglide/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import * as urls from '$lib/urls';
 	import ArticleCard from '$lib/components/ArticleCard.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
+	import Seo from '$lib/components/Seo.svelte';
 
 	let { data } = $props();
 	const locale = getLocale();
 	const basePath = $derived(urls.category(locale, data.category.slug));
 </script>
 
-<svelte:head>
-	<title>{data.category.name} — VERUM</title>
-	{#if data.category.description}
-		<meta name="description" content={data.category.description} />
-	{/if}
-	<link rel="canonical" href={pageState.url.href.split('?')[0]} />
-</svelte:head>
+<Seo seo={data.seo} />
 
 <header class="head">
 	<h1>{data.category.name}</h1>

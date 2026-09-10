@@ -6,6 +6,7 @@ import {
 	countByCategory
 } from '$lib/server/db/queries/public';
 import { toCard } from '$lib/server/cards';
+import { categorySeo } from '$lib/server/seo';
 import type { PageServerLoad } from './$types';
 
 const PER_PAGE = 12;
@@ -31,7 +32,15 @@ export const load: PageServerLoad = async ({ params, url, locals, setHeaders }) 
 		offset: (page - 1) * PER_PAGE
 	});
 
+	const homeLabel = locale === 'id' ? 'Beranda' : 'Home';
+	const named = {
+		slug: category.slug,
+		name: category.name ?? category.slug,
+		description: category.description
+	};
+
 	return {
+		seo: categorySeo({ requestUrl: url, locale }, named, homeLabel),
 		category: {
 			slug: category.slug,
 			name: category.name ?? category.slug,

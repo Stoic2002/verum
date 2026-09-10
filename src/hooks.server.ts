@@ -10,6 +10,7 @@ import {
 	setSessionCookie,
 	validateSession
 } from '$lib/server/auth/session';
+import { findRedirect } from '$lib/server/redirects';
 
 const LOGIN_PATH = '/admin/login';
 
@@ -117,9 +118,42 @@ const handleAdmin: Handle = async ({ event, resolve }) => {
 	return response;
 };
 
+/**
+ * Serves stored redirects, but only for paths that would otherwise 404.
+ *
+ * PRD §12.1 allows a slug to change and requires the old URL to keep working.
+ * Checking the table before routing would add a database round trip to every
+ * request to consult a table that is normally empty; checking it after a 404
+ * costs nothing on the happy path and is just as correct.
+ *
+ * The stored path is matched without its query string, and the query is
+ * carried across so a link with campaign parameters survives the move.
+ */
+const handleStoredRedirects: Handle = async ({ event, resolve }) => {
+	const response = await resolve(event);
+	if (response.status !== 404) return response;
+
+	const stored = await findRedirect(db, event.url.pathname);
+	if (!stored) return response;
+
+	const target = stored.to_path + (event.url.search || '');
+	return new Response(null, {
+		status: stored.status,
+		headers: {
+			location: target,
+			// A permanent redirect is worth caching; a temporary one is not.
+			'cache-control':
+				stored.status === 301 || stored.status === 308
+					? 'public, max-age=0, s-maxage=86400'
+					: 'no-store'
+		}
+	});
+};
+
 export const handle: Handle = sequence(
 	handleLocaleRedirect,
 	handleParaglide,
 	handleAuth,
-	handleAdmin
+	handleAdmin,
+	handleStoredRedirects
 );

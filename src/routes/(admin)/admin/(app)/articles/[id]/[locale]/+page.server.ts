@@ -5,6 +5,8 @@ import { db } from '$lib/server/db';
 import { getArticleForAdmin, getArticleLocale } from '$lib/server/db/queries/admin';
 import { saveArticleLocale } from '$lib/server/content/articles';
 import { createPreviewToken } from '$lib/server/content/preview-token';
+import { articleSurfaces, purgeUrls } from '$lib/server/cdn';
+import { siteOrigin } from '$lib/server/site';
 import { articleLocaleSchema } from '$lib/server/content/schemas';
 import { getStorage, listMedia, pictureFor } from '$lib/server/media';
 import { LOCALES, type Locale } from '$lib/server/db/schema';
@@ -53,7 +55,7 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, params }) => {
+	default: async ({ request, params, url }) => {
 		const id = Number(params.id);
 		const locale = params.locale as Locale;
 
@@ -62,6 +64,20 @@ export const actions: Actions = {
 
 		try {
 			const result = await saveArticleLocale(db, id, locale, form.data);
+
+			// The edit is live at the origin now; the edge still has the old copy
+			// for up to a day (PRD §10.3). Purge the article and everything that
+			// embeds its title.
+			const article = await getArticleForAdmin(db, id);
+			if (article) {
+				const origin = siteOrigin(url);
+				const surfaces = articleSurfaces(origin, locale, article.categorySlug, form.data.slug);
+				// A renamed slug leaves the old URL cached as a live page.
+				if (result.slugChangedFrom) {
+					surfaces.push(`${origin}/${locale}/${article.categorySlug}/${result.slugChangedFrom}`);
+				}
+				await purgeUrls(surfaces);
+			}
 
 			return message(
 				form,

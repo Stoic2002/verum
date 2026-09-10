@@ -8,6 +8,7 @@
 	import LocaleBanner from '$lib/components/LocaleBanner.svelte';
 	import NewsletterCta from '$lib/components/NewsletterCta.svelte';
 	import Picture from '$lib/components/Picture.svelte';
+	import Seo from '$lib/components/Seo.svelte';
 	import ShareButtons from '$lib/components/ShareButtons.svelte';
 	import ViewBeacon from '$lib/components/ViewBeacon.svelte';
 
@@ -25,11 +26,7 @@
 	const formatted = (iso: string) => dateFormat.format(new Date(iso));
 </script>
 
-<svelte:head>
-	<title>{article.metaTitle || article.title} — VERUM</title>
-	<meta name="description" content={article.metaDesc || article.excerpt} />
-	<link rel="canonical" href={canonical} />
-</svelte:head>
+<Seo seo={data.seo} />
 
 <ViewBeacon articleId={article.id} />
 

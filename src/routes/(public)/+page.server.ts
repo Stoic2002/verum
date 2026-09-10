@@ -5,9 +5,10 @@ import {
 	recentArticles
 } from '$lib/server/db/queries/public';
 import { toCard } from '$lib/server/cards';
+import { homeSeo } from '$lib/server/seo';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals, setHeaders }) => {
+export const load: PageServerLoad = async ({ url, locals, setHeaders }) => {
 	const locale = locals.locale;
 
 	// Short edge TTL: the homepage changes whenever anything publishes, and 60
@@ -30,7 +31,13 @@ export const load: PageServerLoad = async ({ locals, setHeaders }) => {
 			}))
 	);
 
+	const tagline =
+		locale === 'id'
+			? 'AI dan teknologi, diuji oleh orang yang memakainya.'
+			: 'AI and technology, tested by someone who uses it.';
+
 	return {
+		seo: homeSeo({ requestUrl: url, locale }, tagline),
 		featured: featured ? toCard(featured) : null,
 		latest: rest.map(toCard),
 		blocks

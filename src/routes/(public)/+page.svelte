@@ -4,15 +4,13 @@
 	import * as urls from '$lib/urls';
 	import ArticleCard from '$lib/components/ArticleCard.svelte';
 	import NewsletterCta from '$lib/components/NewsletterCta.svelte';
+	import Seo from '$lib/components/Seo.svelte';
 
 	let { data } = $props();
 	const locale = getLocale();
 </script>
 
-<svelte:head>
-	<title>VERUM — {m.site_tagline()}</title>
-	<meta name="description" content={m.site_tagline()} />
-</svelte:head>
+<Seo seo={data.seo} />
 
 {#if !data.featured}
 	<p class="empty">{m.home_empty()}</p>

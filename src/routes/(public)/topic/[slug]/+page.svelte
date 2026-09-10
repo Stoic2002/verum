@@ -1,15 +1,12 @@
 <script lang="ts">
-	import { page } from '$app/state';
 	import { m } from '$lib/paraglide/messages';
 	import ArticleCard from '$lib/components/ArticleCard.svelte';
+	import Seo from '$lib/components/Seo.svelte';
 
 	let { data } = $props();
 </script>
 
-<svelte:head>
-	<title>{data.topic.title} — VERUM</title>
-	<link rel="canonical" href={page.url.href.split('?')[0]} />
-</svelte:head>
+<Seo seo={data.seo} />
 
 <header class="head">
 	<p class="kicker">{m.topic_heading({ title: data.topic.title })}</p>

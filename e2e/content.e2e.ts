@@ -163,3 +163,25 @@ test('publishes and the article becomes readable', async ({ page }) => {
 	await page.goto('/admin/articles?status=published');
 	await expect(page.locator('table')).toContainText(`E2E article ${stamp}`);
 });
+
+test('the old URL 301s to the renamed one, and carries the query string', async ({ page }) => {
+	// The redirect was recorded when the slug changed; this is the half that
+	// matters to a reader following an old link (PRD §12.1).
+	const response = await page.goto(`/en/ai/${slug}?utm_source=newsletter`);
+
+	expect(response?.status()).toBe(200);
+	const landed = new URL(page.url());
+	expect(landed.pathname).toBe(`/en/ai/${slug}-renamed`);
+	// A campaign parameter that survives the move is a campaign you can measure.
+	expect(landed.search).toBe('?utm_source=newsletter');
+
+	const chain = response?.request().redirectedFrom();
+	expect(chain).not.toBeNull();
+});
+
+test('a URL that never existed is still a 404', async ({ page }) => {
+	// The redirect lookup runs only after a 404, so this proves it does not
+	// invent destinations for unknown paths.
+	const response = await page.goto('/en/ai/never-existed-at-all');
+	expect(response?.status()).toBe(404);
+});
