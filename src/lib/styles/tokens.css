@@ -1,64 +1,152 @@
 /*
- * Design tokens.
+ * VERUM design tokens.
  *
- * Light is the base; dark is applied by prefers-color-scheme unless the reader
- * has chosen otherwise, and by an explicit data-theme in both directions so the
- * toggle wins over the system setting.
+ * The reference is app.uniswap.org. What is taken from it, and what is not:
+ *
+ * TAKEN
+ *   · Large headings at a LOW weight (Uniswap sets 36–52px at weight 485).
+ *     Size carries the hierarchy; weight stays out of the way. This suits a
+ *     publication even better than it suits an app.
+ *   · Generous, consistent rounding — 12 / 16 / 20 / 24 — and pills for small
+ *     controls.
+ *   · Accent-tinted surfaces at 6–12% alpha instead of flat grey. It is what
+ *     makes the interface feel coloured rather than painted.
+ *   · A warm near-black (#131313), not a blue-black and not pure #000.
+ *
+ * NOT TAKEN
+ *   · The centred single-card layout. Uniswap has one action; a publication
+ *     is scanned, so it needs a grid and real typographic hierarchy.
+ *   · Backdrop blur. It costs paint on every scroll frame and softens text —
+ *     the two things PRD §12.5's INP and LCP targets are most sensitive to.
+ *   · Uniswap's exact magenta on light backgrounds. #FF37C7 on white is about
+ *     2.5:1, which fails WCAG for text. The light theme uses a deeper shade of
+ *     the same hue and keeps the bright one for dark, where it belongs.
+ *   · A web font. Basel is theirs, and any downloaded face is a request in
+ *     front of LCP. The low-weight-at-large-size effect is mostly size, weight
+ *     and line-height, not the typeface.
  */
 
 :root {
-	--bg: #fdfdfc;
+	/* ── Colour ────────────────────────────────────────────────────────── */
+	--bg: #fbfbfd;
 	--surface: #ffffff;
-	--surface-2: #f4f4f2;
-	--border: #e3e3df;
-	--text: #17171a;
-	--text-2: #45454c;
-	--text-3: #6f6f79;
-	--accent: #9a3412;
-	--accent-hover: #7c2d12;
-	--focus: #2563eb;
+	/* Tinted, not grey: the accent hue at low alpha over the page. */
+	--surface-2: color-mix(in srgb, var(--accent) 4%, #f4f4f6);
+	--surface-3: color-mix(in srgb, var(--accent) 8%, #eeeef1);
+	--border: #e6e6ec;
+	--border-strong: #d3d3dc;
 
-	--font-body: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-	--font-serif: ui-serif, Georgia, 'Iowan Old Style', 'Times New Roman', serif;
-	--font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+	--text: #101014;
+	--text-2: #4a4a56;
+	--text-3: #74747f;
 
-	--measure: 42rem;
-	--wide: 72rem;
+	/* Deep enough for body links on white; the bright one lives in dark mode. */
+	--accent: #b3008a;
+	--accent-hover: #8f006e;
+	--accent-contrast: #ffffff;
+	--accent-tint: color-mix(in srgb, var(--accent) 10%, transparent);
+	--accent-tint-strong: color-mix(in srgb, var(--accent) 16%, transparent);
+
+	--focus: #0066ff;
+	--danger: #c1121f;
+
+	/* ── Type ──────────────────────────────────────────────────────────── */
+	--font-body:
+		ui-sans-serif, system-ui, -apple-system, 'Segoe UI Variable Text', 'Segoe UI', Inter, Roboto,
+		'Helvetica Neue', Arial, sans-serif;
+	--font-display: var(--font-body);
+	--font-mono: ui-monospace, SFMono-Regular, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+
+	/*
+	 * The signature: display text is large and light, never bold. 500 in a
+	 * static face lands close to Uniswap's 485.
+	 */
+	--weight-display: 500;
+	--weight-body: 400;
+	--weight-strong: 600;
+
+	--track-display: -0.02em;
+	--track-label: 0.06em;
+
+	/* ── Shape ─────────────────────────────────────────────────────────── */
+	--r-sm: 8px;
+	--r-md: 12px;
+	--r-lg: 16px;
+	--r-xl: 20px;
+	--r-2xl: 24px;
+	--r-pill: 999px;
+
+	/* ── Elevation ─────────────────────────────────────────────────────── */
+	--shadow-sm: 0 1px 2px rgb(16 16 20 / 0.04), 0 1px 3px rgb(16 16 20 / 0.06);
+	--shadow-md: 0 2px 4px rgb(16 16 20 / 0.04), 0 8px 24px rgb(16 16 20 / 0.08);
+	--shadow-accent: 0 6px 20px color-mix(in srgb, var(--accent) 18%, transparent);
+
+	/* ── Motion ────────────────────────────────────────────────────────── */
+	--ease: cubic-bezier(0.32, 0.72, 0, 1);
+	--dur: 160ms;
+
+	/* ── Layout ────────────────────────────────────────────────────────── */
+	--measure: 44rem;
+	--wide: 76rem;
 
 	color-scheme: light;
 }
 
+/*
+ * Dark is where the reference's palette belongs, so it gets the bright
+ * magenta and the warm near-black verbatim.
+ */
 @media (prefers-color-scheme: dark) {
 	:root:not([data-theme='light']) {
-		--bg: #101012;
-		--surface: #17171a;
-		--surface-2: #1e1e22;
-		--border: #2c2c31;
-		--text: #ececef;
-		--text-2: #b6b6bd;
-		--text-3: #86868f;
-		--accent: #fb923c;
-		--accent-hover: #fdba74;
-		--focus: #60a5fa;
+		--bg: #131313;
+		--surface: #1b1b1d;
+		--surface-2: color-mix(in srgb, var(--accent) 6%, #202023);
+		--surface-3: color-mix(in srgb, var(--accent) 10%, #26262a);
+		--border: #2b2b30;
+		--border-strong: #3a3a41;
+
+		--text: #f4f4f6;
+		--text-2: #b4b4bf;
+		--text-3: #83838f;
+
+		--accent: #ff37c7;
+		--accent-hover: #ff6bd6;
+		--accent-contrast: #17000f;
+		--focus: #5b9dff;
+		--danger: #ff6b6b;
+
+		--shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+		--shadow-md: 0 2px 6px rgb(0 0 0 / 0.4), 0 12px 32px rgb(0 0 0 / 0.5);
 
 		color-scheme: dark;
 	}
 }
 
 :root[data-theme='dark'] {
-	--bg: #101012;
-	--surface: #17171a;
-	--surface-2: #1e1e22;
-	--border: #2c2c31;
-	--text: #ececef;
-	--text-2: #b6b6bd;
-	--text-3: #86868f;
-	--accent: #fb923c;
-	--accent-hover: #fdba74;
-	--focus: #60a5fa;
+	--bg: #131313;
+	--surface: #1b1b1d;
+	--surface-2: color-mix(in srgb, var(--accent) 6%, #202023);
+	--surface-3: color-mix(in srgb, var(--accent) 10%, #26262a);
+	--border: #2b2b30;
+	--border-strong: #3a3a41;
+
+	--text: #f4f4f6;
+	--text-2: #b4b4bf;
+	--text-3: #83838f;
+
+	--accent: #ff37c7;
+	--accent-hover: #ff6bd6;
+	--accent-contrast: #17000f;
+	--focus: #5b9dff;
+	--danger: #ff6b6b;
+
+	--shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+	--shadow-md: 0 2px 6px rgb(0 0 0 / 0.4), 0 12px 32px rgb(0 0 0 / 0.5);
 
 	color-scheme: dark;
 }
+
+/* ── Base ────────────────────────────────────────────────────────────── */
 
 *,
 *::before,
@@ -76,21 +164,37 @@ body {
 	color: var(--text);
 	font-family: var(--font-body);
 	font-size: 1rem;
+	font-weight: var(--weight-body);
 	line-height: 1.6;
 	-webkit-text-size-adjust: 100%;
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+	font-family: var(--font-display);
+	font-weight: var(--weight-display);
+	letter-spacing: var(--track-display);
+	line-height: 1.15;
 }
 
 a {
 	color: var(--accent);
+	text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent);
+	text-underline-offset: 0.18em;
+	transition: color var(--dur) var(--ease);
 }
 a:hover {
 	color: var(--accent-hover);
+	text-decoration-color: currentColor;
 }
 
 :focus-visible {
 	outline: 2px solid var(--focus);
 	outline-offset: 2px;
-	border-radius: 2px;
+	border-radius: var(--r-sm);
 }
 
 img,
@@ -100,15 +204,35 @@ iframe {
 	max-width: 100%;
 }
 
+/* ── Shared pieces ───────────────────────────────────────────────────── */
+
 .pill {
-	display: inline-block;
-	padding: 0.0625rem 0.4375rem;
-	border-radius: 999px;
-	background: var(--surface-2);
-	color: var(--text-3);
+	display: inline-flex;
+	align-items: center;
+	padding: 0.1875rem 0.5rem;
+	border-radius: var(--r-pill);
+	background: var(--surface-3);
+	color: var(--text-2);
 	font-size: 0.6875rem;
+	font-weight: var(--weight-strong);
+	letter-spacing: var(--track-label);
 	text-transform: uppercase;
-	letter-spacing: 0.05em;
+	line-height: 1.4;
+}
+
+.pill--accent {
+	background: var(--accent-tint);
+	color: var(--accent);
+}
+
+/* Small caps label used above sections. */
+.eyebrow {
+	margin: 0;
+	color: var(--text-3);
+	font-size: 0.75rem;
+	font-weight: var(--weight-strong);
+	letter-spacing: var(--track-label);
+	text-transform: uppercase;
 }
 
 @media (prefers-reduced-motion: reduce) {

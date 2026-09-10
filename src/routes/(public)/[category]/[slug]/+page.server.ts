@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { articleBySlug, publishedAlternates, relatedArticles } from '$lib/server/db/queries/public';
 import { toCard } from '$lib/server/cards';
+import { splitAfterOpening } from '$lib/server/content/render';
 import * as urls from '$lib/urls';
 import { articleSeo } from '$lib/server/seo';
 import { siteOrigin } from '$lib/server/site';
@@ -76,7 +77,7 @@ export const load: PageServerLoad = async ({ params, url, locals, setHeaders }) 
 		seo,
 		article: {
 			...card,
-			bodyHtml: row.body_html,
+			body: splitAfterOpening(row.body_html),
 			toc: row.word_count >= TOC_MIN_WORDS ? row.toc : [],
 			wordCount: row.word_count,
 			metaTitle: row.meta_title,

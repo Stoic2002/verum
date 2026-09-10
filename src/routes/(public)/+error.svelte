@@ -14,7 +14,7 @@
 </svelte:head>
 
 <div class="error">
-	<p class="status">{page.status}</p>
+	<p class="eyebrow status">{page.status}</p>
 	<h1>{notFound ? m.error_404_title() : m.error_generic_title()}</h1>
 	<p>{notFound ? m.error_404_body() : m.error_generic_body()}</p>
 	<p><a href={urls.home(locale)}>{m.nav_home()}</a></p>
@@ -23,17 +23,20 @@
 <style>
 	.error {
 		max-width: var(--measure);
-		padding: 3rem 0;
+		padding: 5rem 0;
+		text-align: center;
+		margin: 0 auto;
 	}
 	.status {
-		margin: 0;
-		color: var(--text-3);
 		font-size: 0.875rem;
 		font-variant-numeric: tabular-nums;
 	}
 	h1 {
-		margin: 0.25rem 0 0.75rem;
-		font-size: 1.75rem;
-		letter-spacing: -0.02em;
+		margin: 0.75rem 0 0.75rem;
+		font-size: clamp(1.875rem, 1.4rem + 2.4vw, 2.75rem);
+		letter-spacing: -0.03em;
+	}
+	.error p:not(.status) {
+		color: var(--text-2);
 	}
 </style>

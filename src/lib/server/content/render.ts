@@ -228,3 +228,31 @@ declare module 'vfile' {
 		mediaUrl: ((key: string) => string) | undefined;
 	}
 }
+
+/**
+ * Splits rendered HTML after the opening paragraph.
+ *
+ * PRD §13.1 places the first ad slot *after* the opening paragraph, not above
+ * the article. A slot that lands under the byline pushes every word below the
+ * fold and is the layout Google's own page-experience guidance singles out.
+ *
+ * Returns the whole body as `lead` and an empty `rest` when there is nothing
+ * substantial to split — a short article gets no mid-body slot rather than an
+ * ad wedged between two sentences.
+ */
+export function splitAfterOpening(html: string): { lead: string; rest: string } {
+	const MIN_LEAD = 240;
+
+	let index = html.indexOf('</p>');
+	while (index !== -1) {
+		const end = index + '</p>'.length;
+		// Enough prose to be worth reading before an interruption, and enough
+		// left afterwards that the split is not cosmetic.
+		if (end >= MIN_LEAD && html.length - end >= MIN_LEAD) {
+			return { lead: html.slice(0, end), rest: html.slice(end) };
+		}
+		index = html.indexOf('</p>', end);
+	}
+
+	return { lead: html, rest: '' };
+}

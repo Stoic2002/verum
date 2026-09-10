@@ -96,9 +96,9 @@
 
 <style>
 	h1 {
-		margin: 0 0 1rem;
-		font-size: 1.5rem;
-		letter-spacing: -0.02em;
+		margin: 0 0 1.25rem;
+		font-size: clamp(1.75rem, 1.3rem + 2vw, 2.5rem);
+		letter-spacing: -0.03em;
 	}
 	.search {
 		display: flex;
@@ -111,53 +111,67 @@
 		min-width: 12rem;
 	}
 	.search input,
-	.search select,
-	.search button {
-		padding: 0.5rem 0.625rem;
-		border: 1px solid var(--border);
-		border-radius: 6px;
+	.search select {
+		padding: 0.6875rem 0.9375rem;
+		border: 1px solid var(--border-strong);
+		border-radius: var(--r-pill);
 		background: var(--surface);
 		color: var(--text);
 		font: inherit;
 		font-size: 0.9375rem;
 	}
+	.search input:focus,
+	.search select:focus {
+		border-color: var(--accent);
+		outline: none;
+		box-shadow: 0 0 0 3px var(--accent-tint);
+	}
 	.search button {
-		background: var(--text);
-		color: var(--bg);
-		border-color: var(--text);
+		padding: 0.6875rem 1.375rem;
+		border: 0;
+		border-radius: var(--r-pill);
+		background: var(--accent);
+		color: var(--accent-contrast);
+		font: inherit;
+		font-size: 0.9375rem;
+		font-weight: var(--weight-strong);
 		cursor: pointer;
+		transition: background var(--dur) var(--ease);
+	}
+	.search button:hover {
+		background: var(--accent-hover);
 	}
 	.count {
-		margin: 1.5rem 0 0;
+		margin: 2rem 0 0;
 		color: var(--text-3);
 		font-size: 0.8125rem;
 	}
 	.results {
 		list-style: none;
-		margin: 1rem 0 0;
+		margin: 0.5rem 0 0;
 		padding: 0;
 		max-width: var(--measure);
 	}
 	.results li {
-		padding: 1.25rem 0;
+		padding: 1.5rem 0;
 		border-bottom: 1px solid var(--border);
 	}
 	.results h2 {
-		margin: 0 0 0.25rem;
-		font-size: 1.0625rem;
-		line-height: 1.35;
+		margin: 0 0 0.375rem;
+		font-size: 1.1875rem;
+		line-height: 1.3;
 	}
 	.results h2 a {
-		color: inherit;
+		color: var(--text);
 		text-decoration: none;
 	}
 	.results h2 a:hover {
-		text-decoration: underline;
+		color: var(--accent);
 	}
 	.meta {
 		display: flex;
 		gap: 0.75rem;
-		margin: 0 0 0.375rem;
+		margin: 0 0 0.5rem;
 		color: var(--text-3);
 		font-size: 0.75rem;
 	}
@@ -167,24 +181,25 @@
 		font-size: 0.9375rem;
 	}
 	.snippet :global(mark) {
-		background: color-mix(in srgb, var(--accent) 22%, transparent);
+		background: var(--accent-tint-strong);
 		color: inherit;
-		padding: 0 0.125rem;
-		border-radius: 2px;
+		padding: 0.0625rem 0.1875rem;
+		border-radius: var(--r-sm);
 	}
 	.pagination {
 		display: grid;
 		grid-template-columns: 1fr auto 1fr;
 		align-items: center;
 		gap: 1rem;
-		margin-top: 1.5rem;
+		margin-top: 2rem;
 		max-width: var(--measure);
 		font-size: 0.875rem;
 	}
-	.pagination a:last-child {
-		text-align: right;
+	.pagination > :last-child {
+		justify-self: end;
 	}
 	.empty {
+		margin-top: 1rem;
 		color: var(--text-3);
 	}
 	.visually-hidden {

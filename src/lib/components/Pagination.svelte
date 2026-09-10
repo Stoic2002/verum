@@ -34,13 +34,24 @@
 		grid-template-columns: 1fr auto 1fr;
 		align-items: center;
 		gap: 1rem;
-		margin: 2.5rem 0 0;
-		padding-top: 1.25rem;
+		margin: 3rem 0 0;
+		padding-top: 1.5rem;
 		border-top: 1px solid var(--border);
 		font-size: 0.875rem;
 	}
-	.pagination a:last-child {
-		text-align: right;
+	.pagination a {
+		display: inline-block;
+		padding: 0.4375rem 0.875rem;
+		border-radius: var(--r-pill);
+		background: var(--surface-2);
+		text-decoration: none;
+		transition: background var(--dur) var(--ease);
+	}
+	.pagination a:hover {
+		background: var(--accent-tint);
+	}
+	.pagination > :last-child {
+		justify-self: end;
 	}
 	.pagination__status {
 		color: var(--text-3);

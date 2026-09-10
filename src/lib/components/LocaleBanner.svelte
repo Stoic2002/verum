@@ -68,15 +68,19 @@
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 0.75rem;
-		padding: 0.625rem 1rem;
-		border: 1px solid var(--border);
-		border-radius: 6px;
-		background: var(--surface-2);
+		margin: 1.5rem 0;
+		padding: 0.875rem 1.125rem;
+		border-radius: var(--r-lg);
+		background: var(--accent-tint);
 		font-size: 0.875rem;
 	}
 	p {
 		margin: 0;
 		flex: 1;
+		min-width: 12rem;
+	}
+	.banner a {
+		font-weight: var(--weight-strong);
 	}
 	button {
 		border: 0;
@@ -86,5 +90,9 @@
 		font-size: 0.8125rem;
 		cursor: pointer;
 		text-decoration: underline;
+		text-underline-offset: 0.18em;
+	}
+	button:hover {
+		color: var(--text);
 	}
 </style>

@@ -47,13 +47,35 @@
 <style>
 	.card {
 		display: grid;
-		gap: 0.75rem;
+		gap: 0.875rem;
+		align-content: start;
 	}
+
 	.card__image {
 		display: block;
 		overflow: hidden;
-		border-radius: 8px;
+		border-radius: var(--r-lg);
+		background: var(--surface-2);
+		/*
+		 * The ratio is reserved by the wrapper as well as by the image's own
+		 * width/height, so a card holds its shape even before the bytes land
+		 * (PRD §12.5).
+		 */
+		aspect-ratio: 16 / 10;
 	}
+	.card--featured .card__image {
+		aspect-ratio: 16 / 9;
+		border-radius: var(--r-2xl);
+	}
+	.card__image :global(img) {
+		height: 100%;
+		object-fit: cover;
+		transition: transform 400ms var(--ease);
+	}
+	.card:hover .card__image :global(img) {
+		transform: scale(1.02);
+	}
+
 	.card__meta {
 		display: flex;
 		flex-wrap: wrap;
@@ -64,43 +86,62 @@
 		font-size: 0.75rem;
 	}
 	.card__category {
+		padding: 0.1875rem 0.5rem;
+		border-radius: var(--r-pill);
+		background: var(--accent-tint);
 		color: var(--accent);
-		font-weight: 600;
+		font-weight: var(--weight-strong);
+		letter-spacing: var(--track-label);
 		text-transform: uppercase;
-		letter-spacing: 0.06em;
 		text-decoration: none;
+		transition: background var(--dur) var(--ease);
 	}
+	.card__category:hover {
+		background: var(--accent-tint-strong);
+	}
+
 	.card__title {
-		margin: 0.25rem 0;
-		font-size: 1.0625rem;
+		margin: 0.125rem 0;
+		font-size: 1.1875rem;
 		line-height: 1.3;
-		letter-spacing: -0.01em;
 	}
 	.card--featured .card__title {
-		font-size: 1.5rem;
+		font-size: clamp(1.75rem, 1.3rem + 2vw, 2.5rem);
+		line-height: 1.1;
 	}
 	.card__title a {
-		color: inherit;
+		color: var(--text);
 		text-decoration: none;
+		background-image: linear-gradient(var(--accent), var(--accent));
+		background-size: 0% 1px;
+		background-position: 0 100%;
+		background-repeat: no-repeat;
+		transition: background-size 260ms var(--ease);
 	}
 	.card__title a:hover {
-		text-decoration: underline;
-		text-underline-offset: 0.15em;
+		color: var(--accent);
+		background-size: 100% 1px;
 	}
+
 	.card__excerpt {
 		margin: 0;
 		color: var(--text-2);
-		font-size: 0.875rem;
-		line-height: 1.55;
+		font-size: 0.9375rem;
+		line-height: 1.6;
 	}
 	.card--featured .card__excerpt {
-		font-size: 1rem;
+		font-size: 1.0625rem;
+		max-width: 34rem;
 	}
-	@media (min-width: 52rem) {
+
+	@media (min-width: 56rem) {
 		.card--featured {
-			grid-template-columns: 3fr 2fr;
-			gap: 1.75rem;
+			grid-template-columns: 1.15fr 1fr;
+			gap: 2.5rem;
 			align-items: center;
+		}
+		.card--featured .card__image {
+			order: 2;
 		}
 	}
 </style>

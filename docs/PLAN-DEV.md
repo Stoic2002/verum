@@ -801,3 +801,56 @@ Ditambah satu yang mudah terlewat: **firewall origin ke IP range Cloudflare adal
 - Beli domain, pasang Cloudflare, submit sitemap ke Search Console: Fase 8, dan butuh akun Anda.
 - CMP Funding Choices: Fase 8. Kontrak loading script sudah siap sejak §J.5.
 - CSP, HSTS, backup terjadwal, Sentry, uptime: Fase 8.
+
+---
+
+## Bagian N — Perombakan desain (referensi: app.uniswap.org)
+
+Diminta 10 September 2026: desain terasa biasa saja, ingin seperti app.uniswap.org.
+
+Saya memeriksa situsnya langsung, bukan mengandalkan ingatan. Nilai yang diambil: `#131313` sebagai dasar, aksen `#ff37c7`, radius 12/16/20/24/pill, dan yang paling khas — **heading 36–52px pada weight 485**.
+
+### N.1 Yang diambil
+
+| Kualitas                                                          | Kenapa cocok untuk publikasi                                                                                                                                                                                      |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Heading besar dengan weight rendah** (485 → 500 di font statis) | Ini justru lebih cocok untuk editorial daripada untuk aplikasi. Ukuran yang membawa hierarki, bukan ketebalan. Judul artikel sekarang `clamp(2rem, …, 3.25rem)` pada weight 500 dengan `letter-spacing: -0.03em`. |
+| **Radius konsisten** 12/16/20/24 + pill                           | Kartu, gambar, dan panel terasa satu sistem. Kontrol kecil jadi pill.                                                                                                                                             |
+| **Permukaan ber-tint aksen 4–16%**, bukan abu-abu datar           | Inilah yang membuat antarmuka terasa _berwarna_, bukan sekadar dicat. `--surface-2` dan `--surface-3` dicampur dari `--accent`.                                                                                   |
+| **Near-black hangat `#131313`**                                   | Bukan biru-hitam, bukan `#000`.                                                                                                                                                                                   |
+
+### N.2 Yang sengaja tidak diambil
+
+| Tidak diambil                     | Alasan                                                                                                                                                                                                 |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Layout kartu tunggal di tengah    | Uniswap punya satu aksi. Publikasi **dipindai** — butuh grid dan hierarki tipografi. Menyalinnya akan membuat VERUM terlihat seperti aplikasi kripto, bukan sumber tulisan teknis yang dipercaya (§4). |
+| `backdrop-filter` / glassmorphism | Ia me-repaint area di belakangnya **setiap frame scroll** dan melunakkan teks. Dua hal yang paling ditolak anggaran INP dan LCP di §12.5. Masthead sticky dibuat opak.                                 |
+| Magenta `#ff37c7` di latar terang | Kontrasnya sekitar **2,5:1** pada putih — gagal WCAG untuk teks. Tema terang memakai `#b3008a` (hue yang sama, lebih dalam); yang terang tetap dipakai di tema gelap, tempatnya memang di sana.        |
+| Web font                          | Basel milik mereka, dan font apa pun yang diunduh adalah satu request di depan LCP. Efek "besar tapi ringan" itu sebagian besar soal ukuran, weight, dan line-height — bukan typeface-nya.             |
+
+### N.3 Dua masalah nyata yang ketahuan saat melihat hasilnya
+
+**Slot iklan mendarat sebelum satu paragraf pun.** Terlihat jelas di screenshot: di bawah byline langsung kotak iklan besar, mendorong seluruh tulisan ke bawah lipatan. §13.1 menyebut "setelah paragraf pembuka" — jadi ini penyimpangan spesifikasi yang saya buat sendiri di Fase 5.
+
+Perbaikannya `splitAfterOpening()`: memotong `body_html` setelah `</p>` pertama, tapi hanya kalau ada cukup prosa di **kedua** sisi (240 karakter). Artikel pendek tidak dapat slot tengah sama sekali — lebih baik daripada iklan terjepit di antara dua kalimat. Empat test menjaganya, termasuk kasus paragraf pembuka yang sangat pendek (dilewati, bukan dipotong di situ).
+
+**Masthead sticky memakan 18% viewport di ponsel.** Di lebar 375px, bar-nya membungkus jadi dua baris (~140px). Menyematkan itu sepanjang sesi lebih merugikan daripada kehilangan pintasan ke atas. Di bawah 40rem masthead jadi `position: static`, dan nav pindah ke baris sendiri.
+
+### N.4 CLS turun dari 0,0014 ke 0
+
+Perombakan ini sempat memperkenalkan pergeseran kecil: theme toggle dan tombol salin tautan disembunyikan dengan `display: none` lalu muncul saat `html.js` dipasang — dan kemunculannya **mengubah ukuran masthead**.
+
+Sekarang keduanya `visibility: hidden`, jadi kotaknya sudah terpesan sebelum script berjalan. Playwright tetap menganggapnya tersembunyi, jadi jaminan "kontrol mati tidak pernah ditawarkan" (§J.4) utuh, dan CLS kembali **tepat 0**.
+
+### N.5 Body tetap sans
+
+Sebelumnya prosa artikel memakai serif. Sekarang sans, konsisten dengan referensi dan dengan cara audiens ini membaca dokumentasi sepanjang hari. Kalau nanti Anda lebih suka serif untuk bacaan panjang, itu satu token: setel `--font-body` pada `.prose` di halaman artikel.
+
+### N.6 Yang tidak berubah
+
+135 test unit dan 66 e2e tetap hijau, termasuk yang menjaga janji-janji Fase 5:
+
+- Semua halaman tetap render dengan JavaScript mati.
+- Tema tersimpan tetap terpasang sebelum paint (`rgb(19,19,19)` sekarang, bukan `rgb(16,16,18)` — asersinya diperbarui).
+- CLS **0** dengan placeholder iklan aktif.
+- Viewport 360px tidak pernah scroll ke samping.

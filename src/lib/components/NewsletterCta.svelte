@@ -46,49 +46,91 @@
 
 <style>
 	.cta {
-		padding: 1.5rem;
-		border: 1px solid var(--border);
-		border-radius: 8px;
+		position: relative;
+		padding: 2rem;
+		border-radius: var(--r-2xl);
 		background: var(--surface-2);
+		border: 1px solid var(--border);
+		overflow: hidden;
+	}
+	/* A soft accent wash in one corner, instead of a flat panel. */
+	.cta::before {
+		content: '';
+		position: absolute;
+		top: -40%;
+		right: -10%;
+		width: 22rem;
+		height: 22rem;
+		border-radius: 50%;
+		background: radial-gradient(
+			circle,
+			color-mix(in srgb, var(--accent) 14%, transparent),
+			transparent 70%
+		);
+		pointer-events: none;
+	}
+	.cta > * {
+		position: relative;
 	}
 	.cta--compact {
-		padding: 1.125rem;
+		padding: 1.375rem;
 	}
 	h2 {
-		margin: 0 0 0.375rem;
-		font-size: 1.0625rem;
-		line-height: 1.3;
+		margin: 0 0 0.5rem;
+		font-size: 1.375rem;
+		line-height: 1.25;
 	}
 	p {
-		margin: 0 0 1rem;
+		margin: 0 0 1.25rem;
+		max-width: 30rem;
 		color: var(--text-2);
-		font-size: 0.875rem;
+		font-size: 0.9375rem;
 	}
 	form {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.5rem;
 	}
-	input {
+	input:not(.visually-hidden) {
 		flex: 1;
-		min-width: 12rem;
-		padding: 0.5rem 0.625rem;
-		border: 1px solid var(--border);
-		border-radius: 6px;
+		min-width: 13rem;
+		padding: 0.6875rem 0.9375rem;
+		border: 1px solid var(--border-strong);
+		border-radius: var(--r-pill);
 		background: var(--surface);
 		color: var(--text);
 		font: inherit;
-		font-size: 0.875rem;
+		font-size: 0.9375rem;
+		transition:
+			border-color var(--dur) var(--ease),
+			box-shadow var(--dur) var(--ease);
+	}
+	input:not(.visually-hidden):focus {
+		border-color: var(--accent);
+		outline: none;
+		box-shadow: 0 0 0 3px var(--accent-tint);
 	}
 	button {
-		padding: 0.5rem 0.875rem;
+		padding: 0.6875rem 1.375rem;
 		border: 0;
-		border-radius: 6px;
-		background: var(--text);
-		color: var(--bg);
+		border-radius: var(--r-pill);
+		background: var(--accent);
+		color: var(--accent-contrast);
 		font: inherit;
-		font-size: 0.875rem;
+		font-size: 0.9375rem;
+		font-weight: var(--weight-strong);
 		cursor: pointer;
+		transition:
+			background var(--dur) var(--ease),
+			transform var(--dur) var(--ease),
+			box-shadow var(--dur) var(--ease);
+	}
+	button:hover {
+		background: var(--accent-hover);
+		box-shadow: var(--shadow-accent);
+	}
+	button:active {
+		transform: translateY(1px);
 	}
 	.visually-hidden {
 		position: absolute;

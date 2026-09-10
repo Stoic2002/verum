@@ -32,15 +32,16 @@
 		align-items: center;
 		justify-content: center;
 		min-height: var(--ad-min-height);
-		margin: 2rem 0;
-		border: 1px dashed var(--border);
-		border-radius: 6px;
+		margin: 2.5rem 0;
+		border: 1px dashed var(--border-strong);
+		border-radius: var(--r-lg);
 		background: var(--surface-2);
 	}
 	.ad__label {
 		color: var(--text-3);
 		font-size: 0.6875rem;
+		font-weight: var(--weight-strong);
 		text-transform: uppercase;
-		letter-spacing: 0.08em;
+		letter-spacing: var(--track-label);
 	}
 </style>

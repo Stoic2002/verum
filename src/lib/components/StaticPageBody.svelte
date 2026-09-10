@@ -34,42 +34,42 @@
 		margin: 0 auto;
 	}
 	h1 {
-		margin: 0 0 0.5rem;
-		font-size: clamp(1.625rem, 1.2rem + 1.6vw, 2.125rem);
-		line-height: 1.2;
-		letter-spacing: -0.02em;
+		margin: 0 0 0.75rem;
+		font-size: clamp(1.875rem, 1.3rem + 2.4vw, 2.75rem);
+		line-height: 1.1;
+		letter-spacing: -0.03em;
 	}
 	.updated {
-		margin: 0 0 2rem;
+		margin: 0 0 2.5rem;
 		color: var(--text-3);
 		font-size: 0.8125rem;
 	}
 	.prose {
-		font-size: 1rem;
+		font-size: 1.0625rem;
 		line-height: 1.75;
 	}
 	.prose :global(h2) {
-		margin: 2rem 0 0.5rem;
-		font-size: 1.1875rem;
-		line-height: 1.3;
-		letter-spacing: -0.01em;
+		margin: 2.5rem 0 0.75rem;
+		font-size: 1.375rem;
+		line-height: 1.25;
+		letter-spacing: -0.02em;
 	}
 	.prose :global(p),
 	.prose :global(ul),
 	.prose :global(ol) {
-		margin: 0 0 1.0625rem;
+		margin: 0 0 1.1875rem;
 	}
 	.prose :global(li) {
-		margin-bottom: 0.375rem;
+		margin-bottom: 0.4375rem;
+	}
+	.prose :global(strong) {
+		font-weight: var(--weight-strong);
 	}
 	.prose :global(code) {
+		padding: 0.125rem 0.375rem;
+		border-radius: var(--r-sm);
+		background: var(--surface-3);
 		font-family: var(--font-mono);
-		font-size: 0.875em;
-		padding: 0.0625rem 0.25rem;
-		border-radius: 3px;
-		background: var(--surface-2);
-	}
-	.prose :global(a) {
-		text-underline-offset: 0.15em;
+		font-size: 0.8125em;
 	}
 </style>

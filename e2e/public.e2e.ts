@@ -95,18 +95,26 @@ test('the chosen theme applies before first paint', async ({ page }) => {
 	expect(applied).toBe('dark');
 
 	const background = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-	// The dark surface, not the light one.
-	expect(background).toBe('rgb(16, 16, 18)');
+	// The dark ground from tokens.css, not the light one.
+	expect(background).toBe('rgb(19, 19, 19)');
 });
 
 test('the ad placeholders reserve their space and shift nothing', async ({ page }) => {
 	await page.goto(ARTICLE);
 
-	const slot = page.locator('[data-ad-slot="article-top"]');
-	await expect(slot).toBeVisible();
+	// The end slot is always present; the mid-article one appears only when
+	// there is prose on both sides of it (PRD §13.1).
+	const slots = page.locator('[data-ad-slot]');
+	await expect(slots).not.toHaveCount(0);
+	await expect(page.locator('[data-ad-slot="article-end"]')).toBeVisible();
+
 	// Reserved before anything loads. Reserving afterwards does not work — the
-	// shift has already happened (PRD §13.1).
-	expect((await slot.boundingBox())?.height).toBeGreaterThanOrEqual(280);
+	// shift has already happened.
+	for (const box of await slots.evaluateAll((els) =>
+		els.map((el) => el.getBoundingClientRect().height)
+	)) {
+		expect(box).toBeGreaterThanOrEqual(280);
+	}
 
 	const cls = await page.evaluate(async () => {
 		let total = 0;
@@ -142,4 +150,19 @@ test('the page never scrolls sideways on a phone', async ({ page }) => {
 		() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1
 	);
 	expect(overflows).toBe(false);
+});
+
+test('a long article gets its first ad slot after the opening paragraph', async ({ page }) => {
+	await page.goto('/en/tech/postgres-full-text-search-for-small-sites');
+
+	const top = page.locator('[data-ad-slot="article-top"]');
+	if ((await top.count()) === 0) return; // Short article; nothing to place.
+
+	// Whatever sits above the slot must include prose, not just the byline.
+	const leadText = await page.locator('.prose').first().innerText();
+	expect(leadText.trim().length).toBeGreaterThan(40);
+
+	const leadBottom = (await page.locator('.prose').first().boundingBox())!.y;
+	const slotTop = (await top.boundingBox())!.y;
+	expect(slotTop).toBeGreaterThan(leadBottom);
 });

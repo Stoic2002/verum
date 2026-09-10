@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderMarkdown } from './render';
+import { renderMarkdown, splitAfterOpening } from './render';
 import { parseStatusUrl, parseYouTubeId } from './embeds';
 
 describe('sanitisation', () => {
@@ -228,5 +228,48 @@ describe('extraction', () => {
 		expect(c.toc).toHaveLength(0);
 		expect(a.text).not.toContain('Beta');
 		expect(b.text).not.toContain('Alpha');
+	});
+});
+
+describe('ad slot placement', () => {
+	it('splits after the opening paragraph when there is enough on both sides', async () => {
+		const { html } = await renderMarkdown(
+			`${'Opening paragraph with enough words to be worth reading before an interruption. '.repeat(4)}\n\n${'Second paragraph, also long enough that the split is not merely cosmetic. '.repeat(4)}`
+		);
+
+		const { lead, rest } = splitAfterOpening(html);
+
+		expect(lead).toContain('Opening paragraph');
+		expect(lead.endsWith('</p>')).toBe(true);
+		expect(rest).toContain('Second paragraph');
+		expect(lead + rest).toBe(html);
+	});
+
+	it('leaves a short article whole rather than wedging an ad into it', async () => {
+		const { html } = await renderMarkdown('One short line.\n\nAnother short line.');
+
+		const { lead, rest } = splitAfterOpening(html);
+
+		expect(lead).toBe(html);
+		expect(rest).toBe('');
+	});
+
+	it('skips past a short opening rather than splitting on it', async () => {
+		const { html } = await renderMarkdown(
+			`Hi.\n\n${'A properly long paragraph that carries the opening of the article. '.repeat(5)}\n\n${'And a third paragraph long enough to follow the advertisement slot. '.repeat(5)}`
+		);
+
+		const { lead } = splitAfterOpening(html);
+
+		// Splitting straight after "Hi." would put the ad above the article.
+		expect(lead).toContain('properly long paragraph');
+	});
+
+	it('handles markup with no paragraphs at all', () => {
+		expect(splitAfterOpening('<h2>Only a heading</h2>')).toEqual({
+			lead: '<h2>Only a heading</h2>',
+			rest: ''
+		});
+		expect(splitAfterOpening('')).toEqual({ lead: '', rest: '' });
 	});
 });

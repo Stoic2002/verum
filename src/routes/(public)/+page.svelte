@@ -21,7 +21,7 @@
 
 	{#if data.latest.length}
 		<section class="section">
-			<h2 class="section__title">{m.home_latest()}</h2>
+			<h2 class="eyebrow section__title">{m.home_latest()}</h2>
 			<div class="grid">
 				{#each data.latest as card (card.id)}
 					<ArticleCard {card} />
@@ -34,7 +34,7 @@
 
 	{#each data.blocks as block (block.slug)}
 		<section class="section">
-			<h2 class="section__title">
+			<h2 class="eyebrow section__title">
 				<a href={urls.category(locale, block.slug)}>{block.name}</a>
 			</h2>
 			{#if block.description}
@@ -51,37 +51,47 @@
 
 <style>
 	.lede {
-		padding-bottom: 2rem;
+		padding-bottom: 3rem;
+		margin-bottom: 0.5rem;
 		border-bottom: 1px solid var(--border);
 	}
 	.section {
-		margin: 2.5rem 0;
+		margin: 3.5rem 0;
 	}
 	.section__title {
-		margin: 0 0 0.25rem;
-		font-size: 0.8125rem;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		color: var(--text-3);
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		margin: 0 0 0.375rem;
+	}
+	/* A hairline that runs to the edge, so the label reads as a divider. */
+	.section__title::after {
+		content: '';
+		flex: 1;
+		height: 1px;
+		background: var(--border);
 	}
 	.section__title a {
 		color: inherit;
 		text-decoration: none;
 	}
+	.section__title a:hover {
+		color: var(--accent);
+	}
 	.section__description {
-		margin: 0 0 1.25rem;
+		margin: 0 0 1.5rem;
 		max-width: var(--measure);
 		color: var(--text-2);
-		font-size: 0.875rem;
+		font-size: 0.9375rem;
 	}
 	.grid {
 		display: grid;
-		gap: 1.75rem;
-		margin-top: 1.25rem;
-		grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+		gap: 2.5rem 1.75rem;
+		margin-top: 1.5rem;
+		grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
 	}
 	.cta-slot {
-		margin: 2.5rem 0;
+		margin: 3.5rem 0;
 	}
 	.empty {
 		color: var(--text-3);

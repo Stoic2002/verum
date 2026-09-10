@@ -73,9 +73,6 @@
 			</figure>
 		{/if}
 
-		<!-- The first slot sits after the opening of the article (PRD §13.1). -->
-		<AdSlot slot="article-top" minHeight={280} />
-
 		{#if article.toc.length}
 			<nav class="toc" aria-label={m.article_contents()}>
 				<h2>{m.article_contents()}</h2>
@@ -91,9 +88,18 @@
 			body_html is produced and sanitised by src/lib/server/content/render.ts
 			at save time. It is never author-supplied HTML; render.spec.ts is what
 			keeps that true.
+
+			Split in two so the first ad slot falls after the opening paragraph
+			rather than above the article (PRD §13.1).
 		-->
 		<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-		<div class="prose">{@html article.bodyHtml}</div>
+		<div class="prose">{@html article.body.lead}</div>
+
+		{#if article.body.rest}
+			<AdSlot slot="article-top" minHeight={280} />
+			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+			<div class="prose">{@html article.body.rest}</div>
+		{/if}
 
 		{#if article.correction}
 			<aside class="correction">
@@ -139,113 +145,151 @@
 		width: 100%;
 		max-width: var(--measure);
 	}
+
 	.crumbs {
 		display: flex;
+		align-items: center;
 		gap: 0.5rem;
 		color: var(--text-3);
 		font-size: 0.75rem;
+		font-weight: var(--weight-strong);
+		letter-spacing: var(--track-label);
 		text-transform: uppercase;
-		letter-spacing: 0.06em;
 	}
 	.crumbs a {
+		color: var(--text-3);
 		text-decoration: none;
 	}
+	.crumbs a:last-of-type {
+		color: var(--accent);
+	}
+
+	/*
+	 * The reference's signature applied to editorial: large, and light. Weight
+	 * 500 rather than 700, so size alone carries the hierarchy.
+	 */
 	h1 {
-		margin: 0.75rem 0 0.5rem;
-		font-size: clamp(1.75rem, 1.2rem + 2vw, 2.5rem);
-		line-height: 1.15;
-		letter-spacing: -0.02em;
+		margin: 1rem 0 0.75rem;
+		font-size: clamp(2rem, 1.3rem + 3vw, 3.25rem);
+		line-height: 1.08;
+		letter-spacing: -0.03em;
 	}
 	.standfirst {
-		margin: 0 0 1rem;
+		margin: 0 0 1.5rem;
 		color: var(--text-2);
-		font-size: 1.0625rem;
+		font-size: 1.1875rem;
 		line-height: 1.55;
 	}
 	.byline {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.75rem;
+		align-items: center;
+		gap: 0.375rem 1rem;
 		margin: 0 0 1.5rem;
+		padding-bottom: 1.5rem;
+		border-bottom: 1px solid var(--border);
 		color: var(--text-3);
 		font-size: 0.8125rem;
 	}
+
 	.lede-image {
-		margin: 1.5rem 0;
+		margin: 0 0 2rem;
 	}
 	.lede-image :global(img) {
-		border-radius: 8px;
+		border-radius: var(--r-2xl);
 	}
 
 	.toc {
 		margin: 2rem 0;
-		padding: 1rem 1.25rem;
-		border-left: 2px solid var(--border);
+		padding: 1.125rem 1.375rem;
+		border-radius: var(--r-lg);
+		background: var(--surface-2);
 	}
 	.toc h2 {
-		margin: 0 0 0.5rem;
+		margin: 0 0 0.625rem;
 		font-size: 0.75rem;
+		font-weight: var(--weight-strong);
+		letter-spacing: var(--track-label);
 		text-transform: uppercase;
-		letter-spacing: 0.08em;
 		color: var(--text-3);
 	}
 	.toc ol {
 		margin: 0;
-		padding-left: 1.125rem;
-		font-size: 0.875rem;
+		padding-left: 1.25rem;
+		font-size: 0.9375rem;
 	}
 	.toc li {
-		margin: 0.1875rem 0;
+		margin: 0.25rem 0;
+	}
+	.toc a {
+		color: var(--text-2);
+		text-decoration: none;
+	}
+	.toc a:hover {
+		color: var(--accent);
 	}
 	.toc :global(.toc--3) {
 		margin-left: 0.875rem;
+		font-size: 0.875rem;
 	}
 
+	/*
+	 * Body stays sans, matching the reference and the way this audience reads
+	 * documentation all day. Switching to a serif is one token: set
+	 * --font-body on .prose.
+	 */
 	.prose {
-		font-family: var(--font-serif);
 		font-size: 1.0625rem;
 		line-height: 1.75;
+		color: var(--text);
 	}
 	.prose :global(h2) {
-		margin: 2.25rem 0 0.5rem;
-		font-family: var(--font-body);
-		font-size: 1.375rem;
-		line-height: 1.25;
-		letter-spacing: -0.01em;
-		scroll-margin-top: 1.5rem;
+		margin: 2.75rem 0 0.75rem;
+		font-size: 1.625rem;
+		line-height: 1.2;
+		letter-spacing: -0.02em;
+		scroll-margin-top: 5rem;
 	}
 	.prose :global(h3) {
-		margin: 1.75rem 0 0.375rem;
-		font-family: var(--font-body);
-		font-size: 1.125rem;
-		scroll-margin-top: 1.5rem;
+		margin: 2rem 0 0.5rem;
+		font-size: 1.25rem;
+		letter-spacing: -0.01em;
+		scroll-margin-top: 5rem;
 	}
 	.prose :global(p),
 	.prose :global(ul),
 	.prose :global(ol) {
-		margin: 0 0 1.125rem;
+		margin: 0 0 1.25rem;
 	}
-	.prose :global(a) {
-		text-underline-offset: 0.15em;
+	.prose :global(li) {
+		margin-bottom: 0.5rem;
+	}
+	.prose :global(strong) {
+		font-weight: var(--weight-strong);
 	}
 	.prose :global(blockquote) {
-		margin: 1.5rem 0;
-		padding-left: 1rem;
-		border-left: 2px solid var(--border);
+		margin: 2rem 0;
+		padding: 0.25rem 0 0.25rem 1.25rem;
+		border-left: 3px solid var(--accent);
 		color: var(--text-2);
+		font-size: 1.125rem;
 	}
 	.prose :global(pre) {
-		margin: 1.5rem 0;
-		padding: 1rem;
-		border-radius: 8px;
+		margin: 1.75rem 0;
+		padding: 1.125rem 1.25rem;
+		border-radius: var(--r-lg);
+		border: 1px solid var(--border);
 		overflow-x: auto;
 		font-family: var(--font-mono);
 		font-size: 0.8125rem;
-		line-height: 1.6;
+		line-height: 1.65;
 	}
-	.prose :global(code) {
+	.prose :global(:not(pre) > code) {
+		padding: 0.125rem 0.375rem;
+		border-radius: var(--r-sm);
+		background: var(--surface-3);
 		font-family: var(--font-mono);
-		font-size: 0.875em;
+		font-size: 0.8125em;
 	}
 	/*
 	 * Shiki renders both themes at once as CSS variables, so dark mode is a
@@ -269,22 +313,27 @@
 		max-width: 100%;
 		overflow-x: auto;
 		border-collapse: collapse;
-		font-family: var(--font-body);
-		font-size: 0.875rem;
+		font-size: 0.9375rem;
 	}
 	.prose :global(th),
 	.prose :global(td) {
-		padding: 0.4375rem 0.75rem;
-		border: 1px solid var(--border);
+		padding: 0.5rem 0.875rem;
+		border-bottom: 1px solid var(--border);
 		text-align: left;
 	}
+	.prose :global(th) {
+		font-weight: var(--weight-strong);
+		white-space: nowrap;
+	}
 	.prose :global(figure) {
-		margin: 1.75rem 0;
+		margin: 2rem 0;
+	}
+	.prose :global(figure img) {
+		border-radius: var(--r-lg);
 	}
 	.prose :global(figcaption) {
-		margin-top: 0.5rem;
+		margin-top: 0.625rem;
 		color: var(--text-3);
-		font-family: var(--font-body);
 		font-size: 0.8125rem;
 	}
 	.prose :global(.embed__frame) {
@@ -297,46 +346,50 @@
 		width: 100%;
 		height: 100%;
 		border: 0;
-		border-radius: 8px;
+		border-radius: var(--r-lg);
 	}
 	.prose :global(.embed--x .embed__card) {
 		margin: 0;
-		padding: 1rem;
+		padding: 1.125rem 1.25rem;
 		border: 1px solid var(--border);
-		border-left-width: 1px;
-		border-radius: 8px;
-		font-family: var(--font-body);
+		border-radius: var(--r-lg);
 		font-size: 0.9375rem;
 	}
 	.prose :global(.callout) {
-		margin: 1.5rem 0;
-		padding: 0.875rem 1.125rem;
+		margin: 1.75rem 0;
+		padding: 1rem 1.25rem;
+		border: 1px solid var(--border);
 		border-left: 3px solid var(--accent);
-		border-radius: 0 6px 6px 0;
+		border-radius: var(--r-lg);
 		background: var(--surface-2);
-		font-family: var(--font-body);
 		font-size: 0.9375rem;
 	}
 	.prose :global(.callout p:last-child) {
 		margin-bottom: 0;
 	}
+	.prose :global(.callout--warning),
+	.prose :global(.callout--caution) {
+		border-left-color: var(--danger);
+	}
 	.prose :global(.embed-error) {
-		color: #b91c1c;
-		font-family: var(--font-body);
+		color: var(--danger);
 		font-size: 0.875rem;
 	}
 
 	.correction {
-		margin: 2rem 0;
-		padding: 1rem 1.25rem;
-		border-left: 3px solid #b91c1c;
+		margin: 2.5rem 0;
+		padding: 1.125rem 1.375rem;
+		border-radius: var(--r-lg);
+		border-left: 3px solid var(--danger);
 		background: var(--surface-2);
 	}
 	.correction h2 {
-		margin: 0 0 0.375rem;
+		margin: 0 0 0.5rem;
 		font-size: 0.75rem;
+		font-weight: var(--weight-strong);
 		text-transform: uppercase;
-		letter-spacing: 0.08em;
+		letter-spacing: var(--track-label);
+		color: var(--danger);
 	}
 	.correction p {
 		margin: 0;
@@ -346,25 +399,57 @@
 	.tags {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.625rem;
-		margin: 2rem 0 1rem;
+		align-items: center;
+		gap: 0.5rem;
+		margin: 2.5rem 0 1.5rem;
 		font-size: 0.8125rem;
 	}
 	.tags__label {
+		margin-right: 0.25rem;
 		color: var(--text-3);
 	}
+	.tags a {
+		padding: 0.25rem 0.625rem;
+		border-radius: var(--r-pill);
+		background: var(--surface-2);
+		color: var(--text-2);
+		text-decoration: none;
+		transition:
+			background var(--dur) var(--ease),
+			color var(--dur) var(--ease);
+	}
+	.tags a:hover {
+		background: var(--accent-tint);
+		color: var(--accent);
+	}
+
 	.cta {
-		margin: 2rem 0;
+		margin: 3rem 0;
+	}
+	.related {
+		margin-top: 3.5rem;
+		padding-top: 2rem;
+		border-top: 1px solid var(--border);
 	}
 	.related h2 {
-		font-size: 0.8125rem;
+		margin: 0 0 1.5rem;
+		font-size: 0.75rem;
+		font-weight: var(--weight-strong);
 		text-transform: uppercase;
-		letter-spacing: 0.1em;
+		letter-spacing: var(--track-label);
 		color: var(--text-3);
 	}
 	.related__grid {
 		display: grid;
-		gap: 1.75rem;
+		gap: 2rem 1.75rem;
 		grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+	}
+
+	@media (max-width: 40rem) {
+		/* The masthead is not sticky here, so headings need no clearance. */
+		.prose :global(h2),
+		.prose :global(h3) {
+			scroll-margin-top: 1rem;
+		}
 	}
 </style>

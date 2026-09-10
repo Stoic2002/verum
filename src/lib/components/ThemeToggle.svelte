@@ -61,28 +61,44 @@
 </div>
 
 <style>
+	/*
+	 * Hidden with visibility, not display, so the control still occupies its
+	 * box before the script that reveals it runs. Switching from display:none
+	 * would resize the masthead at that moment — a small layout shift, but a
+	 * real one, and the CLS budget is spent on things readers can see.
+	 */
 	.theme {
-		display: none;
+		display: inline-flex;
+		visibility: hidden;
 		gap: 0.125rem;
-		padding: 0.125rem;
-		border: 1px solid var(--border);
-		border-radius: 999px;
+		padding: 0.1875rem;
+		border-radius: var(--r-pill);
+		background: var(--surface-2);
 	}
 	:global(html.js) .theme {
-		display: inline-flex;
+		visibility: visible;
 	}
 	button {
-		padding: 0.1875rem 0.5rem;
+		padding: 0.25rem 0.625rem;
 		border: 0;
-		border-radius: 999px;
+		border-radius: var(--r-pill);
 		background: none;
 		color: var(--text-3);
 		font: inherit;
 		font-size: 0.6875rem;
+		font-weight: var(--weight-strong);
+		letter-spacing: 0.02em;
 		cursor: pointer;
+		transition:
+			background var(--dur) var(--ease),
+			color var(--dur) var(--ease);
+	}
+	button:hover {
+		color: var(--text);
 	}
 	button[aria-pressed='true'] {
-		background: var(--surface-2);
+		background: var(--surface);
 		color: var(--text);
+		box-shadow: var(--shadow-sm);
 	}
 </style>

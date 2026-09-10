@@ -50,23 +50,40 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 0.75rem;
+		gap: 0.5rem;
 		font-size: 0.8125rem;
 	}
 	.share__label {
+		margin-right: 0.25rem;
 		color: var(--text-3);
 	}
+	.share a,
 	.copy {
-		display: none;
-		border: 0;
-		background: none;
-		color: var(--accent);
+		padding: 0.375rem 0.75rem;
+		border: 1px solid var(--border);
+		border-radius: var(--r-pill);
+		background: var(--surface);
+		color: var(--text-2);
 		font: inherit;
 		font-size: 0.8125rem;
+		text-decoration: none;
 		cursor: pointer;
-		text-decoration: underline;
+		transition:
+			background var(--dur) var(--ease),
+			color var(--dur) var(--ease),
+			border-color var(--dur) var(--ease);
+	}
+	.share a:hover,
+	.copy:hover {
+		background: var(--accent-tint);
+		border-color: transparent;
+		color: var(--accent);
+	}
+	/* Same reasoning as the theme toggle: reserve the box, reveal the control. */
+	.copy {
+		visibility: hidden;
 	}
 	:global(html.js) .copy {
-		display: inline;
+		visibility: visible;
 	}
 </style>

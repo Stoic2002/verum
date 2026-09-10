@@ -22,12 +22,13 @@
 <style>
 	.head {
 		max-width: var(--measure);
-		margin-bottom: 2rem;
+		margin-bottom: 2.5rem;
 	}
 	h1 {
-		margin: 0 0 0.375rem;
-		font-size: clamp(1.375rem, 1.1rem + 1.2vw, 1.75rem);
-		letter-spacing: -0.015em;
+		margin: 0 0 0.75rem;
+		font-size: clamp(1.875rem, 1.3rem + 2.4vw, 2.75rem);
+		line-height: 1.1;
+		letter-spacing: -0.03em;
 	}
 	.count {
 		margin: 0;
@@ -36,7 +37,7 @@
 	}
 	.grid {
 		display: grid;
-		gap: 1.75rem;
-		grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+		gap: 2.5rem 1.75rem;
+		grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
 	}
 </style>

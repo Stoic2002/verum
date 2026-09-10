@@ -36,16 +36,19 @@
 <style>
 	.head {
 		max-width: var(--measure);
-		margin-bottom: 2rem;
+		margin-bottom: 2.5rem;
 	}
 	h1 {
-		margin: 0 0 0.5rem;
-		font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2rem);
-		letter-spacing: -0.02em;
+		margin: 0 0 0.75rem;
+		font-size: clamp(1.875rem, 1.3rem + 2.4vw, 2.75rem);
+		line-height: 1.1;
+		letter-spacing: -0.03em;
 	}
 	.description {
-		margin: 0 0 0.5rem;
+		margin: 0 0 0.75rem;
 		color: var(--text-2);
+		font-size: 1.0625rem;
+		line-height: 1.6;
 	}
 	.count {
 		margin: 0;
@@ -54,8 +57,8 @@
 	}
 	.grid {
 		display: grid;
-		gap: 1.75rem;
-		grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+		gap: 2.5rem 1.75rem;
+		grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
 	}
 	.empty {
 		color: var(--text-3);
