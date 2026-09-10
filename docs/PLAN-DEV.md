@@ -643,3 +643,83 @@ Plus: draft dan artikel terjadwal tidak pernah muncul, dan hitungan total konsis
 - Sinkronisasi subscriber ke provider pengiriman. Listnya sudah dimiliki; mengirim kampanye adalah pekerjaan Fase 2 roadmap PRD, bukan sekarang.
 - `purgeStalePending` ada dan diuji tapi belum dipanggil siapa pun — cron Fase 8.
 - Halaman statis yang ditautkan footer masih 404. Fase 7.
+
+---
+
+## Bagian L — Audit layanan pihak ketiga
+
+Ditulis 10 September 2026, setelah pertanyaan: kenapa layanan eksternalnya terasa banyak?
+
+### L.1 Yang benar-benar disentuh kode hari ini: dua
+
+Audit atas seluruh `src/` — setiap `env.*` yang dibaca dan setiap host eksternal yang disebut:
+
+| Layanan           | Dipakai untuk                  | Status                                                   |
+| ----------------- | ------------------------------ | -------------------------------------------------------- |
+| **Cloudflare R2** | Penyimpanan gambar             | Punya driver; tanpa kredensial jatuh ke filesystem lokal |
+| **Provider SMTP** | Email konfirmasi double opt-in | Punya driver; tanpa kredensial jatuh ke buffer in-memory |
+
+Itu saja. Sisanya di `.env.example` adalah **placeholder untuk fase berikutnya**, bukan integrasi yang sudah hidup. Dan keduanya punya driver pengganti, jadi seluruh aplikasi berjalan dan teruji penuh **tanpa satu pun akun eksternal**.
+
+### L.2 Akun vendor yang dibutuhkan sampai launch: empat
+
+Menghitung per **akun**, bukan per fitur — ini yang menentukan berapa banyak yang harus Anda daftar, bayar, dan rawat.
+
+| #   | Vendor         | Untuk                                            | Biaya                          |
+| --- | -------------- | ------------------------------------------------ | ------------------------------ |
+| 1   | **Cloudflare** | DNS, CDN, R2, dan (opsional) registrar domain    | Gratis + R2 di bawah free tier |
+| 2   | **Hetzner**    | VPS                                              | ~Rp65.000/bln                  |
+| 3   | **GitHub**     | Repo + CI + deploy                               | Gratis                         |
+| 4   | **Google**     | Search Console + AdSense + Funding Choices (CMP) | Gratis                         |
+
+Empat, bukan lima belas. Cloudflare menyediakan empat hal dari satu akun, dan Google tiga. Membeli domain lewat **Cloudflare Registrar** (harga at-cost, tanpa markup perpanjangan) menjaganya tetap empat.
+
+Cloudflare memang benar-benar layak: §10.2 sudah membuktikannya lewat egress R2 yang gratis, dan itu faktor penentu untuk situs bergambar.
+
+### L.3 Ditunda sampai benar-benar perlu: tiga
+
+| Vendor        | Kapan                                                      | Catatan                                                                           |
+| ------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Provider SMTP | Saat newsletter diaktifkan — Fase 2 roadmap PRD, bulan 4–6 | **Tidak dibutuhkan untuk launch.** Formnya sudah bekerja penuh dengan driver log. |
+| Sentry        | Kapan saja                                                 | Free tier                                                                         |
+| UptimeRobot   | Sebelum launch                                             | Free tier                                                                         |
+
+### L.4 Dua yang saya sarankan dibuang
+
+**Buttondown / Listmonk sebagai provider newsletter terpisah — buang.**
+
+Kita sudah memiliki listnya sendiri (§K.3) dan sudah punya SMTP untuk email konfirmasi. Mengirim newsletter ke beberapa ratus alamat bisa lewat SMTP yang sama. Buttondown menambah **$9/bulan dan salinan kedua dari list Anda di tempat lain** — padahal alasan memiliki list adalah agar ia tidak ada di tempat orang lain.
+
+Caveat jujur: bulk send lewat SMTP transaksional bisa kena batas kirim dan masalah deliverability di atas ~1.000 alamat. Tinjau ulang saat sampai di sana — dan saat itu Anda sudah punya traffic yang membenarkan biayanya.
+
+**GA4 — opsional, pasang belakangan.**
+
+§3 memantau lima hal: sesi organik, halaman terindeks, artikel naik/turun peringkat, subscriber, RPM. Search Console memberi tiga yang pertama, `article_stats` memberi pageview, AdSense memberi RPM. Yang hilang hanya **sumber referral** — yang mulai relevan begitu referral dari mesin pencari AI tumbuh (§12.6). Pasang kalau memang ingin tahu itu, bukan karena merasa harus.
+
+### L.5 Bukan layanan, meski sering dikira
+
+| Terlihat seperti integrasi                    | Sebenarnya                                                   |
+| --------------------------------------------- | ------------------------------------------------------------ |
+| Tombol share X / LinkedIn / WhatsApp / Reddit | `<a href>` biasa. Tanpa SDK, tanpa akun, tanpa cookie (§J.6) |
+| Embed YouTube                                 | iframe `youtube-nocookie`. Tanpa akun                        |
+| Embed X                                       | Kartu statis, sengaja tanpa `widgets.js` (§H.2)              |
+| Unsplash / Pexels                             | Sumber gambar berlisensi, bukan integrasi                    |
+
+Ini hasil langsung dari keputusan §H.2 dan §J.6: menolak setiap SDK pihak ketiga berarti daftar layanan tetap pendek dengan sendirinya.
+
+### L.6 Biaya bulanan kalau saran ini diikuti
+
+| Item                                                 | Perkiraan                               |
+| ---------------------------------------------------- | --------------------------------------- |
+| Hetzner CX22                                         | ~Rp65.000                               |
+| Cloudflare CDN + R2                                  | Rp0 (di bawah free tier; egress gratis) |
+| Domain (~Rp180.000/tahun)                            | ~Rp15.000                               |
+| GitHub, Sentry, UptimeRobot, Search Console, AdSense | Rp0                                     |
+| SMTP (mulai bulan 4–6)                               | Rp0 di free tier awal                   |
+| **Total**                                            | **~Rp80.000/bln**                       |
+
+Batas §2 adalah Rp200.000/bln. Ada margin lebar.
+
+Dengan Buttondown: +$9 ≈ Rp145.000 → total ~Rp225.000, **di atas batas** — sebelum ada pemasukan apa pun.
+
+> Harga di atas perkiraan per September 2026. Cek nilai sebenarnya saat mendaftar.
