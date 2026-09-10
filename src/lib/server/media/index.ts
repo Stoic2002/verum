@@ -8,6 +8,7 @@ import type { MediaRecord } from './types';
 export { MAX_UPLOAD_BYTES, UploadError } from './process';
 export { getStorage, mediaFsRoot, setStorage, type Storage } from './storage';
 export { ARTICLE_IMAGE_SIZES, pictureFor, type PictureSource } from './picture';
+export { fetchImageFromUrl } from './fetch-url';
 
 export type { MediaRecord } from './types';
 

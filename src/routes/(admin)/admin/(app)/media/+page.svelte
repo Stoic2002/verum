@@ -5,6 +5,9 @@
 	let { data, form } = $props();
 
 	let uploading = $state(false);
+	let importing = $state(false);
+	/** Which way of adding an image is showing. */
+	let source = $state<'file' | 'url'>('file');
 
 	const kb = (bytes: number) =>
 		bytes > 1024 * 1024
@@ -23,56 +26,146 @@
 	{/if}
 </p>
 
-<form
-	method="POST"
-	action="?/upload"
-	enctype="multipart/form-data"
-	class="form-grid upload"
-	use:enhance={() => {
-		uploading = true;
-		return async ({ update }) => {
-			await update();
-			uploading = false;
-		};
-	}}
->
+<div class="add">
+	<div class="add__tabs" role="tablist" aria-label="How to add an image">
+		<button
+			type="button"
+			role="tab"
+			aria-selected={source === 'file'}
+			class:selected={source === 'file'}
+			onclick={() => (source = 'file')}
+		>
+			Upload a file
+		</button>
+		<button
+			type="button"
+			role="tab"
+			aria-selected={source === 'url'}
+			class:selected={source === 'url'}
+			onclick={() => (source = 'url')}
+		>
+			Import from URL
+		</button>
+	</div>
+
 	{#if form?.error}<p class="error" role="alert">{form.error}</p>{/if}
 	{#if form?.uploaded}
-		<p class="notice">Uploaded #{form.uploaded} — {form.variants} renditions written.</p>
+		<p class="notice">Added #{form.uploaded} — {form.variants} renditions written.</p>
 	{/if}
 
-	<Field
-		id="file"
-		label="Image"
-		hint="Drag one in, or choose a file. Max {kb(data.maxBytes)}. SVG is refused."
-	>
-		{#snippet children({ id, describedBy })}
-			<FileInput
-				{id}
-				name="file"
-				required
-				{describedBy}
-				accept="image/jpeg,image/png,image/webp,image/avif,image/gif,image/tiff"
-			/>
-		{/snippet}
-	</Field>
+	{#if source === 'file'}
+		<form
+			method="POST"
+			action="?/upload"
+			enctype="multipart/form-data"
+			class="form-grid"
+			use:enhance={() => {
+				uploading = true;
+				return async ({ update }) => {
+					await update();
+					uploading = false;
+				};
+			}}
+		>
+			<Field
+				id="file"
+				label="Image"
+				hint="Drag one in, or choose a file. Max {kb(data.maxBytes)}. SVG is refused."
+			>
+				{#snippet children({ id, describedBy })}
+					<FileInput
+						{id}
+						name="file"
+						required
+						{describedBy}
+						accept="image/jpeg,image/png,image/webp,image/avif,image/gif,image/tiff"
+					/>
+				{/snippet}
+			</Field>
 
-	<Field id="alt" label="Alt text" hint="What the image shows, for a reader who cannot see it.">
-		{#snippet children({ id, describedBy })}
-			<input {id} name="alt" required aria-describedby={describedBy} />
-		{/snippet}
-	</Field>
+			<Field id="alt" label="Alt text" hint="What the image shows, for a reader who cannot see it.">
+				{#snippet children({ id, describedBy })}
+					<input {id} name="alt" required aria-describedby={describedBy} />
+				{/snippet}
+			</Field>
 
-	<Field id="credit" label="Credit" optional hint="Source and licence (PRD §14).">
-		{#snippet children({ id, describedBy })}
-			<input {id} name="credit" placeholder="Unsplash / Jane Doe" aria-describedby={describedBy} />
-		{/snippet}
-	</Field>
+			<Field id="credit" label="Credit" optional hint="Source and licence (PRD §14).">
+				{#snippet children({ id, describedBy })}
+					<input
+						{id}
+						name="credit"
+						placeholder="Unsplash / Jane Doe"
+						aria-describedby={describedBy}
+					/>
+				{/snippet}
+			</Field>
 
-	<div class="form-actions">
-		<Button type="submit" loading={uploading} loadingLabel="Processing…">Upload</Button>
-	</div>
-</form>
+			<div class="form-actions">
+				<Button type="submit" loading={uploading} loadingLabel="Processing…">Upload</Button>
+			</div>
+		</form>
+	{:else}
+		<form
+			method="POST"
+			action="?/importUrl"
+			class="form-grid"
+			use:enhance={() => {
+				importing = true;
+				return async ({ update }) => {
+					await update();
+					importing = false;
+				};
+			}}
+		>
+			<Field
+				id="url"
+				label="Image URL"
+				hint="Fetched by the server and re-encoded like any upload. Only http and https."
+			>
+				{#snippet children({ id, describedBy })}
+					<input
+						{id}
+						name="url"
+						type="url"
+						required
+						placeholder="https://images.example.com/photo.jpg"
+						aria-describedby={describedBy}
+					/>
+				{/snippet}
+			</Field>
+
+			<Field
+				id="url-alt"
+				label="Alt text"
+				hint="What the image shows, for a reader who cannot see it."
+			>
+				{#snippet children({ id, describedBy })}
+					<input {id} name="alt" required aria-describedby={describedBy} />
+				{/snippet}
+			</Field>
+
+			<Field
+				id="url-credit"
+				label="Credit"
+				hint="Required here: record where it came from. PRD §14 allows only clearly licensed stock or your own images."
+			>
+				{#snippet children({ id, describedBy })}
+					<input
+						{id}
+						name="credit"
+						required
+						placeholder="Unsplash / Jane Doe"
+						aria-describedby={describedBy}
+					/>
+				{/snippet}
+			</Field>
+
+			<div class="form-actions">
+				<Button type="submit" loading={importing} loadingLabel="Fetching…">Import image</Button>
+			</div>
+		</form>
+	{/if}
+</div>
 
 {#if data.media.length === 0}
 	<p class="empty">Nothing uploaded yet.</p>
@@ -135,12 +228,42 @@
 {/if}
 
 <style>
-	.upload {
+	.add {
 		margin: 1.5rem 0 2rem;
-		padding: 1rem;
+		padding: 1.125rem 1.25rem 1.25rem;
 		border: 1px solid var(--border);
-		border-radius: 6px;
+		border-radius: var(--r-md);
+		background: var(--surface);
+		max-width: 46rem;
 	}
+	.add__tabs {
+		display: flex;
+		gap: 0.25rem;
+		margin-bottom: 1.125rem;
+		padding-bottom: 0.875rem;
+		border-bottom: 1px solid var(--border);
+	}
+	/* Tabs are navigation, not actions — they must not look like submit buttons. */
+	.add__tabs :global(button) {
+		min-height: 1.875rem;
+		padding: 0.3125rem 0.75rem;
+		border: 0;
+		border-radius: var(--r-md);
+		background: transparent;
+		color: var(--text-3);
+		font-size: 0.8125rem;
+		font-weight: var(--weight-body);
+	}
+	.add__tabs :global(button:hover) {
+		background: var(--surface-2);
+		color: var(--text);
+	}
+	.add__tabs :global(button[aria-selected='true']) {
+		background: var(--accent-tint);
+		color: var(--accent);
+		font-weight: var(--weight-strong);
+	}
+
 	.grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));

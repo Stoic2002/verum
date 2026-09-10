@@ -4,18 +4,18 @@ Angka di bawah diukur dari build produksi yang berjalan, bukan diperkirakan.
 
 ## Yang benar-benar dipakai
 
-| Proses | Memori |
-|---|---|
-| Node (`node build/index.js`), idle | 95 MB |
+| Proses                                            | Memori                                |
+| ------------------------------------------------- | ------------------------------------- |
+| Node (`node build/index.js`), idle                | 95 MB                                 |
 | Node, setelah 70 request (40 artikel + 30 search) | 136 MB — **stabil, tidak naik terus** |
-| PostgreSQL 16, data kecil | 82 MB (15 proses) |
-| Caddy | ~30 MB |
-| **Total kondisi normal** | **~250 MB** |
+| PostgreSQL 16, data kecil                         | 82 MB (15 proses)                     |
+| Caddy                                             | ~30 MB                                |
+| **Total kondisi normal**                          | **~250 MB**                           |
 
 Puncaknya bukan di melayani halaman, tapi di **memproses gambar**:
 
-| Operasi | Memori |
-|---|---|
+| Operasi                                                  | Memori               |
+| -------------------------------------------------------- | -------------------- |
 | sharp: satu gambar 4000×2500 → 6 rendition (AVIF + WebP) | naik 41 → **171 MB** |
 
 Jadi saat Anda mengunggah gambar sambil ada pembaca, puncaknya sekitar
@@ -58,11 +58,11 @@ menjenuhkan core dengan busy-loop membuat klien benchmark ikut berebut CPU —
 hasilnya bias. Jadi yang diukur adalah **waktu CPU per request**, yang tidak
 bergantung jumlah core, lalu kapasitas dihitung darinya.
 
-| Halaman | CPU Node | CPU Postgres | Total |
-|---|---|---|---|
-| Artikel (SSR + 4 query) | 4,70 ms | 4,05 ms | **8,75 ms** |
-| Homepage | 4,17 ms | 5,47 ms | 9,65 ms |
-| Search (FTS + headline) | 2,50 ms | 1,65 ms | 4,15 ms |
+| Halaman                 | CPU Node | CPU Postgres | Total       |
+| ----------------------- | -------- | ------------ | ----------- |
+| Artikel (SSR + 4 query) | 4,70 ms  | 4,05 ms      | **8,75 ms** |
+| Homepage                | 4,17 ms  | 5,47 ms      | 9,65 ms     |
+| Search (FTS + headline) | 2,50 ms  | 1,65 ms      | 4,15 ms     |
 
 Diukur di satu core Apple M1. Postgres dihitung terpisah karena di 1 vCPU ia
 berebut core yang sama dengan Node.
@@ -71,14 +71,14 @@ berebut core yang sama dengan Node.
 
 Ramp konkurensi pada halaman artikel, 8 core:
 
-| Konkuren | req/s | p50 | p95 |
-|---|---|---|---|
-| 1 | 135 | 6 ms | 14 ms |
-| 10 | 360 | 26 ms | 41 ms |
-| 25 | 448 | 54 ms | 73 ms |
-| 50 | 472 | 102 ms | 129 ms |
-| 100 | 491 | 192 ms | **325 ms** |
-| 200 | 469 | 421 ms | **510 ms** |
+| Konkuren | req/s | p50    | p95        |
+| -------- | ----- | ------ | ---------- |
+| 1        | 135   | 6 ms   | 14 ms      |
+| 10       | 360   | 26 ms  | 41 ms      |
+| 25       | 448   | 54 ms  | 73 ms      |
+| 50       | 472   | 102 ms | 129 ms     |
+| 100      | 491   | 192 ms | **325 ms** |
+| 200      | 469   | 421 ms | **510 ms** |
 
 Throughput mentok sekitar 490 req/s; di atas itu setiap request tambahan hanya
 menambah antrean. Pola ini yang membuat batas **60% utilisasi** dipakai di
@@ -90,12 +90,12 @@ Asumsi, semuanya dinyatakan: vCPU VPS bersama diperkirakan **3× lebih lambat**
 dari core M1 (konservatif), utilisasi aman 60%, jam tersibuk 12% traffic
 harian, 1,3 pageview per sesi.
 
-| vCPU | req/s aman | Sesi/bulan (tanpa CDN) |
-|---|---|---|
-| **1** | **23** | **~15 juta** |
-| 2 | 46 | ~31 juta |
-| 4 | 91 | ~63 juta |
-| 8 | 183 | ~126 juta |
+| vCPU  | req/s aman | Sesi/bulan (tanpa CDN) |
+| ----- | ---------- | ---------------------- |
+| **1** | **23**     | **~15 juta**           |
+| 2     | 46         | ~31 juta               |
+| 4     | 91         | ~63 juta               |
+| 8     | 183        | ~126 juta              |
 
 Target tertinggi §3 adalah **100.000 sesi/bulan** di bulan 13–24. Satu vCPU
 memberi sekitar **150× dari itu** — dan itu sebelum menghitung Cloudflare, yang
@@ -135,23 +135,23 @@ ulang saat mendaftar.
 
 ### Biznet Gio — NEO Lite
 
-| Paket | vCPU | RAM | Disk | Harga/bulan |
-|---|---|---|---|---|
-| XS 1.1 | 1 | 1 GB | 60 GB | Rp59.000 |
+| Paket      | vCPU  | RAM      | Disk      | Harga/bulan  |
+| ---------- | ----- | -------- | --------- | ------------ |
+| XS 1.1     | 1     | 1 GB     | 60 GB     | Rp59.000     |
 | **SS 2.1** | **1** | **2 GB** | **60 GB** | **Rp80.000** |
-| SS 2.2 | 2 | 2 GB | 60 GB | Rp109.000 |
-| MS 4.2 | 2 | 4 GB | 60 GB | Rp139.000 |
-| MS 4.4 | 4 | 4 GB | 60 GB | Rp179.000 |
+| SS 2.2     | 2     | 2 GB     | 60 GB     | Rp109.000    |
+| MS 4.2     | 2     | 4 GB     | 60 GB     | Rp139.000    |
+| MS 4.4     | 4     | 4 GB     | 60 GB     | Rp179.000    |
 
 Kode `DISKON10` memberi potongan 10% untuk langganan tahunan.
 
 ### IDCloudHost — Basic Standard
 
-| vCPU | RAM | Disk | Harga/bulan |
-|---|---|---|---|
-| 2 | 2 GB | 20 GB | Rp87.000 |
-| 2 | 2 GB | 40 GB | Rp100.000 |
-| 2 | 4 GB | 60 GB | Rp225.000 |
+| vCPU | RAM  | Disk  | Harga/bulan |
+| ---- | ---- | ----- | ----------- |
+| 2    | 2 GB | 20 GB | Rp87.000    |
+| 2    | 2 GB | 40 GB | Rp100.000   |
+| 2    | 4 GB | 60 GB | Rp225.000   |
 
 ### Yang paling murah dan benar-benar cukup
 
@@ -170,11 +170,11 @@ batas Rp200.000/bulan §2, tapi menyisakan sedikit untuk yang lain.
 
 ### Lokal versus Hetzner
 
-| | Spesifikasi | Harga/bulan |
-|---|---|---|
-| Hetzner CX22 | 2 vCPU, 4 GB, 40 GB | ~Rp75.000 |
-| Biznet MS 4.2 | 2 vCPU, 4 GB, 60 GB | Rp139.000 |
-| IDCloudHost | 2 vCPU, 4 GB, 60 GB | Rp225.000 |
+|               | Spesifikasi         | Harga/bulan |
+| ------------- | ------------------- | ----------- |
+| Hetzner CX22  | 2 vCPU, 4 GB, 40 GB | ~Rp75.000   |
+| Biznet MS 4.2 | 2 vCPU, 4 GB, 60 GB | Rp139.000   |
+| IDCloudHost   | 2 vCPU, 4 GB, 60 GB | Rp225.000   |
 
 Untuk spesifikasi setara, lokal berharga sekitar **2–3 kali lipat**. Yang
 dibeli dengan selisih itu bukan performa:

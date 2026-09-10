@@ -6,6 +6,24 @@
 
 	let { data, children } = $props();
 
+	/**
+	 * Seeded from the cookie the server read, so the first paint is already the
+	 * right width. The POST only records the change for next time.
+	 */
+	// svelte-ignore state_referenced_locally
+	let collapsed = $state(data.sidebarCollapsed);
+
+	function toggle() {
+		collapsed = !collapsed;
+		void fetch('/admin/sidebar', {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ collapsed })
+		}).catch(() => {
+			// Cookie not saved; the sidebar still works, it just forgets.
+		});
+	}
+
 	// Admin copy is not translated: it has exactly one reader (PRD §8.2).
 	// Entries are added as each phase ships a real route — a nav that links to
 	// pages that do not exist yet is just a list of 404s.
@@ -23,21 +41,54 @@
 		href === '/admin' ? page.url.pathname === '/admin' : page.url.pathname.startsWith(href);
 </script>
 
-<div class="shell">
+<div class="shell" class:shell--collapsed={collapsed}>
 	<aside>
-		<a class="brand" href={resolve('/admin')}>VERUM</a>
+		<div class="top">
+			<a class="brand" href={resolve('/admin')}>VERUM</a>
+
+			<button
+				type="button"
+				class="collapse"
+				onclick={toggle}
+				aria-expanded={!collapsed}
+				aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+				title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+			>
+				<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+					<rect
+						x="1.75"
+						y="2.75"
+						width="12.5"
+						height="10.5"
+						rx="2"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.4"
+					/>
+					<line x1="6.25" y1="2.75" x2="6.25" y2="13.25" stroke="currentColor" stroke-width="1.4" />
+				</svg>
+			</button>
+		</div>
 
 		<nav>
 			{#each nav as item (item.href)}
-				<a href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined}>
-					{item.label}
+				<a
+					href={item.href}
+					title={collapsed ? item.label : undefined}
+					aria-current={isCurrent(item.href) ? 'page' : undefined}
+				>
+					<span class="dot" aria-hidden="true">{item.label.charAt(0)}</span>
+					<span class="label">{item.label}</span>
 				</a>
 			{/each}
 		</nav>
 
 		<form method="POST" action="/admin/logout" class="account">
-			<span title={data.user.email}>{data.user.email}</span>
-			<button type="submit" class="btn btn--secondary btn--sm">Sign out</button>
+			<span class="label" title={data.user.email}>{data.user.email}</span>
+			<button type="submit" class="btn btn--secondary btn--sm" title="Sign out">
+				<span class="label">Sign out</span>
+				<span class="dot" aria-hidden="true">→</span>
+			</button>
 		</form>
 	</aside>
 
@@ -50,6 +101,7 @@
 	.shell {
 		display: grid;
 		grid-template-columns: 15rem 1fr;
+		transition: grid-template-columns var(--dur) var(--ease);
 		min-height: 100vh;
 		background: var(--bg);
 		color: var(--text);
@@ -65,6 +117,63 @@
 		top: 0;
 		height: 100vh;
 	}
+	.shell--collapsed {
+		grid-template-columns: 3.75rem 1fr;
+	}
+	/* Everything that only makes sense with room for it. */
+	.shell--collapsed .label {
+		display: none;
+	}
+	.shell--collapsed .brand {
+		font-size: 0;
+		gap: 0;
+	}
+	.shell--collapsed .top {
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+	.shell--collapsed nav a {
+		justify-content: center;
+	}
+	.shell--collapsed .dot {
+		display: inline-flex;
+	}
+	.shell--collapsed .account {
+		justify-items: center;
+	}
+
+	.top {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+	}
+	.collapse {
+		min-height: 1.875rem;
+		padding: 0.3125rem;
+		border: 0;
+		border-radius: var(--r-md);
+		background: transparent;
+		color: var(--text-3);
+		cursor: pointer;
+	}
+	.collapse:hover {
+		background: var(--surface-2);
+		color: var(--text);
+	}
+	/* The bar flips to show which side folds away. */
+	.shell--collapsed .collapse svg {
+		transform: scaleX(-1);
+	}
+
+	.dot {
+		display: none;
+		align-items: center;
+		justify-content: center;
+		width: 1.25rem;
+		font-weight: var(--weight-strong);
+	}
+
 	.brand {
 		display: inline-flex;
 		align-items: center;
@@ -87,6 +196,9 @@
 		gap: 0.125rem;
 	}
 	nav a {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
 		padding: 0.4375rem 0.5rem;
 		border-radius: var(--r-md);
 		color: var(--text-2);
@@ -209,6 +321,19 @@
 	@media (max-width: 60rem) {
 		.shell {
 			grid-template-columns: 1fr;
+		}
+		/* The collapse control is for the desktop rail; the bar is horizontal here. */
+		.collapse {
+			display: none;
+		}
+		.shell--collapsed {
+			grid-template-columns: 1fr;
+		}
+		.shell--collapsed .label {
+			display: inline;
+		}
+		.shell--collapsed .dot {
+			display: none;
 		}
 		aside {
 			position: static;

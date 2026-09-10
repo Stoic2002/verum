@@ -4,6 +4,7 @@ import {
 	MAX_UPLOAD_BYTES,
 	UploadError,
 	deleteMedia,
+	fetchImageFromUrl,
 	getStorage,
 	listMedia,
 	pictureFor,
@@ -52,6 +53,48 @@ export const actions: Actions = {
 			return { uploaded: record.id, variants: record.variants.length };
 		} catch (error) {
 			if (error instanceof UploadError) return fail(400, { error: error.message });
+			throw error;
+		}
+	},
+
+	/**
+	 * Imports an image the editor pasted a URL for.
+	 *
+	 * PRD §14 still applies: only clearly licensed stock or images made here.
+	 * Making it easy to fetch a URL does not make it legal to use, which is why
+	 * the credit field is required on this path and optional on a file upload —
+	 * an image from someone else's site needs a source recorded.
+	 */
+	importUrl: async ({ request }) => {
+		const data = await request.formData();
+		const url = String(data.get('url') ?? '').trim();
+		const alt = String(data.get('alt') ?? '').trim();
+		const credit = String(data.get('credit') ?? '').trim();
+
+		if (!url) return fail(400, { error: 'Paste an image URL.' });
+		if (!alt) return fail(400, { error: 'Alt text is required.' });
+		if (!credit) {
+			return fail(400, {
+				error: 'Credit is required for an imported image — record where it came from.'
+			});
+		}
+
+		try {
+			const fetched = await fetchImageFromUrl(url);
+			const record = await uploadImage(
+				db,
+				{ buffer: fetched.buffer, name: fetched.name },
+				{ alt, credit }
+			);
+			return { uploaded: record.id, variants: record.variants.length };
+		} catch (error) {
+			if (error instanceof UploadError) return fail(400, { error: error.message });
+			if (error instanceof Error && error.name === 'TimeoutError') {
+				return fail(400, { error: 'That URL took too long to respond.' });
+			}
+			if (error instanceof Error && /fetch failed/i.test(error.message)) {
+				return fail(400, { error: 'Could not reach that URL.' });
+			}
 			throw error;
 		}
 	},

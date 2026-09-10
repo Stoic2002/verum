@@ -5,10 +5,10 @@
 PRD §13.1 membatasi **maksimal 3 slot per halaman artikel**. Implementasinya
 menghormati itu di setiap lebar layar:
 
-| Lebar | Slot yang tampil | Jumlah |
-|---|---|---|
-| ≥ 1248px (desktop) | rail kiri, rail kanan, akhir artikel | 3 |
-| < 1248px (laptop kecil, tablet, ponsel) | tengah artikel, akhir artikel | 2 |
+| Lebar                                   | Slot yang tampil                     | Jumlah |
+| --------------------------------------- | ------------------------------------ | ------ |
+| ≥ 1248px (desktop)                      | rail kiri, rail kanan, akhir artikel | 3      |
+| < 1248px (laptop kecil, tablet, ponsel) | tengah artikel, akhir artikel        | 2      |
 
 Rail dan slot tengah **saling menggantikan**, tidak ditumpuk. Ada e2e yang
 menyusuri lima lebar viewport dan menuntut jumlahnya tidak pernah lebih dari
@@ -45,11 +45,11 @@ membaca.
 
 ## Yang tidak akan saya pasang
 
-| Format | Kenapa tidak |
-|---|---|
-| Interstitial / prestitial | Menutupi konten sebelum dibaca; ditandai Better Ads Standards |
-| Pop-up dan pop-under | Sama, ditambah alasan AdSense mencabut akun |
-| Video auto-play | Merusak INP dan menghabiskan kuota pembaca |
+| Format                           | Kenapa tidak                                                      |
+| -------------------------------- | ----------------------------------------------------------------- |
+| Interstitial / prestitial        | Menutupi konten sebelum dibaca; ditandai Better Ads Standards     |
+| Pop-up dan pop-under             | Sama, ditambah alasan AdSense mencabut akun                       |
+| Video auto-play                  | Merusak INP dan menghabiskan kuota pembaca                        |
 | Kepadatan tinggi di atas lipatan | Sinyal page-experience negatif, dan alasan §13.1 memasang batas 3 |
 
 §17 menempatkan "AdSense ditolak atau di-ban" di kolom **dampak: pendapatan
@@ -75,11 +75,11 @@ campuran, asumsi wajar **Rp30.000–90.000**.
 **Pageview** — §3 menargetkan sesi organik. Satu sesi biasanya 1,2–1,5
 pageview untuk blog; di bawah ini diperlakukan 1:1, jadi angkanya konservatif.
 
-| Fase | Sesi/bulan (§3) | Perkiraan pendapatan iklan |
-|---|---|---|
-| 2 — bulan 4–6 | 3.000 – 8.000 | Rp90.000 – 720.000 |
-| 3 — bulan 7–12 | 20.000 – 50.000 | Rp600.000 – 4.500.000 |
-| 4 — bulan 13–24 | 100.000+ | Rp3.000.000 – 9.000.000+ |
+| Fase            | Sesi/bulan (§3) | Perkiraan pendapatan iklan |
+| --------------- | --------------- | -------------------------- |
+| 2 — bulan 4–6   | 3.000 – 8.000   | Rp90.000 – 720.000         |
+| 3 — bulan 7–12  | 20.000 – 50.000 | Rp600.000 – 4.500.000      |
+| 4 — bulan 13–24 | 100.000+        | Rp3.000.000 – 9.000.000+   |
 
 ### Bagian rail kiri-kanan saja
 

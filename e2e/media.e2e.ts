@@ -158,3 +158,61 @@ test('the image adds no layout shift', async ({ page }) => {
 	// PRD §12.5 allows 0.1. Reserved boxes should make it exactly zero.
 	expect(cls).toBe(0);
 });
+
+test.describe('importing by URL', () => {
+	test('refuses an address inside the network', async ({ page }) => {
+		await signIn(page);
+		await page.goto('/admin/media');
+		await page.getByRole('tab', { name: /import from url/i }).click();
+
+		// The endpoint that hands out credentials on most cloud providers.
+		await page.locator('#url').fill('http://169.254.169.254/latest/meta-data/');
+		await page.locator('#url-alt').fill('Should never be fetched');
+		await page.locator('#url-credit').fill('n/a');
+		await page.getByRole('button', { name: /import image/i }).click();
+
+		await expect(page.getByRole('alert')).toContainText(/not reachable from here/i);
+	});
+
+	test('requires a credit, unlike a file upload', async ({ page }) => {
+		await signIn(page);
+		await page.goto('/admin/media');
+		await page.getByRole('tab', { name: /import from url/i }).click();
+
+		await page.locator('#url').fill('https://example.com/photo.jpg');
+		await page.locator('#url-alt').fill('A photo');
+		// PRD §14: an image from someone else's site needs its source recorded.
+		await page.locator('#url-credit').evaluate((el) => el.removeAttribute('required'));
+		await page.getByRole('button', { name: /import image/i }).click();
+
+		await expect(page.getByRole('alert')).toContainText(/credit is required/i);
+	});
+
+	test('the two ways of adding an image are both reachable', async ({ page }) => {
+		await signIn(page);
+		await page.goto('/admin/media');
+
+		await expect(page.locator('#file')).toBeVisible();
+		await page.getByRole('tab', { name: /import from url/i }).click();
+		await expect(page.locator('#url')).toBeVisible();
+		await expect(page.locator('#file')).toHaveCount(0);
+	});
+});
+
+test('the sidebar collapses and stays collapsed', async ({ page }) => {
+	await signIn(page);
+
+	const shell = page.locator('.shell');
+	await expect(shell).not.toHaveClass(/shell--collapsed/);
+
+	await page.getByRole('button', { name: /collapse sidebar/i }).click();
+	await expect(shell).toHaveClass(/shell--collapsed/);
+
+	// Stored in a cookie, so the server renders it collapsed on the next load —
+	// no flash of the wide rail before a script narrows it.
+	await page.goto('/admin/media');
+	await expect(page.locator('.shell')).toHaveClass(/shell--collapsed/);
+
+	await page.getByRole('button', { name: /expand sidebar/i }).click();
+	await expect(page.locator('.shell')).not.toHaveClass(/shell--collapsed/);
+});

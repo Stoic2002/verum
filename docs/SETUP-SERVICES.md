@@ -4,12 +4,12 @@ Setiap layanan di bawah punya **perilaku pengganti**, jadi tidak ada yang wajib
 diisi untuk menjalankan project ini secara lokal. Isi saat Anda membutuhkan
 fiturnya, bukan sebelumnya.
 
-| Layanan | Kosong berarti | Baru perlu saat |
-|---|---|---|
-| SMTP | Email ditulis ke buffer, dibaca di `/admin/mail` | Newsletter diaktifkan (bulan 4–6) |
-| Cloudflare R2 | Upload ke folder `.media/` lokal | Deploy produksi |
-| Cloudflare purge | Purge dilewati | Deploy produksi |
-| Sentry | Tidak ada pelacakan error | Kapan saja; gratis |
+| Layanan          | Kosong berarti                                   | Baru perlu saat                   |
+| ---------------- | ------------------------------------------------ | --------------------------------- |
+| SMTP             | Email ditulis ke buffer, dibaca di `/admin/mail` | Newsletter diaktifkan (bulan 4–6) |
+| Cloudflare R2    | Upload ke folder `.media/` lokal                 | Deploy produksi                   |
+| Cloudflare purge | Purge dilewati                                   | Deploy produksi                   |
+| Sentry           | Tidak ada pelacakan error                        | Kapan saja; gratis                |
 
 ---
 
@@ -68,11 +68,11 @@ otomatis.
 
 ### b. Buat API token
 
-R2 → di panel **Account details** kanan, klik **Manage** di sebelah *API
-Tokens* → **Create API token**.
+R2 → di panel **Account details** kanan, klik **Manage** di sebelah _API
+Tokens_ → **Create API token**.
 
-- Permission: **Object Read & Write** sudah cukup. Jangan pakai *Admin Read &
-  Write* — aplikasi ini tidak perlu bisa membuat atau menghapus bucket.
+- Permission: **Object Read & Write** sudah cukup. Jangan pakai _Admin Read &
+  Write_ — aplikasi ini tidak perlu bisa membuat atau menghapus bucket.
 - Scope: pilih **Specific buckets** dan pilih bucket tadi.
 
 Hasilnya dua nilai:
@@ -93,7 +93,7 @@ heksadesimal. → `R2_ACCOUNT_ID`
 Bucket R2 **privat secara default** — kalau tidak diatur, gambar tidak bisa
 dilihat siapa pun.
 
-Buka bucket → **Settings** → *Public access*. Dua pilihan:
+Buka bucket → **Settings** → _Public access_. Dua pilihan:
 
 - **Custom domain** — hubungkan subdomain, misalnya `img.domain-anda.com`.
   **Ini yang dipakai untuk produksi.** Domainnya harus ada di Cloudflare.
@@ -131,13 +131,13 @@ Tiga bagian yang harus semuanya ada. Dua sudah di kode, satu di dashboard.
 
 Setiap halaman mengirim `Cache-Control` sendiri, karena tiap halaman berbeda:
 
-| Halaman | `s-maxage` | Alasan |
-|---|---|---|
-| Artikel terbit | 24 jam + `stale-while-revalidate` | Jarang berubah |
-| Homepage, kategori | 60 detik | Berubah tiap ada yang terbit |
-| Topik | 5 menit | |
-| Sitemap, RSS | 1 jam | |
-| Search, admin, preview | `no-store` | Tidak boleh di-cache sama sekali |
+| Halaman                | `s-maxage`                        | Alasan                           |
+| ---------------------- | --------------------------------- | -------------------------------- |
+| Artikel terbit         | 24 jam + `stale-while-revalidate` | Jarang berubah                   |
+| Homepage, kategori     | 60 detik                          | Berubah tiap ada yang terbit     |
+| Topik                  | 5 menit                           |                                  |
+| Sitemap, RSS           | 1 jam                             |                                  |
+| Search, admin, preview | `no-store`                        | Tidak boleh di-cache sama sekali |
 
 `s-maxage` khusus untuk cache bersama seperti CDN; browser pembaca memakai
 `max-age` yang nol. Jadi Cloudflare menyimpan, browser tidak.
