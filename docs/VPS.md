@@ -49,6 +49,85 @@ artikel disimpan, bukan per request.
 `@node-rs/argon2` keduanya punya binary linux-arm64 dan sudah ada di
 `bun.lock`. Kalau ingin menghemat, itu pilihan yang aman.
 
+## Berapa pengunjung sebelum lemot
+
+### Cara mengukurnya
+
+Membatasi core di macOS tanpa Docker tidak bisa dilakukan dengan tepat, dan
+menjenuhkan core dengan busy-loop membuat klien benchmark ikut berebut CPU —
+hasilnya bias. Jadi yang diukur adalah **waktu CPU per request**, yang tidak
+bergantung jumlah core, lalu kapasitas dihitung darinya.
+
+| Halaman | CPU Node | CPU Postgres | Total |
+|---|---|---|---|
+| Artikel (SSR + 4 query) | 4,70 ms | 4,05 ms | **8,75 ms** |
+| Homepage | 4,17 ms | 5,47 ms | 9,65 ms |
+| Search (FTS + headline) | 2,50 ms | 1,65 ms | 4,15 ms |
+
+Diukur di satu core Apple M1. Postgres dihitung terpisah karena di 1 vCPU ia
+berebut core yang sama dengan Node.
+
+### Kurva antrean yang terukur
+
+Ramp konkurensi pada halaman artikel, 8 core:
+
+| Konkuren | req/s | p50 | p95 |
+|---|---|---|---|
+| 1 | 135 | 6 ms | 14 ms |
+| 10 | 360 | 26 ms | 41 ms |
+| 25 | 448 | 54 ms | 73 ms |
+| 50 | 472 | 102 ms | 129 ms |
+| 100 | 491 | 192 ms | **325 ms** |
+| 200 | 469 | 421 ms | **510 ms** |
+
+Throughput mentok sekitar 490 req/s; di atas itu setiap request tambahan hanya
+menambah antrean. Pola ini yang membuat batas **60% utilisasi** dipakai di
+hitungan bawah — di atas itu p95 memanjang cepat.
+
+### Kapasitas per jumlah core
+
+Asumsi, semuanya dinyatakan: vCPU VPS bersama diperkirakan **3× lebih lambat**
+dari core M1 (konservatif), utilisasi aman 60%, jam tersibuk 12% traffic
+harian, 1,3 pageview per sesi.
+
+| vCPU | req/s aman | Sesi/bulan (tanpa CDN) |
+|---|---|---|
+| **1** | **23** | **~15 juta** |
+| 2 | 46 | ~31 juta |
+| 4 | 91 | ~63 juta |
+| 8 | 183 | ~126 juta |
+
+Target tertinggi §3 adalah **100.000 sesi/bulan** di bulan 13–24. Satu vCPU
+memberi sekitar **150× dari itu** — dan itu sebelum menghitung Cloudflare, yang
+menyimpan halaman artikel 24 jam sehingga sebagian besar pembacaan tidak pernah
+mencapai server.
+
+### Jadi kapan sebenarnya lemot
+
+Bukan pada rata-rata bulanan. Yang bisa membuat 1 vCPU kewalahan adalah
+**lonjakan mendadak** — satu artikel masuk halaman depan Hacker News atau
+Reddit bisa menghasilkan 20–50 req/s selama berjam-jam, bukan 0,14 req/s yang
+jadi rata-rata target §3.
+
+Di situ pun CDN yang menyelamatkan: lonjakan pada **satu** artikel dilayani
+hampir seluruhnya dari edge, dan origin hanya melihat satu-dua persennya.
+Tanpa Cache Rule di Cloudflare ([`CLOUDFLARE.md`](./CLOUDFLARE.md) bagian 1),
+perhitungan ini berubah total — setiap kunjungan sampai ke server.
+
+### Yang benar-benar habis lebih dulu
+
+Bukan CPU:
+
+1. **RAM saat memproses gambar.** Terukur 630 MB puncak. Ini alasan
+   rekomendasinya 2 GB, bukan 1 GB.
+2. **Kolam koneksi Postgres.** Default `postgres.js` sepuluh koneksi; cukup,
+   tapi itu batas berikutnya kalau traffic benar-benar besar.
+3. **CPU** — terakhir, dan jauh.
+
+> Angka di atas adalah model atas asumsi yang dinyatakan, bukan hasil uji beban
+> di VPS sungguhan. Kalikan pengaman 2–3× kalau ingin konservatif; kesimpulannya
+> tidak berubah.
+
 ## Pilihan lokal (Indonesia)
 
 Harga per 10 September 2026, diambil dari halaman resmi masing-masing. Cek
