@@ -30,7 +30,7 @@
 
 <h1>{m.nav_search()}</h1>
 
-<form class="search" method="GET" role="search">
+<form class="form-inline search" method="GET" role="search">
 	<label class="visually-hidden" for="q">{m.nav_search()}</label>
 	<input id="q" name="q" type="search" value={data.query} autocomplete="off" />
 
@@ -100,46 +100,9 @@
 		font-size: clamp(1.75rem, 1.3rem + 2vw, 2.5rem);
 		letter-spacing: -0.03em;
 	}
+	/* Controls come from forms.css; only the width of the row is local. */
 	.search {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem;
 		max-width: var(--measure);
-	}
-	.search input {
-		flex: 1;
-		min-width: 12rem;
-	}
-	.search input,
-	.search select {
-		padding: 0.6875rem 0.9375rem;
-		border: 1px solid var(--border-strong);
-		border-radius: var(--r-md);
-		background: var(--surface);
-		color: var(--text);
-		font: inherit;
-		font-size: 0.9375rem;
-	}
-	.search input:focus,
-	.search select:focus {
-		border-color: var(--accent);
-		outline: none;
-		box-shadow: 0 0 0 3px var(--accent-tint);
-	}
-	.search button {
-		padding: 0.6875rem 1.375rem;
-		border: 0;
-		border-radius: var(--r-md);
-		background: var(--accent);
-		color: var(--accent-contrast);
-		font: inherit;
-		font-size: 0.9375rem;
-		font-weight: var(--weight-strong);
-		cursor: pointer;
-		transition: background var(--dur) var(--ease);
-	}
-	.search button:hover {
-		background: var(--accent-hover);
 	}
 	.count {
 		margin: 2rem 0 0;
@@ -201,13 +164,5 @@
 	.empty {
 		margin-top: 1rem;
 		color: var(--text-3);
-	}
-	.visually-hidden {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip: rect(0 0 0 0);
-		white-space: nowrap;
 	}
 </style>

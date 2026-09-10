@@ -16,9 +16,12 @@
 	<a class="button" href={resolve('/(admin)/admin/(app)/articles/new')}>New article</a>
 </header>
 
-<form class="filters" method="GET">
-	<input type="search" name="q" placeholder="Search titles" value={data.search} />
-	<select name="status">
+<form class="form-inline filters" method="GET">
+	<label class="visually-hidden" for="q">Search titles</label>
+	<input id="q" type="search" name="q" placeholder="Search titles" value={data.search} />
+
+	<label class="visually-hidden" for="status">Status</label>
+	<select id="status" name="status">
 		{#each STATUSES as status (status)}
 			<option value={status} selected={status === data.status}>{status || 'All statuses'}</option>
 		{/each}
@@ -70,13 +73,8 @@
 		gap: 1rem;
 	}
 	.filters {
-		display: flex;
-		gap: 0.5rem;
 		margin: 1rem 0 1.5rem;
-	}
-	.filters input {
-		flex: 1;
-		max-width: 20rem;
+		max-width: 42rem;
 	}
 	.empty {
 		color: var(--text-3);

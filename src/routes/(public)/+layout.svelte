@@ -1,5 +1,6 @@
 <script lang="ts">
 	import '$lib/styles/tokens.css';
+	import '$lib/styles/forms.css';
 	import { m } from '$lib/paraglide/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import * as urls from '$lib/urls';

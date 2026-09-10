@@ -44,7 +44,7 @@
 	</table>
 {/if}
 
-<form method="POST" action="?/save" use:enhance class="stack">
+<form method="POST" action="?/save" use:enhance class="form-grid">
 	{#if $message}<p class="notice">{$message}</p>{/if}
 
 	<label for="fromPath">From path</label>

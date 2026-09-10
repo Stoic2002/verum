@@ -59,7 +59,7 @@
 	</ul>
 
 	{#if data.missingLocales.length}
-		<form method="POST" action="?/addLocale" class="inline">
+		<form method="POST" action="?/addLocale" class="form-inline">
 			<select name="locale" aria-label="Locale to add">
 				{#each data.missingLocales as locale (locale)}
 					<option value={locale}>{locale}</option>
@@ -214,16 +214,6 @@
 	.preview {
 		white-space: nowrap;
 		font-size: 0.8125rem;
-	}
-	.inline {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem;
-		align-items: center;
-	}
-	.inline select {
-		width: auto;
-		min-width: 7rem;
 	}
 	.switch-row {
 		margin: 0.625rem 0 0.25rem;

@@ -16,6 +16,23 @@
  *     cursor, checked carries a mark.
  */
 
+/*
+ * A label that only assistive technology reads. Used where the placeholder or
+ * surrounding context makes a visible label redundant — a search box in a
+ * toolbar — but a control with no label at all is unusable by screen reader.
+ */
+.visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
 .field {
 	display: grid;
 	gap: 0.3125rem;
@@ -501,6 +518,37 @@ button.destructive:hover:not(:disabled) {
 	align-items: center;
 	gap: 0.75rem;
 	padding-top: 0.25rem;
+}
+
+/*
+ * Controls laid out in a row.
+ *
+ * `select` and `input` default to `width: 100%`, which is right in a stacked
+ * form and wrong in a row: the select claims the whole line and collapses
+ * everything beside it to nothing. Inside .form-inline they size to content
+ * instead, and the text field is the one that grows.
+ */
+.form-inline {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+}
+.form-inline input[type='search'],
+.form-inline input[type='text'],
+.form-inline input[type='email'] {
+	flex: 1 1 14rem;
+	width: auto;
+	min-width: 0;
+}
+.form-inline select {
+	flex: 0 0 auto;
+	width: auto;
+	min-width: 9.5rem;
+}
+.form-inline .btn,
+.form-inline button {
+	flex: 0 0 auto;
 }
 
 fieldset {

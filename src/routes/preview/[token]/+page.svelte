@@ -100,6 +100,10 @@
 		height: 100%;
 		border: 0;
 	}
+	article :global(.callout__title) {
+		margin-bottom: 0.375rem;
+		font-weight: 600;
+	}
 	article :global(.callout) {
 		border-left: 3px solid var(--text-3);
 		padding: 0.625rem 0.875rem;

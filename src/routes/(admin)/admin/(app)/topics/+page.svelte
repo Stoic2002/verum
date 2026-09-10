@@ -34,7 +34,7 @@
 	<p class="empty">No topics yet.</p>
 {/if}
 
-<form method="POST" action="?/create" class="stack">
+<form method="POST" action="?/create" class="form-grid">
 	{#if form?.error}<p class="error" role="alert">{form.error}</p>{/if}
 	<label for="slug">New topic slug</label>
 	<input id="slug" name="slug" placeholder="openai" required />

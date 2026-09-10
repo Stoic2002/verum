@@ -1,7 +1,7 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, normalize, resolve } from 'node:path';
 import { AwsClient } from 'aws4fetch';
-import { env } from '$env/dynamic/private';
+import { serverEnv as env } from '../env';
 
 /**
  * Object storage behind one small interface.

@@ -20,7 +20,7 @@
 	{@const row = localeOf(locale)}
 	<section>
 		<h2>{locale}</h2>
-		<form method="POST" action="?/saveLocale" class="stack">
+		<form method="POST" action="?/saveLocale" class="form-grid">
 			<input type="hidden" name="locale" value={locale} />
 
 			<label for="title-{locale}">Title</label>
@@ -39,7 +39,7 @@
 
 <section>
 	<h2>Articles</h2>
-	<form method="POST" action="?/setArticles" class="stack">
+	<form method="POST" action="?/setArticles" class="form-grid">
 		<div class="picker">
 			{#each data.articles as article (article.id)}
 				<label class="check">

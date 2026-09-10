@@ -18,6 +18,26 @@
 	const article = $derived(data.article);
 	const canonical = $derived(page.url.href.split('?')[0]);
 
+	/**
+	 * The table of contents is stored flat, with a level per heading. Rendering
+	 * it flat inside one <ol> numbers an h3 as a sibling of the h2 above it —
+	 * "3." appearing under "2." as though it were the next section. Grouping
+	 * restores the relationship the numbering is supposed to express.
+	 */
+	const outline = $derived(
+		article.toc.reduce<{ id: string; text: string; children: { id: string; text: string }[] }[]>(
+			(sections, entry) => {
+				if (entry.level === 2 || sections.length === 0) {
+					sections.push({ id: entry.id, text: entry.text, children: [] });
+				} else {
+					sections[sections.length - 1].children.push({ id: entry.id, text: entry.text });
+				}
+				return sections;
+			},
+			[]
+		)
+	);
+
 	const dateFormat = new Intl.DateTimeFormat(locale, {
 		year: 'numeric',
 		month: 'long',
@@ -77,8 +97,17 @@
 			<nav class="toc" aria-label={m.article_contents()}>
 				<h2>{m.article_contents()}</h2>
 				<ol>
-					{#each article.toc as entry (entry.id)}
-						<li class="toc--{entry.level}"><a href="#{entry.id}">{entry.text}</a></li>
+					{#each outline as section (section.id)}
+						<li>
+							<a href="#{section.id}">{section.text}</a>
+							{#if section.children.length}
+								<ul>
+									{#each section.children as child (child.id)}
+										<li><a href="#{child.id}">{child.text}</a></li>
+									{/each}
+								</ul>
+							{/if}
+						</li>
 					{/each}
 				</ol>
 			</nav>
@@ -219,7 +248,23 @@
 		font-size: 0.9375rem;
 	}
 	.toc li {
-		margin: 0.25rem 0;
+		margin: 0.3125rem 0;
+	}
+	/* Sub-headings are marked by indentation, not by continuing the numbering. */
+	.toc ul {
+		margin: 0.25rem 0 0.5rem;
+		padding-left: 0.875rem;
+		list-style: none;
+		font-size: 0.875rem;
+	}
+	.toc ul li::before {
+		content: '';
+		display: inline-block;
+		width: 0.5rem;
+		height: 1px;
+		margin-right: 0.4375rem;
+		vertical-align: middle;
+		background: var(--border-strong);
 	}
 	.toc a {
 		color: var(--text-2);
@@ -227,10 +272,6 @@
 	}
 	.toc a:hover {
 		color: var(--accent);
-	}
-	.toc :global(.toc--3) {
-		margin-left: 0.875rem;
-		font-size: 0.875rem;
 	}
 
 	/*
@@ -311,6 +352,7 @@
 	.prose :global(table) {
 		display: block;
 		max-width: 100%;
+		margin: 1.75rem 0;
 		overflow-x: auto;
 		border-collapse: collapse;
 		font-size: 0.9375rem;
@@ -366,6 +408,11 @@
 	}
 	.prose :global(.callout p:last-child) {
 		margin-bottom: 0;
+	}
+	.prose :global(.callout__title) {
+		margin-bottom: 0.375rem;
+		font-weight: var(--weight-strong);
+		color: var(--text);
 	}
 	.prose :global(.callout--warning),
 	.prose :global(.callout--caution) {

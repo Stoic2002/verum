@@ -1,4 +1,5 @@
 import { dev } from '$app/environment';
+import { env as privateEnv } from '$env/dynamic/private';
 import { sequence } from '@sveltejs/kit/hooks';
 import { redirect, type Handle } from '@sveltejs/kit';
 import { baseLocale, isLocale } from '$lib/paraglide/runtime';
@@ -11,6 +12,16 @@ import {
 	validateSession
 } from '$lib/server/auth/session';
 import { findRedirect } from '$lib/server/redirects';
+import { setEnvSource } from '$lib/server/env';
+
+/*
+ * Hand the app's environment to the modules that also have to work outside
+ * SvelteKit. Done at module scope so it is in place before the first request:
+ * `vite dev` loads .env for $env/dynamic/private but never copies it into
+ * process.env, so without this a configured R2 bucket would be ignored in
+ * development and only appear to work in production.
+ */
+setEnvSource(privateEnv);
 
 const LOGIN_PATH = '/admin/login';
 

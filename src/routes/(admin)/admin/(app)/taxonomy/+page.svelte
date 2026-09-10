@@ -54,7 +54,7 @@
 		</tbody>
 	</table>
 
-	<form method="POST" action="?/saveCategory" use:cEnhance class="stack">
+	<form method="POST" action="?/saveCategory" use:cEnhance class="form-grid">
 		{#if $cMessage}<p class="notice">{$cMessage}</p>{/if}
 
 		<label for="cslug">Slug</label>
@@ -62,12 +62,12 @@
 		{#if $cErrors.slug}<p class="error">{$cErrors.slug}</p>{/if}
 
 		<div class="row">
-			<div class="stack">
+			<div class="form-grid">
 				<label for="nameEn">Name (en)</label>
 				<input id="nameEn" bind:value={$cForm.nameEn} />
 				{#if $cErrors.nameEn}<p class="error">{$cErrors.nameEn}</p>{/if}
 			</div>
-			<div class="stack">
+			<div class="form-grid">
 				<label for="nameId">Name (id)</label>
 				<input id="nameId" bind:value={$cForm.nameId} placeholder="defaults to English" />
 			</div>
@@ -84,7 +84,7 @@
 
 		<div class="row">
 			<label class="check"><input type="checkbox" bind:checked={$cForm.isActive} /> Active</label>
-			<div class="stack">
+			<div class="form-grid">
 				<label for="sortOrder">Sort order</label>
 				<input id="sortOrder" type="number" bind:value={$cForm.sortOrder} />
 			</div>
@@ -123,16 +123,16 @@
 		</tbody>
 	</table>
 
-	<form method="POST" action="?/saveTag" use:tEnhance class="stack">
+	<form method="POST" action="?/saveTag" use:tEnhance class="form-grid">
 		{#if $tMessage}<p class="notice">{$tMessage}</p>{/if}
 
 		<div class="row">
-			<div class="stack">
+			<div class="form-grid">
 				<label for="tname">Name</label>
 				<input id="tname" bind:value={$tForm.name} />
 				{#if $tErrors.name}<p class="error">{$tErrors.name}</p>{/if}
 			</div>
-			<div class="stack">
+			<div class="form-grid">
 				<label for="tslug">Slug</label>
 				<input id="tslug" bind:value={$tForm.slug} />
 				{#if $tErrors.slug}<p class="error">{$tErrors.slug}</p>{/if}

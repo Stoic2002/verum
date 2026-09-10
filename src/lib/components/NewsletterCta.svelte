@@ -15,7 +15,7 @@
 	<h2>{m.newsletter_heading()}</h2>
 	<p>{m.newsletter_body()}</p>
 
-	<form method="POST" action="/{locale}/newsletter" aria-describedby="newsletter-note">
+	<form class="form-inline" method="POST" action="/{locale}/newsletter">
 		<!--
 			Honeypot. A hidden field real people never fill in, and cheaper than a
 			CAPTCHA for a form this size. aria-hidden and tabindex keep it away from
@@ -86,58 +86,5 @@
 		color: var(--text-2);
 		font-size: 0.9375rem;
 	}
-	form {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem;
-	}
-	input:not(.visually-hidden) {
-		flex: 1;
-		min-width: 13rem;
-		padding: 0.6875rem 0.9375rem;
-		border: 1px solid var(--border-strong);
-		border-radius: var(--r-md);
-		background: var(--surface);
-		color: var(--text);
-		font: inherit;
-		font-size: 0.9375rem;
-		transition:
-			border-color var(--dur) var(--ease),
-			box-shadow var(--dur) var(--ease);
-	}
-	input:not(.visually-hidden):focus {
-		border-color: var(--accent);
-		outline: none;
-		box-shadow: 0 0 0 3px var(--accent-tint);
-	}
-	button {
-		padding: 0.6875rem 1.375rem;
-		border: 0;
-		border-radius: var(--r-md);
-		background: var(--accent);
-		color: var(--accent-contrast);
-		font: inherit;
-		font-size: 0.9375rem;
-		font-weight: var(--weight-strong);
-		cursor: pointer;
-		transition:
-			background var(--dur) var(--ease),
-			transform var(--dur) var(--ease),
-			box-shadow var(--dur) var(--ease);
-	}
-	button:hover {
-		background: var(--accent-hover);
-		box-shadow: var(--shadow-accent);
-	}
-	button:active {
-		transform: translateY(1px);
-	}
-	.visually-hidden {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip: rect(0 0 0 0);
-		white-space: nowrap;
-	}
+	/* Controls come from forms.css. */
 </style>
