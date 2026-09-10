@@ -16,13 +16,13 @@ di-cache untuk dibuang.
 
 **Rules → Cache Rules → Create rule**
 
-| Kolom | Nilai |
-|---|---|
-| Nama | `Cache HTML` |
-| Expression | `not (starts_with(http.request.uri.path, "/admin") or starts_with(http.request.uri.path, "/api/") or starts_with(http.request.uri.path, "/preview/") or http.request.uri.path contains "/search" or http.request.uri.path contains "/newsletter")` |
-| Cache eligibility | **Eligible for cache** |
-| Edge TTL | **Use cache-control header if present**, fallback 0 |
-| Browser TTL | **Respect origin** |
+| Kolom             | Nilai                                                                                                                                                                                                                                              |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Nama              | `Cache HTML`                                                                                                                                                                                                                                       |
+| Expression        | `not (starts_with(http.request.uri.path, "/admin") or starts_with(http.request.uri.path, "/api/") or starts_with(http.request.uri.path, "/preview/") or http.request.uri.path contains "/search" or http.request.uri.path contains "/newsletter")` |
+| Cache eligibility | **Eligible for cache**                                                                                                                                                                                                                             |
+| Edge TTL          | **Use cache-control header if present**, fallback 0                                                                                                                                                                                                |
+| Browser TTL       | **Respect origin**                                                                                                                                                                                                                                 |
 
 `Use cache-control header if present` adalah bagian yang penting: origin sudah
 mengirim `s-maxage` berbeda per jenis halaman — artikel 24 jam, homepage 60
@@ -100,13 +100,13 @@ keamanan dibanding tidak memasangnya.
 
 ## 5. Yang sengaja TIDAK dinyalakan
 
-| Fitur | Kenapa tidak |
-|---|---|
-| **Auto Minify** | Sudah dihapus Cloudflare, dan Vite sudah melakukannya saat build |
-| **Rocket Loader** | Menunda eksekusi script, termasuk script tema inline di `app.html` — mengembalikan flash tema yang sudah susah payah dihilangkan (§J.3) |
-| **Email Obfuscation** | Menyisipkan script ke dalam HTML; alamat kontak di halaman Kontak memang seharusnya bisa dibaca mesin |
-| **Auto Redirect to HTTPS** | Sudah ditangani Caddy; dua tempat mengurus hal sama akan menghasilkan rantai redirect |
-| **Polish / Mirage** | Gambar sudah AVIF/WebP dengan `srcset` dari Fase 4; ini akan memproses ulang tanpa manfaat |
+| Fitur                      | Kenapa tidak                                                                                                                            |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **Auto Minify**            | Sudah dihapus Cloudflare, dan Vite sudah melakukannya saat build                                                                        |
+| **Rocket Loader**          | Menunda eksekusi script, termasuk script tema inline di `app.html` — mengembalikan flash tema yang sudah susah payah dihilangkan (§J.3) |
+| **Email Obfuscation**      | Menyisipkan script ke dalam HTML; alamat kontak di halaman Kontak memang seharusnya bisa dibaca mesin                                   |
+| **Auto Redirect to HTTPS** | Sudah ditangani Caddy; dua tempat mengurus hal sama akan menghasilkan rantai redirect                                                   |
+| **Polish / Mirage**        | Gambar sudah AVIF/WebP dengan `srcset` dari Fase 4; ini akan memproses ulang tanpa manfaat                                              |
 
 ---
 

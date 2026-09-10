@@ -723,3 +723,81 @@ Batas §2 adalah Rp200.000/bln. Ada margin lebar.
 Dengan Buttondown: +$9 ≈ Rp145.000 → total ~Rp225.000, **di atas batas** — sebelum ada pemasukan apa pun.
 
 > Harga di atas perkiraan per September 2026. Cek nilai sebenarnya saat mendaftar.
+
+---
+
+## Bagian M — Catatan implementasi Fase 7 (SEO & mesin)
+
+### M.1 Sitemap digenerate dari database, bukan ditulis ke file
+
+PRD §12.7 menyebut "regenerasi otomatis saat publish". Itu biasanya berarti menulis file saat artikel terbit — dan file yang ditulis saat publish bisa **tidak sinkron** dengan database: publish gagal separuh, artikel terjadwal lewat waktunya tanpa ada yang menulis ulang, deploy menimpa file.
+
+Di skala VERUM (350 artikel di akhir tahun kedua), query-nya beberapa milidetik. Jadi sitemap dirender dari database saat diminta, di-cache di edge, dan di-purge saat publish. Seluruh kelas kegagalan "file dan database tidak cocok" hilang.
+
+### M.2 Yang tidak boleh ada di sitemap sama pentingnya dengan yang ada
+
+Sitemap adalah **klaim** bahwa sebuah URL kanonik dan layak diindeks. Jadi ia mengecualikan artikel terjadwal, dan tag di bawah ambang 3 artikel — karena halaman tag itu sendiri mengirim `noindex`. Sitemap yang mencantumkannya berarti situs ini mengatakan dua hal berbeda tentang halaman yang sama, dan Google memperlakukan kontradiksi itu sebagai sinyal yang tidak bisa dipercaya.
+
+### M.3 hreflang: yang paling mudah dirusak
+
+Tiga aturan yang ditegakkan, masing-masing dengan test:
+
+1. **Self-reference wajib.** Cluster tanpa tautan ke dirinya sendiri diabaikan Google sepenuhnya.
+2. **Hanya locale yang benar-benar terbit.** §7 mengizinkan artikel hanya punya versi `en`. Mengumumkan versi `id` yang tidak ada merusak cluster untuk **kedua** bahasa, bukan hanya yang hilang.
+3. **Simetris.** Ada e2e yang membuka versi `en`, mencatat pasangan URL-nya, membuka versi `id`, dan menuntut pasangan yang sama persis.
+
+Anotasi `xhtml:link` di sitemap harus setuju dengan tag `hreflang` di halaman. Google memeriksa keduanya, dan perbedaan di antaranya membuat seluruh set diabaikan.
+
+### M.4 Redirect diperiksa setelah 404, bukan sebelum routing
+
+Menaruh lookup redirect di depan setiap request berarti satu round-trip database untuk setiap kunjungan halaman, demi tabel yang biasanya kosong. Memeriksanya **setelah** router menghasilkan 404 sama benarnya dan gratis di jalur normal.
+
+Query string dibawa serta: link kampanye dengan `?utm_source=` yang mengikuti slug lama tetap bisa diukur setelah pindah. Ada test-nya.
+
+### M.5 RSS ringkasan, bukan teks penuh
+
+PRD §8.1 sudah menyebut "ringkasan + link", dan alasannya layak dicatat: feed teks penuh menyerahkan salinan bersih setiap artikel kepada setiap scraper, dan salinan itu **rutin mengalahkan aslinya** di peringkat. Excerpt sudah cukup bagi pembaca untuk memutuskan — itu gunanya feed.
+
+### M.6 `ads.txt` mengembalikan 404 sampai diisi
+
+Bukan file kosong, bukan placeholder. Verifier memperlakukan deklarasi yang rusak lebih buruk daripada file yang tidak ada — file berisi contoh berarti situs ini menyatakan ada pihak lain yang boleh menjual inventory-nya.
+
+### M.7 JSON-LD dan tanda `<`
+
+Setiap `<` di payload JSON-LD diubah jadi `<`. Itu tetap JSON yang valid, dan `</script>` adalah satu-satunya urutan yang bisa menutup blok lebih awal — mengubah structured data jadi titik injeksi. Judul artikel adalah teks yang ditulis manusia, jadi ini bukan kemungkinan teoretis.
+
+### M.8 Halaman statis: draf sungguhan, bukan placeholder
+
+Lima halaman yang diwajibkan §14 untuk AdSense, dalam dua bahasa, ditulis sebagai markdown yang lewat pipeline render yang sama dengan artikel.
+
+**Kebijakan Privasi menjelaskan apa yang kode ini benar-benar lakukan** — hitungan agregat tanpa identifier, alamat email hanya setelah double opt-in, script iklan hanya setelah CMP menjawab. Itu menjadikannya kewajiban pemeliharaan: **kalau kodenya berubah, halaman ini ikut berubah.**
+
+> **Perlu Anda kerjakan:** isi `PUBLIC_CONTACT_EMAIL`. Halaman Kontak tanpa cara menghubungi menggagalkan justru syarat AdSense yang halaman itu ada untuk memenuhinya. Dan ini draf yang ditulis dengan hati-hati, bukan nasihat hukum — §14 PRD sendiri menyarankan konsultasi untuk keputusan badan usaha dan pajak.
+
+### M.9 Yang tidak bisa dikerjakan dari kode
+
+`docs/CLOUDFLARE.md` memuat langkah dashboard yang butuh akun Anda. Yang paling penting: **Cache Rule.** Tanpa itu Cloudflare tidak meng-cache HTML sama sekali (koreksi §A.2 #4), TTL di header tidak berpengaruh, dan API purge tidak ada gunanya karena tidak ada yang di-cache untuk dibuang.
+
+Ditambah satu yang mudah terlewat: **firewall origin ke IP range Cloudflare adalah bagian dari kontrol rate limit**, bukan pengerasan opsional. `ADDRESS_HEADER=CF-Connecting-IP` hanya aman selama origin tidak bisa dihubungi langsung — kalau bisa, siapa pun mengirim header itu dengan nilai apa pun dan melewati rate limit login sepenuhnya. Dipasang tanpa firewall, konfigurasi itu justru **melemahkan** keamanan.
+
+### M.10 Yang dibuktikan
+
+131 test unit dan 65 e2e (naik dari 47).
+
+- Canonical menunjuk locale-nya sendiri, di kedua bahasa.
+- Title ≤60 dan description ≤155, terpotong di batas kata.
+- `Article` cocok dengan `<h1>` yang benar-benar dirender; `dateModified` tidak pernah kosong; `BreadcrumbList` posisinya 1-2-3 dan item terakhirnya judul artikel.
+- Template `SearchAction` diikuti sungguhan dan harus mengembalikan 200 — markup yang menunjuk halaman tidak ada adalah yang kebijakan structured data Google sebut spam.
+- hreflang simetris dua arah; artikel yang hanya `en` mengumumkan `en` + `x-default` saja.
+- robots mengizinkan empat crawler AI dan menunjuk sitemap; `/admin` di-`Disallow`.
+- Sitemap `en` memuat anotasi `xhtml:link`, **tidak** memuat artikel terjadwal, dan **tidak** memuat tag di bawah ambang.
+- Feed tidak memuat `<h2>` — bukti ia ringkasan, bukan teks penuh.
+- Feed `id` benar-benar feed berbeda.
+- Slug lama **301 dengan query string terbawa**; URL yang tidak pernah ada tetap 404.
+- Halaman search `noindex` tanpa canonical; halaman statis canonical tanpa `noindex`.
+
+### M.11 Belum dikerjakan
+
+- Beli domain, pasang Cloudflare, submit sitemap ke Search Console: Fase 8, dan butuh akun Anda.
+- CMP Funding Choices: Fase 8. Kontrak loading script sudah siap sejak §J.5.
+- CSP, HSTS, backup terjadwal, Sentry, uptime: Fase 8.
