@@ -71,7 +71,7 @@ export async function searchArticles(
 			AND al.published_at <= now()
 			AND al.search_vector @@ q.tsq
 			${category ? sql`AND c.slug = ${category}` : sql``}
-		ORDER BY rank DESC, al.published_at DESC
+		ORDER BY rank DESC, al.published_at DESC, al.article_id DESC
 		LIMIT ${limit} OFFSET ${offset}
 	`);
 

@@ -75,7 +75,7 @@ export async function recentArticles(
 		SELECT ${cardColumns} ${cardJoins}
 		WHERE al.locale = ${locale} AND ${live}
 			${excludeIds.length ? sql`AND al.article_id <> ALL(${excludeIds})` : sql``}
-		ORDER BY al.published_at DESC
+		ORDER BY al.published_at DESC, al.article_id DESC
 		LIMIT ${limit} OFFSET ${offset}
 	`);
 	return Array.from(rows);
@@ -90,7 +90,7 @@ export async function articlesByCategory(
 	const rows = await db.execute<ArticleCard>(sql`
 		SELECT ${cardColumns} ${cardJoins}
 		WHERE al.locale = ${locale} AND c.slug = ${categorySlug} AND ${live}
-		ORDER BY al.published_at DESC
+		ORDER BY al.published_at DESC, al.article_id DESC
 		LIMIT ${limit} OFFSET ${offset}
 	`);
 	return Array.from(rows);
@@ -216,7 +216,8 @@ export async function relatedArticles(
 		ORDER BY
 			shared_tags DESC,
 			(c.slug = ${categorySlug}) DESC,
-			al.published_at DESC
+			al.published_at DESC,
+			al.article_id DESC
 		LIMIT ${limit}
 	`);
 	return Array.from(rows);
@@ -233,7 +234,7 @@ export async function articlesByTag(
 		JOIN article_tags at ON at.article_id = a.id
 		JOIN tags t ON t.id = at.tag_id
 		WHERE al.locale = ${locale} AND t.slug = ${tagSlug} AND ${live}
-		ORDER BY al.published_at DESC
+		ORDER BY al.published_at DESC, al.article_id DESC
 		LIMIT ${limit} OFFSET ${offset}
 	`);
 	return Array.from(rows);
@@ -281,7 +282,7 @@ export async function articlesInTopic(db: Database, locale: Locale, topicSlug: s
 		JOIN topic_articles ta ON ta.article_id = a.id
 		JOIN topics t ON t.id = ta.topic_id
 		WHERE al.locale = ${locale} AND t.slug = ${topicSlug} AND ${live}
-		ORDER BY ta.sort_order, al.published_at DESC
+		ORDER BY ta.sort_order, al.published_at DESC, al.article_id DESC
 	`);
 	return Array.from(rows);
 }

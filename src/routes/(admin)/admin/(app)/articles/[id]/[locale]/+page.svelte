@@ -71,20 +71,41 @@
 	 */
 	// svelte-ignore state_referenced_locally
 	let libraryItems = $state(data.media);
-	let libraryTotal = $state<number | null>(null);
+	let libraryCursor = $state<string | null>(null);
+	let libraryLeft = $state(0);
 	let librarySearch = $state('');
 	let libraryLoading = $state(false);
 
+	/**
+	 * Loads the first page, or the next one after the cursor.
+	 *
+	 * Merged by id as a second line of defence. The server's cursor already
+	 * prevents a repeat, but the grid below is a keyed #each, and a duplicate id
+	 * reaching it would throw rather than merely show an image twice.
+	 */
 	async function loadLibrary(reset: boolean) {
 		libraryLoading = true;
 		try {
-			const offset = reset ? 0 : libraryItems.length;
-			const response = await fetch(
-				`/admin/api/media?q=${encodeURIComponent(librarySearch)}&offset=${offset}`
-			);
-			const result = (await response.json()) as { total: number; items: typeof data.media };
-			libraryItems = reset ? result.items : [...libraryItems, ...result.items];
-			libraryTotal = result.total;
+			let endpoint = `/admin/api/media?q=${encodeURIComponent(librarySearch)}`;
+			if (!reset && libraryCursor) endpoint += `&cursor=${encodeURIComponent(libraryCursor)}`;
+
+			const response = await fetch(endpoint);
+			if (!response.ok) return;
+
+			const result = (await response.json()) as {
+				items: typeof data.media;
+				left: number;
+				nextCursor: string | null;
+			};
+
+			libraryItems = reset
+				? result.items
+				: [
+						...libraryItems,
+						...result.items.filter((item) => !libraryItems.some((seen) => seen.id === item.id))
+					];
+			libraryCursor = result.nextCursor;
+			libraryLeft = result.left;
 		} finally {
 			libraryLoading = false;
 		}
@@ -238,14 +259,14 @@
 						{/each}
 					{/if}
 				</div>
-				{#if libraryTotal !== null && libraryItems.length < libraryTotal}
+				{#if libraryCursor !== null}
 					<button
 						type="button"
 						class="btn btn--ghost btn--sm"
 						disabled={libraryLoading}
 						onclick={() => loadLibrary(false)}
 					>
-						{libraryLoading ? 'Loading…' : `Load more (${libraryTotal - libraryItems.length} left)`}
+						{libraryLoading ? 'Loading…' : `Load more (${libraryLeft} left)`}
 					</button>
 				{/if}
 			{/if}

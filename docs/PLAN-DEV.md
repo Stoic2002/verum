@@ -971,3 +971,19 @@ Dengan paginasi, halaman 2 tag besar bisa berisi hanya beberapa kartu. Ambang `n
 ### P.5 Yang dibuktikan
 
 173 test unit (naik dari 165), 78 e2e (naik dari 76). Test library dengan 130 gambar: total benar (bukan ukuran halaman), baris setelah batas 100 lama bisa dijangkau, halaman tidak tumpang tindih dan tidak berlubang, urutan terbaru dulu, pencarian nama file dan alt dengan total yang mengikuti filter, input pencarian diperlakukan sebagai teks literal, ukuran halaman absurd dijepit ke 100. E2E: halaman media melaporkan total dan pencarian mengosongkan hasil dengan pesan; picker editor memanggil endpoint pencarian seluruh library.
+
+### P.6 Dua celah yang ditutup setelah ditinjau ulang
+
+Setelah bagian di atas ditulis, peninjauan terhadap best practice menemukan dua hal yang belum proper untuk jangka panjang. Keduanya sudah diperbaiki.
+
+**Sortir tanpa pemecah seri.** Semua query yang berpaginasi hanya diurutkan berdasarkan timestamp (`published_at`, `updated_at`, `created_at`). Dua baris dengan timestamp sama tidak punya urutan pasti di antara keduanya, jadi batas halaman offset bisa bergeser antar-request: satu baris muncul di dua halaman, yang lain tidak muncul sama sekali. Sekarang tujuh query itu diakhiri `id DESC` sebagai pemecah seri — search, daftar artikel admin, terbaru, kategori, tag, topik, dan artikel terkait.
+
+**Picker memakai offset untuk "load more".** Paginasi bernomor cocok dengan offset; "load more" tidak. Kalau gambar diunggah di antara dua kali muat — dari tab lain, atau dari halaman media saat editor terbuka — setiap sisipan menggeser jendela satu baris, dan muat berikutnya mengulang gambar terakhir. Grid picker di-key berdasarkan `id`, dan Svelte **melempar error** pada key duplikat.
+
+Picker sekarang memakai **cursor keyset**: `(created_at, id) < (cursor)`, dengan perbandingan baris supaya timestamp yang sama jatuh ke `id` alih-alih hilang atau terulang. Halaman Media tetap offset, sengaja — ia melompat ke nomor halaman, yang tidak bisa dilakukan cursor, dan jendela yang bergeser di sana hanya pengulangan kosmetik, bukan error.
+
+Satu detail yang mudah salah: **timestamp di cursor dikirim sebagai teks Postgres, bukan `Date` JavaScript.** `created_at` punya presisi mikrodetik, `Date` hanya milidetik. Cursor yang dibulatkan ke milidetik membuat `(created_at, id) < cursor` diam-diam melompati setiap baris yang dibuat belakangan dalam milidetik yang sama. Ada test yang menyisipkan 30 baris berbeda mikrodetik dalam satu milidetik dan menuntut ketiga puluhnya terbaca.
+
+Cursor yang tidak valid **ditolak dengan 400**, bukan diabaikan: memulai ulang dari atas diam-diam akan memberi picker halaman pertama lagi dan mengulang semua gambar yang sudah dimilikinya.
+
+182 test unit (naik dari 173), termasuk: menjelajah 130 gambar lewat cursor tanpa ulang, tidak ada pengulangan saat gambar baru diunggah di antara dua kali muat, 50 baris dengan timestamp identik terbagi tanpa hilang, dan offset tetap deterministik pada timestamp identik.

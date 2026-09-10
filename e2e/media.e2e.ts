@@ -252,7 +252,14 @@ test.describe('library size', () => {
 		const response = await responded;
 		expect(response.status()).toBe(200);
 
-		const body = (await response.json()) as { total: number; items: unknown[] };
-		expect(typeof body.total).toBe('number');
+		const body = (await response.json()) as {
+			items: unknown[];
+			left: number;
+			nextCursor: string | null;
+		};
+		// A cursor, not an offset: continuing from the last image survives an
+		// upload landing between two loads.
+		expect(typeof body.left).toBe('number');
+		expect(body.nextCursor === null || typeof body.nextCursor === 'string').toBe(true);
 	});
 });

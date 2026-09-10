@@ -60,7 +60,7 @@ export async function listArticlesForAdmin(
 					: sql``
 			}
 		GROUP BY a.id, c.slug
-		ORDER BY a.updated_at DESC
+		ORDER BY a.updated_at DESC, a.id DESC
 		LIMIT ${Math.min(Math.max(limit, 1), 100)} OFFSET ${Math.max(offset, 0)}
 	`);
 
