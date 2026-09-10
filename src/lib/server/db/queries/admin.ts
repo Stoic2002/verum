@@ -12,7 +12,12 @@ import {
 /** Admin listings show every status, unlike everything in queries/articles.ts. */
 export async function listArticlesForAdmin(
 	db: Database,
-	{ status, search }: { status?: string; search?: string } = {}
+	{
+		status,
+		search,
+		limit = 25,
+		offset = 0
+	}: { status?: string; search?: string; limit?: number; offset?: number } = {}
 ) {
 	const rows = await db.execute<{
 		id: number;
@@ -21,6 +26,7 @@ export async function listArticlesForAdmin(
 		updated_at: Date;
 		category_slug: string;
 		locales: { locale: string; title: string; slug: string; published_at: string | null }[];
+		total: number;
 	}>(sql`
 		SELECT
 			a.id,
@@ -38,7 +44,8 @@ export async function listArticlesForAdmin(
 					) ORDER BY al.locale
 				) FILTER (WHERE al.locale IS NOT NULL),
 				'[]'
-			) AS locales
+			) AS locales,
+			count(*) OVER ()::int AS total
 		FROM articles a
 		JOIN categories c ON c.id = a.category_id
 		LEFT JOIN article_locales al ON al.article_id = a.id
@@ -54,10 +61,11 @@ export async function listArticlesForAdmin(
 			}
 		GROUP BY a.id, c.slug
 		ORDER BY a.updated_at DESC
-		LIMIT 200
+		LIMIT ${Math.min(Math.max(limit, 1), 100)} OFFSET ${Math.max(offset, 0)}
 	`);
 
-	return Array.from(rows);
+	const list = Array.from(rows);
+	return { items: list, total: Number((list[0] as { total?: number })?.total ?? 0) };
 }
 
 export async function getArticleForAdmin(db: Database, id: number) {
@@ -171,14 +179,25 @@ export async function tagOptions(db: Database) {
 	return db.select({ id: tags.id, slug: tags.slug, name: tags.name }).from(tags).orderBy(tags.name);
 }
 
-export async function listRedirects(db: Database) {
-	return db
-		.execute<{ id: number; from_path: string; to_path: string; status: number }>(
-			sql`
-		SELECT id, from_path, to_path, status FROM redirects ORDER BY from_path LIMIT 500
-	`
-		)
-		.then((rows) => Array.from(rows));
+export async function listRedirects(
+	db: Database,
+	{ limit = 50, offset = 0 }: { limit?: number; offset?: number } = {}
+) {
+	const rows = await db.execute<{
+		id: number;
+		from_path: string;
+		to_path: string;
+		status: number;
+		total: number;
+	}>(sql`
+		SELECT id, from_path, to_path, status, count(*) OVER ()::int AS total
+		FROM redirects
+		ORDER BY from_path
+		LIMIT ${Math.min(Math.max(limit, 1), 200)} OFFSET ${Math.max(offset, 0)}
+	`);
+
+	const list = Array.from(rows);
+	return { items: list, total: Number(list[0]?.total ?? 0) };
 }
 
 export { desc };

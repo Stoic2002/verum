@@ -64,6 +64,39 @@
 	let bodyEl: HTMLTextAreaElement | undefined = $state();
 	let showLibrary = $state(false);
 
+	/*
+	 * The picker searches the whole library through /admin/api/media and loads
+	 * more on request. Seeded with what the page already has so opening it
+	 * costs no round trip.
+	 */
+	// svelte-ignore state_referenced_locally
+	let libraryItems = $state(data.media);
+	let libraryTotal = $state<number | null>(null);
+	let librarySearch = $state('');
+	let libraryLoading = $state(false);
+
+	async function loadLibrary(reset: boolean) {
+		libraryLoading = true;
+		try {
+			const offset = reset ? 0 : libraryItems.length;
+			const response = await fetch(
+				`/admin/api/media?q=${encodeURIComponent(librarySearch)}&offset=${offset}`
+			);
+			const result = (await response.json()) as { total: number; items: typeof data.media };
+			libraryItems = reset ? result.items : [...libraryItems, ...result.items];
+			libraryTotal = result.total;
+		} finally {
+			libraryLoading = false;
+		}
+	}
+
+	$effect(() => {
+		if (!showLibrary) return;
+		const query = librarySearch;
+		const timer = setTimeout(() => void loadLibrary(true), query ? 250 : 0);
+		return () => clearTimeout(timer);
+	});
+
 	/** Inserts at the cursor rather than appending, so it lands where you are. */
 	function insertAtCursor(snippet: string) {
 		const el = bodyEl;
@@ -175,14 +208,23 @@
 			</div>
 
 			{#if showLibrary}
+				<div class="library-search form-inline">
+					<label class="visually-hidden" for="library-q">Search images</label>
+					<input
+						id="library-q"
+						type="search"
+						placeholder="Search filename or alt text"
+						bind:value={librarySearch}
+					/>
+				</div>
 				<div class="library">
-					{#if data.media.length === 0}
+					{#if libraryItems.length === 0 && !libraryLoading}
 						<p class="meta">
 							Nothing in the library yet. Upload on the
 							<a href={resolve('/(admin)/admin/(app)/media')}>Media</a> page.
 						</p>
 					{:else}
-						{#each data.media as item (item.id)}
+						{#each libraryItems as item (item.id)}
 							<button
 								type="button"
 								title={item.alt}
@@ -196,6 +238,16 @@
 						{/each}
 					{/if}
 				</div>
+				{#if libraryTotal !== null && libraryItems.length < libraryTotal}
+					<button
+						type="button"
+						class="btn btn--ghost btn--sm"
+						disabled={libraryLoading}
+						onclick={() => loadLibrary(false)}
+					>
+						{libraryLoading ? 'Loading…' : `Load more (${libraryTotal - libraryItems.length} left)`}
+					</button>
+				{/if}
 			{/if}
 
 			<textarea
@@ -349,6 +401,9 @@
 	.toolbar :global(button:hover) {
 		background: var(--surface-2);
 		color: var(--text);
+	}
+	.library-search input {
+		font-size: 0.8125rem;
 	}
 	.library {
 		display: flex;

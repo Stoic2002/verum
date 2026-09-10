@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { superForm } from 'sveltekit-superforms';
+	import { AdminPager } from '$lib/components/ui';
 
 	let { data } = $props();
 
@@ -42,6 +43,8 @@
 			{/each}
 		</tbody>
 	</table>
+
+	<AdminPager page={data.page} pages={data.pages} total={data.total} label="redirects" />
 {/if}
 
 <form method="POST" action="?/save" use:enhance class="form-grid">

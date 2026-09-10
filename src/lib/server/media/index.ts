@@ -1,4 +1,4 @@
-import { desc, eq, inArray } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import type { Database } from '../db/types';
 import { media } from '../db/schema';
 import { cleanOriginalName, processImage } from './process';
@@ -56,10 +56,36 @@ export async function uploadImage(
 	return row as MediaRecord;
 }
 
-export async function listMedia(db: Database, limit = 100) {
-	return db.select().from(media).orderBy(desc(media.createdAt)).limit(limit) as Promise<
-		MediaRecord[]
-	>;
+/**
+ * A page of the media library, newest first, optionally filtered.
+ *
+ * Offset paging rather than a keyset cursor. At this scale — a few hundred
+ * articles carrying two or three images each — Postgres discarding a few
+ * hundred rows costs nothing, and a cursor would trade that for the ability to
+ * jump to a page, which is the thing a library view is actually used for.
+ * Keyset becomes worth it somewhere past ten thousand rows.
+ */
+export async function listMedia(
+	db: Database,
+	{ limit = 24, offset = 0, search = '' }: { limit?: number; offset?: number; search?: string } = {}
+) {
+	const filter = search.trim()
+		? sql`WHERE m.original_name ILIKE ${'%' + search.trim() + '%'} OR m.alt ILIKE ${'%' + search.trim() + '%'}`
+		: sql``;
+
+	const rows = await db.execute<MediaRecord & { total: number }>(sql`
+		SELECT
+			m.id, m.r2_key AS "r2Key", m.original_name AS "originalName", m.mime_type AS "mimeType",
+			m.width, m.height, m.bytes, m.alt, m.credit, m.variants,
+			count(*) OVER ()::int AS total
+		FROM media m
+		${filter}
+		ORDER BY m.created_at DESC
+		LIMIT ${Math.min(Math.max(limit, 1), 100)} OFFSET ${Math.max(offset, 0)}
+	`);
+
+	const list = Array.from(rows);
+	return { items: list as MediaRecord[], total: Number(list[0]?.total ?? 0) };
 }
 
 export async function getMedia(db: Database, id: number) {

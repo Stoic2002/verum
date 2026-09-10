@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { Button, Field, FileInput } from '$lib/components/ui';
+	import { AdminPager, Button, Field, FileInput } from '$lib/components/ui';
 
 	let { data, form } = $props();
 
@@ -167,8 +167,25 @@
 	{/if}
 </div>
 
+<form class="form-inline filters" method="GET" role="search">
+	<label class="visually-hidden" for="q">Search by filename or alt text</label>
+	<input
+		id="q"
+		type="search"
+		name="q"
+		placeholder="Search filename or alt text"
+		value={data.search}
+	/>
+	<Button type="submit" variant="secondary">Search</Button>
+	{#if data.search}
+		<Button href="/admin/media" variant="ghost">Clear</Button>
+	{/if}
+</form>
+
 {#if data.media.length === 0}
-	<p class="empty">Nothing uploaded yet.</p>
+	<p class="empty">
+		{data.search ? `Nothing matches “${data.search}”.` : 'Nothing uploaded yet.'}
+	</p>
 {:else}
 	<ul class="grid">
 		{#each data.media as item (item.id)}
@@ -227,6 +244,14 @@
 	</ul>
 {/if}
 
+<AdminPager
+	page={data.page}
+	pages={data.pages}
+	total={data.total}
+	label="images"
+	params={{ q: data.search }}
+/>
+
 <style>
 	.add {
 		margin: 1.5rem 0 2rem;
@@ -264,6 +289,10 @@
 		font-weight: var(--weight-strong);
 	}
 
+	.filters {
+		margin: 0 0 1.25rem;
+		max-width: 34rem;
+	}
 	.grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));

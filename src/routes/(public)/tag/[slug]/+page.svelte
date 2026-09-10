@@ -1,16 +1,20 @@
 <script lang="ts">
 	import { m } from '$lib/paraglide/messages';
 	import ArticleCard from '$lib/components/ArticleCard.svelte';
+	import Pagination from '$lib/components/Pagination.svelte';
 	import Seo from '$lib/components/Seo.svelte';
+	import { getLocale } from '$lib/paraglide/runtime';
+	import * as urls from '$lib/urls';
 
 	let { data } = $props();
+	const locale = getLocale();
 </script>
 
 <Seo seo={data.seo} />
 
 <header class="head">
 	<h1>{m.tag_heading({ name: data.tag.name })}</h1>
-	<p class="count">{m.category_articles({ count: data.articles.length })}</p>
+	<p class="count">{m.category_articles({ count: data.total })}</p>
 </header>
 
 <div class="grid">
@@ -18,6 +22,8 @@
 		<ArticleCard {card} />
 	{/each}
 </div>
+
+<Pagination basePath={urls.tag(locale, data.tag.slug)} page={data.page} pages={data.pages} />
 
 <style>
 	.head {

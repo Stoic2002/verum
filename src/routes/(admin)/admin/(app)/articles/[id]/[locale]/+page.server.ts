@@ -25,7 +25,7 @@ export const load: PageServerLoad = async ({ params }) => {
 	if (!article || !row) error(404, 'Not found');
 
 	const storage = getStorage();
-	const library = await listMedia(db, 60);
+	const library = (await listMedia(db, { limit: 60 })).items;
 
 	return {
 		media: library.map((row) => ({

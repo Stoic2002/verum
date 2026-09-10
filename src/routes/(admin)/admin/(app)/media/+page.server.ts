@@ -13,14 +13,28 @@ import {
 } from '$lib/server/media';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async () => {
+const PER_PAGE = 24;
+
+export const load: PageServerLoad = async ({ url }) => {
 	const storage = getStorage();
-	const rows = await listMedia(db);
+
+	const search = url.searchParams.get('q') ?? '';
+	const page = Math.max(1, Number(url.searchParams.get('page') ?? 1) || 1);
+
+	const { items, total } = await listMedia(db, {
+		limit: PER_PAGE,
+		offset: (page - 1) * PER_PAGE,
+		search
+	});
 
 	return {
 		driver: storage.driver,
 		maxBytes: MAX_UPLOAD_BYTES,
-		media: rows.map((row) => ({
+		search,
+		page,
+		total,
+		pages: Math.max(1, Math.ceil(total / PER_PAGE)),
+		media: items.map((row) => ({
 			...row,
 			picture: pictureFor(row, (key) => storage.url(key)),
 			totalBytes: row.bytes + row.variants.reduce((sum, v) => sum + v.bytes, 0)

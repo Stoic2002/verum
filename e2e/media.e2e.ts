@@ -216,3 +216,43 @@ test('the sidebar collapses and stays collapsed', async ({ page }) => {
 	await page.getByRole('button', { name: /expand sidebar/i }).click();
 	await expect(page.locator('.shell')).not.toHaveClass(/shell--collapsed/);
 });
+
+test.describe('library size', () => {
+	test('the media page reports the true total and filters by search', async ({ page }) => {
+		await signIn(page);
+		await page.goto('/admin/media');
+
+		// A count, not just whatever fits on the page.
+		await expect(page.locator('.pager__count')).toContainText(/images/);
+
+		await page.locator('#q').fill('no-image-is-named-this');
+		await page.getByRole('button', { name: /^search$/i }).click();
+		await expect(page).toHaveURL(/q=no-image-is-named-this/);
+		await expect(page.getByText(/nothing matches/i)).toBeVisible();
+
+		await page.getByRole('link', { name: /clear/i }).click();
+		await expect(page).toHaveURL(/\/admin\/media\??$/);
+	});
+
+	test('the editor picker searches the whole library, not a fixed recent slice', async ({
+		page
+	}) => {
+		await signIn(page);
+		await page.goto('/admin/articles');
+		await page.locator('tbody tr td a').first().click();
+		await page.getByRole('link', { name: /^en/ }).first().click();
+		await expect(page).toHaveURL(/\/admin\/articles\/\d+\/en$/);
+
+		await page.getByRole('button', { name: /insert image/i }).click();
+		const search = page.locator('#library-q');
+		await expect(search).toBeVisible();
+
+		const responded = page.waitForResponse((r) => r.url().includes('/admin/api/media'));
+		await search.fill('sample');
+		const response = await responded;
+		expect(response.status()).toBe(200);
+
+		const body = (await response.json()) as { total: number; items: unknown[] };
+		expect(typeof body.total).toBe('number');
+	});
+});

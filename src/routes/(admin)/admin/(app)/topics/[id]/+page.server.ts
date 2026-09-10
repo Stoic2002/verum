@@ -15,7 +15,7 @@ export const load: PageServerLoad = async ({ params }) => {
 	return {
 		topic,
 		locales: LOCALES,
-		articles: await listArticlesForAdmin(db, { status: 'published' })
+		articles: (await listArticlesForAdmin(db, { status: 'published', limit: 100 })).items
 	};
 };
 

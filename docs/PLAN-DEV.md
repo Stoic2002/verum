@@ -926,3 +926,48 @@ Dua perbaikan:
 ### O.5 Celah Fase 7 yang tertutup
 
 Halaman statis (About, Contact, Editorial Policy, Privacy, Terms) **tidak ada di sitemap**. Itu justru halaman yang dicari review AdSense (§14). Sekarang masuk, dengan anotasi `xhtml:link`, dan ada e2e yang memeriksa kelimanya.
+
+---
+
+## Bagian P — Paginasi daftar yang tumbuh
+
+Diminta 10 September 2026: kalau daftar foto dan lainnya jadi banyak, pakai paginasi, infinite scroll, atau yang lain?
+
+### P.1 Temuan: admin tidak punya paginasi sama sekali
+
+Sebelum menjawab, saya periksa yang ada. Halaman publik yang penting (kategori, search) sudah berpaginasi. **Semua daftar admin tidak** — hanya dipotong diam-diam:
+
+| Daftar               | Batas lama  | Akibat                                                                                                  |
+| -------------------- | ----------- | ------------------------------------------------------------------------------------------------------- |
+| Media                | 100 terbaru | Gambar ke-101 ada di storage tapi tidak bisa ditemukan **dan tidak bisa disisipkan** dari picker editor |
+| Artikel              | 200         | Artikel lama hilang dari daftar                                                                         |
+| Redirect             | 500         | Aturan lama tidak terlihat                                                                              |
+| Halaman tag (publik) | 24          | Tag dengan artikel lebih banyak terpotong                                                               |
+
+Itu bug, bukan keterbatasan: tidak ada pesan, tidak ada tanda bahwa ada yang lebih.
+
+### P.2 Keputusan per konteks
+
+| Konteks                                            | Pola                              | Alasan                                                                                                                                                                                                                                     |
+| -------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Daftar publik** (kategori, tag, search)          | Paginasi dengan tautan            | Crawler mengikuti tautan. Infinite scroll menyembunyikan artikel di luar halaman pertama dari mesin pencari — langsung bertentangan dengan sasaran traffic organik §3. Halaman 1 tidak pernah membawa `?page=1`, jadi satu URL, bukan dua. |
+| **Daftar kelola admin** (media, artikel, redirect) | Paginasi + pencarian              | Daftar kelola dinavigasi: tombol Back harus kembali ke posisi semula, halaman harus bisa ditautkan, ujungnya harus bisa dicapai. Ketiganya rusak di infinite scroll, dan seleksi massal rusak bersamanya.                                  |
+| **Picker gambar di editor**                        | Pencarian + "Load more" eksplisit | Tugasnya menemukan _satu_ gambar, bukan menjelajah. Picker lama menerima 60 gambar terbaru secara inline — begitu library melewati itu, gambar lama tidak bisa disisipkan sama sekali.                                                     |
+
+Infinite scroll otomatis tidak dipakai di mana pun.
+
+### P.3 Offset, bukan keyset
+
+Paginasi memakai `LIMIT/OFFSET`. Keyset cursor lebih cepat untuk halaman dalam karena Postgres tidak membuang baris, tapi ia mengorbankan kemampuan melompat ke halaman tertentu — justru yang dipakai di tampilan library.
+
+Di skala VERUM (350 artikel di akhir tahun kedua, masing-masing 2–3 gambar), `OFFSET` membuang beberapa ratus baris dan itu gratis. Keyset baru sepadan di atas sekitar sepuluh ribu baris. Tidak dibangun sebelum ada alasannya.
+
+Total memakai `count(*) OVER ()` dalam query yang sama. Untuk search publik keputusannya berbeda (§K.4) karena di sana `ts_headline` membuat window function mahal; di sini tidak ada yang mahal untuk dihindari.
+
+### P.4 Halaman tag: `noindex` dinilai dari seluruh tag
+
+Dengan paginasi, halaman 2 tag besar bisa berisi hanya beberapa kartu. Ambang `noindex` (< 3 artikel, §8.1) sekarang dihitung dari **total tag**, bukan dari halaman yang sedang ditampilkan — halaman 2 bukan konten tipis hanya karena memuat lebih sedikit kartu.
+
+### P.5 Yang dibuktikan
+
+173 test unit (naik dari 165), 78 e2e (naik dari 76). Test library dengan 130 gambar: total benar (bukan ukuran halaman), baris setelah batas 100 lama bisa dijangkau, halaman tidak tumpang tindih dan tidak berlubang, urutan terbaru dulu, pencarian nama file dan alt dengan total yang mengikuti filter, input pencarian diperlakukan sebagai teks literal, ukuran halaman absurd dijepit ke 100. E2E: halaman media melaporkan total dan pencarian mengosongkan hasil dengan pesan; picker editor memanggil endpoint pencarian seluruh library.

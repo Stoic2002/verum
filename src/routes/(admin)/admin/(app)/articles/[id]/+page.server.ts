@@ -56,7 +56,7 @@ export const load: PageServerLoad = async ({ params }) => {
 	);
 
 	const storage = getStorage();
-	const library = await listMedia(db, 60);
+	const library = (await listMedia(db, { limit: 60 })).items;
 
 	return {
 		article,

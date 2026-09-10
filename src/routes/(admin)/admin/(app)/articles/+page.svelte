@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { AdminPager } from '$lib/components/ui';
 
 	let { data } = $props();
 
@@ -64,6 +65,14 @@
 		</tbody>
 	</table>
 {/if}
+
+<AdminPager
+	page={data.page}
+	pages={data.pages}
+	total={data.total}
+	label="articles"
+	params={{ q: data.search, status: data.status }}
+/>
 
 <style>
 	.head {

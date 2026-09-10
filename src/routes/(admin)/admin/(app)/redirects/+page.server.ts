@@ -10,10 +10,23 @@ import type { PageServerLoad } from './$types';
 
 const adapter = valibot(redirectSchema);
 
-export const load: PageServerLoad = async () => ({
-	redirects: await listRedirects(db),
-	form: await superValidate({ status: 301 as const }, adapter)
-});
+const PER_PAGE = 50;
+
+export const load: PageServerLoad = async ({ url }) => {
+	const page = Math.max(1, Number(url.searchParams.get('page') ?? 1) || 1);
+	const { items, total } = await listRedirects(db, {
+		limit: PER_PAGE,
+		offset: (page - 1) * PER_PAGE
+	});
+
+	return {
+		redirects: items,
+		page,
+		total,
+		pages: Math.max(1, Math.ceil(total / PER_PAGE)),
+		form: await superValidate({ status: 301 as const }, adapter)
+	};
+};
 
 export const actions: Actions = {
 	save: async ({ request }) => {

@@ -239,6 +239,18 @@ export async function articlesByTag(
 	return Array.from(rows);
 }
 
+export async function countByTag(db: Database, locale: Locale, tagSlug: string) {
+	const [row] = await db.execute<{ count: number }>(sql`
+		SELECT count(*)::int AS count
+		FROM article_locales al
+		JOIN articles a ON a.id = al.article_id
+		JOIN article_tags at ON at.article_id = a.id
+		JOIN tags t ON t.id = at.tag_id
+		WHERE al.locale = ${locale} AND t.slug = ${tagSlug} AND ${live}
+	`);
+	return Number(row?.count ?? 0);
+}
+
 export async function tagBySlug(db: Database, slug: string) {
 	const [row] = await db.execute<{ id: number; slug: string; name: string }>(sql`
 		SELECT id, slug, name FROM tags WHERE slug = ${slug} LIMIT 1
