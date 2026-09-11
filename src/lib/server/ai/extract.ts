@@ -214,8 +214,30 @@ function toIso(raw: string): string | null {
 	return Number.isNaN(time) ? null : new Date(time).toISOString();
 }
 
+/**
+ * Removes what extraction throws away anyway, before the parser sees it.
+ *
+ * Two reasons. A `<template>` inside `<svg>` has no template content, and
+ * hast-util-from-parse5 8.0.3 reads that content unconditionally — a Facebook
+ * post crashed the whole source with "Cannot read properties of undefined
+ * (reading 'nodeName')". And social pages ship megabytes of inline script;
+ * not parsing it keeps a 1 MB page cheap. JSON-LD scripts stay: they carry
+ * the publication date.
+ */
+export function stripUnreadable(html: string): string {
+	return html
+		.replace(/<script\b(?![^>]*application\/ld\+json)[^>]*>[\s\S]*?<\/script\s*>/gi, '')
+		.replace(/<(style|template|svg|noscript)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '');
+}
+
 export function extractHtml(html: string): ExtractedPage {
-	const root = fromHtml(html);
+	let root: Root;
+	try {
+		root = fromHtml(stripUnreadable(html));
+	} catch {
+		// A parser bug on one page must cost that source, not look like a JavaScript error.
+		throw new UnsupportedContentError('This page could not be parsed as HTML.');
+	}
 	const { metas, articles, mains, times, ldJson, title, body } = collect(root);
 
 	const render = (node: Nodes) => {

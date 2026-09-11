@@ -159,7 +159,7 @@
 			<Field
 				id="weeklyLimit"
 				label="Drafts per 7 days"
-				hint="PRD §17 caps output at five articles a week."
+				hint="PRD §17 caps output at five articles a week. Failed and cancelled drafts do not count."
 			>
 				{#snippet children({ id, describedBy })}
 					<input

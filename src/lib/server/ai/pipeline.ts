@@ -6,7 +6,14 @@ import type { Database } from '../db/types';
 import { finishDraft } from './citations';
 import { matchesDomain, registrableDomain } from './domain';
 import type { ExtractedPage } from './extract';
-import { chatJson, ProviderError, type ChatUsage, type ModelClient, type ModelConfig } from './llm';
+import {
+	chatJson,
+	isRetryableReply,
+	ProviderError,
+	type ChatUsage,
+	type ModelClient,
+	type ModelConfig
+} from './llm';
 import { claimsPrompt, draftPrompt, outlinePrompt, queriesPrompt } from './prompts';
 import type { SearchClient } from './search';
 import {
@@ -17,7 +24,7 @@ import {
 	getCredentialWithKey,
 	getJob,
 	insertSource,
-	jobsCreatedSince,
+	draftsCountedSince,
 	readableSources,
 	transitionJob,
 	type JobRow
@@ -116,10 +123,10 @@ export async function assertJobAllowed(db: Database, now: Date): Promise<void> {
 	const settings = await getAiSettings(db);
 
 	const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-	const recent = await jobsCreatedSince(db, weekAgo);
+	const recent = await draftsCountedSince(db, weekAgo);
 	if (recent >= settings.weeklyLimit) {
 		throw new PipelineError(
-			`Weekly limit reached: ${recent} drafts in the last 7 days (limit ${settings.weeklyLimit}). ` +
+			`Weekly limit reached: ${recent} drafts in the last 7 days (limit ${settings.weeklyLimit}; failed and cancelled ones do not count). ` +
 				'PRD §17 caps output to protect against scaled-content penalties; the limit is in AI settings.'
 		);
 	}
@@ -369,25 +376,50 @@ export async function research(deps: PipelineDeps, jobId: number, signal: AbortS
 
 	// Claims, each backed by a quote the model says it copied.
 	checkCancelled(signal);
+	const extractClaims = async (maxCharsPerSource: number) => {
+		const prompt = claimsPrompt({
+			idea: ctx.job.idea,
+			angle: ctx.job.angle,
+			locale: ctx.job.locale,
+			sources: readable,
+			maxCharsPerSource
+		});
+		const result = await chatJson(
+			ctx.model,
+			{
+				system: prompt.system,
+				messages: [{ role: 'user', content: prompt.user }],
+				maxTokens: 16_000,
+				signal
+			},
+			ClaimsSchema
+		);
+		await charge(ctx, result.usage);
+		return result.data;
+	};
+
 	const perSource = Math.min(12_000, Math.floor(LIMITS.promptSourceChars / readable.length));
-	const prompt = claimsPrompt({
-		idea: ctx.job.idea,
-		angle: ctx.job.angle,
-		locale: ctx.job.locale,
-		sources: readable,
-		maxCharsPerSource: perSource
-	});
-	const { data, usage } = await chatJson(
-		ctx.model,
-		{
-			system: prompt.system,
-			messages: [{ role: 'user', content: prompt.user }],
-			maxTokens: 16_000,
-			signal
-		},
-		ClaimsSchema
+	await log(
+		ctx,
+		'info',
+		`Extracting claims from ${plural(readable.length, 'page')}. The longest step: a few minutes is normal.`
 	);
-	await charge(ctx, usage);
+
+	let data: v.InferOutput<typeof ClaimsSchema>;
+	try {
+		data = await extractClaims(perSource);
+	} catch (error) {
+		// An empty, cut-off or dropped answer is most often the model running out
+		// of room or time on a large input. Half the text usually fits.
+		if (signal.aborted || !isRetryableReply(error)) throw error;
+		const shorter = Math.floor(perSource / 2);
+		await log(
+			ctx,
+			'warn',
+			`${(error as Error).message} Trying once more with shorter excerpts (${shorter.toLocaleString('en')} characters per page).`
+		);
+		data = await extractClaims(shorter);
+	}
 
 	// Checked against the full page text, not the excerpt the model saw: a quote
 	// found anywhere on the page is genuinely on the page.
@@ -428,6 +460,7 @@ async function makeOutline(ctx: Context, claims: AiClaim[]): Promise<AiOutline |
 	}
 
 	checkCancelled(ctx.signal);
+	await log(ctx, 'info', 'Writing the outline from the usable claims.');
 	const prompt = outlinePrompt({
 		idea: ctx.job.idea,
 		angle: ctx.job.angle,

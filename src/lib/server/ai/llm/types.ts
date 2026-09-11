@@ -67,6 +67,40 @@ export class EmptyReplyError extends ProviderError {
 	}
 }
 
+/** The answer reached the output limit before it was complete. */
+export class TruncatedReplyError extends ProviderError {
+	constructor() {
+		super('The reply was cut off at the output limit.');
+		this.name = 'TruncatedReplyError';
+	}
+}
+
+/** The connection broke while the model was still answering. */
+export class StreamBrokenError extends ProviderError {
+	constructor(host: string, seconds: number) {
+		super(`The connection to ${host} broke after ${seconds}s while the model was still answering.`);
+		this.name = 'StreamBrokenError';
+	}
+}
+
+/** Failures that are about this request's size or duration, not the account: worth one smaller retry. */
+export function isRetryableReply(error: unknown): boolean {
+	return (
+		error instanceof EmptyReplyError ||
+		error instanceof TruncatedReplyError ||
+		error instanceof StreamBrokenError
+	);
+}
+
+/** Why an answer came back without text, in words the editor can act on. */
+export function describeEmpty(hitLimit: boolean, reasoned: boolean, finish: string | null): string {
+	if (reasoned && hitLimit) {
+		return ` (${finish}): the model spent its whole output budget reasoning before it answered. Try a model without reasoning, or one with a larger output limit`;
+	}
+	if (reasoned) return ': the model reasoned but wrote no answer';
+	return finish ? ` (${finish})` : '';
+}
+
 /**
  * Removes the key from anything a provider sent back before it is shown or
  * stored. Some providers echo a masked-but-partial key in 401 bodies; the

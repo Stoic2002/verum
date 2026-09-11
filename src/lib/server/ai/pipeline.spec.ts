@@ -5,12 +5,13 @@ import { setupTestDatabase, truncateAll } from '../db/testing';
 import type { Database } from '../db/types';
 import { aiCredentials, articleLocales, articles, categories } from '../db/schema';
 import type { ChatRequest, ChatResult, ModelClient } from './llm';
-import { ProviderError } from './llm';
+import { EmptyReplyError, ProviderError } from './llm';
 import type { ExtractedPage } from './extract';
 import { PipelineError, assertJobAllowed, runTask, type PipelineDeps } from './pipeline';
 import { encryptSecret } from './secrets';
 import {
 	createJob,
+	deleteJob,
 	getJob,
 	listSources,
 	reopenJob,
@@ -358,6 +359,68 @@ describe('research', () => {
 	});
 });
 
+describe('claim extraction under strain', () => {
+	it('retries once with shorter excerpts when the model returns nothing', async () => {
+		const script: Script = { claimsAttempts: 0, requests: [] };
+		const claimsRequests: ChatRequest[] = [];
+		let failedOnce = false;
+		const inner = fakeModel(script);
+		const d = deps(script, {
+			createModel: () => ({
+				...inner,
+				async chat(req) {
+					if (req.system.includes('extract verifiable facts')) {
+						claimsRequests.push(req);
+						if (!failedOnce) {
+							failedOnce = true;
+							throw new EmptyReplyError(' (finish_reason: length)');
+						}
+					}
+					return inner.chat(req);
+				}
+			})
+		});
+		const jobId = await newJob();
+
+		await run(d, jobId);
+
+		const job = (await getJob(db, jobId))!;
+		expect(job.status).toBe('review');
+		expect(job.log.some((l) => l.level === 'warn' && l.message.includes('shorter excerpts'))).toBe(
+			true
+		);
+		// Two readable pages: 12,000 characters each at first, then half. (The test
+		// pages are shorter than either, so the prompt text itself is unchanged.)
+		expect(job.log.some((l) => l.message.includes('6,000 characters per page'))).toBe(true);
+		const [first, second] = claimsRequests;
+		expect(second.messages[0].content.length).toBeLessThanOrEqual(first.messages[0].content.length);
+	});
+
+	it('does not retry a rejected key', async () => {
+		const script: Script = { claimsAttempts: 0, requests: [] };
+		let claimsCalls = 0;
+		const inner = fakeModel(script);
+		const d = deps(script, {
+			createModel: () => ({
+				...inner,
+				async chat(req) {
+					if (req.system.includes('extract verifiable facts')) {
+						claimsCalls++;
+						throw new ProviderError('The provider rejected the API key.', 401);
+					}
+					return inner.chat(req);
+				}
+			})
+		});
+		const jobId = await newJob();
+
+		await run(d, jobId);
+
+		expect((await getJob(db, jobId))!.status).toBe('failed');
+		expect(claimsCalls).toBe(1);
+	});
+});
+
 describe('draft', () => {
 	it('saves a draft article whose citations link only to pages that were read', async () => {
 		const d = deps({ claimsAttempts: 0, requests: [] });
@@ -516,6 +579,40 @@ describe('guard rails', () => {
 		await setJob(db, jobId, { costUsd: 0.006 });
 
 		await expect(assertJobAllowed(db, new Date())).rejects.toThrow(/monthly budget/i);
+	});
+
+	it('does not count failed or cancelled drafts toward the weekly limit', async () => {
+		await updateAiSettings(db, {
+			trustedDomains: [],
+			blockedDomains: [],
+			weeklyLimit: 1,
+			monthlyBudgetUsd: null
+		});
+		const failed = await newJob();
+		await setJob(db, failed, { status: 'failed', error: 'The provider returned an error (500).' });
+		const cancelled = await newJob();
+		await setJob(db, cancelled, { status: 'cancelled' });
+
+		await expect(assertJobAllowed(db, new Date())).resolves.toBeUndefined();
+
+		await newJob();
+		await expect(assertJobAllowed(db, new Date())).rejects.toThrow(/weekly limit/i);
+	});
+
+	it('deletes a finished job with its sources, but never a running one', async () => {
+		const d = deps({ claimsAttempts: 0, requests: [] });
+		const reviewed = await newJob();
+		await run(d, reviewed);
+		expect((await listSources(db, reviewed)).length).toBeGreaterThan(0);
+
+		expect(await deleteJob(db, reviewed)).toBe(true);
+		expect(await getJob(db, reviewed)).toBeNull();
+		expect(await listSources(db, reviewed)).toEqual([]);
+
+		const running = await newJob();
+		await setJob(db, running, { status: 'researching' });
+		expect(await deleteJob(db, running)).toBe(false);
+		expect(await getJob(db, running)).not.toBeNull();
 	});
 
 	it('allows a job when under both', async () => {

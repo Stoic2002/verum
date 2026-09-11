@@ -176,6 +176,7 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
 	) {
 		const payload = JSON.parse(await body(request)) as {
 			model?: string;
+			stream?: boolean;
 			messages: { role: string; content: string }[];
 		};
 		const system = payload.messages.find((m) => m.role === 'system')?.content ?? '';
@@ -187,14 +188,29 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
 				JSON.stringify({ error: { message: 'Upstream overloaded' } })
 			);
 		}
+		const text = reply(system);
+		if (payload.stream) {
+			// Server-sent events in three pieces, usage last — the shape of a real endpoint.
+			const third = Math.ceil(text.length / 3);
+			const events = [
+				...[0, 1, 2].map((i) => ({
+					choices: [{ delta: { content: text.slice(i * third, (i + 1) * third) } }]
+				})),
+				{ choices: [{ delta: {}, finish_reason: 'stop' }] },
+				{ choices: [], usage: { prompt_tokens: 1200, completion_tokens: 300 } }
+			];
+			response.writeHead(200, { 'content-type': 'text/event-stream' });
+			response.end(
+				events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join('') + 'data: [DONE]\n\n'
+			);
+			return;
+		}
 		return send(
 			response,
 			200,
 			'application/json',
 			JSON.stringify({
-				choices: [
-					{ message: { role: 'assistant', content: reply(system) }, finish_reason: 'stop' }
-				],
+				choices: [{ message: { role: 'assistant', content: text }, finish_reason: 'stop' }],
 				usage: { prompt_tokens: 1200, completion_tokens: 300 }
 			})
 		);

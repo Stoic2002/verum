@@ -5,7 +5,13 @@ import type { ModelClient, ModelConfig } from './types';
 
 export { checkConnection, type ConnectionResult } from './check';
 export { chatJson, extractJson } from './json';
-export { EmptyReplyError, ProviderError } from './types';
+export {
+	EmptyReplyError,
+	ProviderError,
+	StreamBrokenError,
+	TruncatedReplyError,
+	isRetryableReply
+} from './types';
 export type {
 	ChatMessage,
 	ChatRequest,

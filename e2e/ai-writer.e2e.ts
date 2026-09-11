@@ -331,6 +331,30 @@ test('a draft that fails can continue with another model, or start again', async
 	await expect(page.getByText('Draft ready')).toBeVisible({ timeout: 30_000 });
 });
 
+test('deletes a failed draft', async ({ page }) => {
+	await signIn(page);
+	await page.goto('/admin/ai');
+
+	const idea = `Unreadable sources ${stamp}`;
+	await page.getByLabel('Idea').fill(idea);
+	await page.getByLabel('Category').selectOption({ index: 0 });
+	await page.getByLabel('Model').selectOption({ label: `${LABEL} · mock-writer` });
+	await page.getByLabel('Web search').selectOption('');
+	await page.getByLabel('Sources you already have').fill(`${MOCK_ORIGIN}/pages/missing`);
+	await page.getByRole('button', { name: /start research/i }).click();
+	await expect(page.getByText('This draft failed.')).toBeVisible({ timeout: 30_000 });
+
+	await page.getByRole('button', { name: /^delete$/i }).click();
+	await page
+		.getByRole('dialog')
+		.getByRole('button', { name: /delete draft/i })
+		.click();
+
+	await expect(page).toHaveURL(/\/admin\/ai$/);
+	await expect(toast(page, 'deleted')).toBeVisible();
+	await expect(page.getByRole('link', { name: idea })).toHaveCount(0);
+});
+
 test('removes the provider', async ({ page }) => {
 	await signIn(page);
 	await page.goto('/admin/ai/settings');

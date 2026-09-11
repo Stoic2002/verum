@@ -68,6 +68,20 @@
 				</ConfirmButton>
 			</form>
 		{/if}
+		{#if !active}
+			<form method="POST" action="?/delete" use:enhance={enhanceWithToast()}>
+				<ConfirmButton
+					class="btn btn--ghost btn--sm"
+					title="Delete this draft?"
+					message={job.articleId
+						? `Its research, sources and log are deleted. The draft article #${job.articleId} stays in Articles.`
+						: 'Its research, sources and log are deleted.'}
+					confirmLabel="Delete draft"
+				>
+					Delete
+				</ConfirmButton>
+			</form>
+		{/if}
 	</div>
 </header>
 

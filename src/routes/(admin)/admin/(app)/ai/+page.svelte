@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { AdminPager, Button, Field } from '$lib/components/ui';
+	import { AdminPager, Button, ConfirmButton, Field } from '$lib/components/ui';
 	import { enhanceWithToast } from '$lib/toast.svelte';
 	import JobStatus from './JobStatus.svelte';
 
@@ -31,7 +31,9 @@
 </header>
 
 <p class="usage meta">
-	This week: <strong>{data.usage.thisWeek} of {data.usage.weeklyLimit}</strong> drafts · This month:
+	This week: <strong>{data.usage.thisWeek} of {data.usage.weeklyLimit}</strong> drafts
+	<span>(failed and cancelled ones do not count)</span>
+	· This month:
 	<strong>{usd(data.usage.monthCost)}</strong>
 	{#if data.usage.monthlyBudgetUsd !== null}of {usd(data.usage.monthlyBudgetUsd)}{/if}
 </p>
@@ -165,7 +167,11 @@
 	{:else}
 		<table>
 			<thead>
-				<tr><th>Idea</th><th>Status</th><th>Model</th><th>Started</th><th class="num">Cost</th></tr>
+				<tr
+					><th>Idea</th><th>Status</th><th>Model</th><th>Started</th><th class="num">Cost</th><th
+						><span class="visually-hidden">Actions</span></th
+					></tr
+				>
 			</thead>
 			<tbody>
 				{#each data.jobs as job (job.id)}
@@ -180,6 +186,23 @@
 						<td class="meta">{job.modelLabel}</td>
 						<td class="meta num">{stamp(job.createdAt)}</td>
 						<td class="num">{usd(job.costUsd)}</td>
+						<td class="row-actions">
+							{#if !['queued', 'researching', 'drafting'].includes(job.status)}
+								<form method="POST" action="?/delete" use:enhance={enhanceWithToast()}>
+									<input type="hidden" name="id" value={job.id} />
+									<ConfirmButton
+										class="btn btn--ghost btn--sm"
+										title="Delete draft #{job.id}?"
+										message={job.articleId
+											? `Its research, sources and log are deleted. The draft article #${job.articleId} stays in Articles.`
+											: 'Its research, sources and log are deleted.'}
+										confirmLabel="Delete draft"
+									>
+										Delete
+									</ConfirmButton>
+								</form>
+							{/if}
+						</td>
 					</tr>
 				{/each}
 			</tbody>
@@ -245,5 +268,9 @@
 	}
 	td .meta {
 		display: block;
+	}
+	.row-actions {
+		text-align: right;
+		white-space: nowrap;
 	}
 </style>

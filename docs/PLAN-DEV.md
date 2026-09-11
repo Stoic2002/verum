@@ -1235,3 +1235,26 @@ Sebelumnya "Start again" membuat job baru dengan model dan search provider yang 
 `reopenJob` mengubah status hanya dari `failed`/`cancelled` dan hanya kalau `claims` tidak kosong, dalam satu `UPDATE … WHERE` — tidak ada jendela di mana dua klik bisa membuka job yang sudah selesai. Job yang masih berhenti (task masih berjalan) ditolak dengan pesan untuk mencoba sebentar lagi.
 
 268 test unit (naik dari 265): job yang gagal saat draf dibuka kembali dengan model lain, riset utuh, lalu draf selesai dan benar-benar memakai model baru; job tanpa klaim dan job yang sudah selesai tidak bisa dibuka kembali. 90 e2e (naik dari 89): model tiruan yang lulus riset tapi gagal saat draf → Start again dengan model lain sampai review → job yang gagal dibuka kembali, klaimnya tetap tiga, dan draf selesai dengan model lain.
+
+### R.17 "The model returned an empty reply" setelah tepat lima menit — dan tiga perbaikan lain
+
+Laporan pemilik: job berhenti lama setelah "Read 5 of 10 pages", lalu gagal dengan "The model returned an empty reply". Data job #4 (endpoint router OpenAI-compatible, model `stepfun-3.7-flash`):
+
+- Jarak antara log terakhir dan error: **09:25:26 → 09:30:27, tepat ~300 detik.** Itu batas default HTTP client Node (undici) untuk respons yang tidak mengirim data selama 300 detik.
+- Permintaan ekstraksi klaim dikirim **non-streaming**: satu JSON baru datang setelah seluruh jawaban selesai. Model lambat + input besar (lima halaman, ±41 ribu karakter) melewati lima menit.
+- Adapter menelan kegagalan membaca body dengan `.catch(() => ({}))`, sehingga koneksi yang terputus dilaporkan sebagai "empty reply". Penyebab aslinya tersembunyi.
+
+**Perbaikan:**
+
+1. **Streaming** untuk adapter OpenAI-compatible dan Gemini (Claude sudah streaming lewat SDK). Data mengalir selama model menulis, termasuk token reasoning. Usage dibaca dari chunk terakhir (`stream_options.include_usage`); server yang menolak field itu diminta ulang tanpanya; server yang mengabaikan `stream: true` dan menjawab JSON tetap terbaca.
+2. **Error yang jujur.** Koneksi putus → "The connection to _host_ broke after *N*s while the model was still answering." Jawaban kosong karena reasoning menghabiskan batas output → "(length): the model spent its whole output budget reasoning before it answered…". Jawaban yang terpotong tidak lagi diminta diulang apa adanya.
+3. **Ekstraksi klaim dicoba sekali lagi dengan kutipan setengah panjang** kalau jawaban kosong, terpotong, atau koneksi putus. Key ditolak dan rate limit tidak dicoba ulang.
+4. **Log sebelum langkah panjang** ("Extracting claims from 5 pages. The longest step: a few minutes is normal.", "Writing the outline…"), supaya layar tidak terlihat macet.
+
+**Crash parser HTML.** Sumber Facebook di job yang sama gagal dengan "Cannot read properties of undefined (reading 'nodeName')". Direproduksi dari halaman aslinya: `hast-util-from-parse5` 8.0.3 membaca isi `<template>` tanpa memeriksa bahwa isinya ada, dan `<template>` di dalam `<svg>` tidak punya isi. Script (kecuali JSON-LD), style, template, SVG, dan noscript sekarang dibuang sebelum parsing — semuanya memang dibuang saat ekstraksi — dan halaman 955 KB itu terbaca dalam 42 ms. Kegagalan parser yang tersisa menjadi "This page could not be parsed as HTML." untuk sumber itu saja.
+
+**Batas mingguan tidak lagi menghitung draf yang gagal atau dibatalkan.** Empat kegagalan provider (termasuk tiga rate limit/500 di provider lain) sudah menghabiskan batas lima draf tanpa satu artikel pun. Batasnya untuk membatasi output (PRD §17), bukan percobaan.
+
+**Draf AI bisa dihapus**, dari daftar maupun halaman job, dengan dialog konfirmasi. Tidak bisa selama job berjalan (worker akan menulis ke baris yang sudah hilang). Artikel draf yang sempat dibuat tetap ada di Articles, dan dialog menyebutkannya.
+
+282 test unit (naik dari 268): streaming yang terpotong di tengah event, reasoning yang menghabiskan batas, koneksi putus, fallback tanpa `stream_options`, server yang menjawab JSON, Gemini dengan thought parts; retry ekstraksi dengan kutipan lebih pendek dan tidak ada retry untuk key ditolak; draf gagal/dibatalkan tidak dihitung; hapus job beserta sumbernya tapi tidak saat berjalan; `<template>` di dalam `<svg>` dan JSON-LD tetap terbaca. 91 e2e (naik dari 90): server mock sekarang menjawab dengan streaming, dan draf gagal dihapus dari halamannya.

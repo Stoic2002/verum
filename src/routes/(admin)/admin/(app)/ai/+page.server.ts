@@ -7,7 +7,8 @@ import {
 	costSince,
 	createJob,
 	getAiSettings,
-	jobsCreatedSince,
+	deleteJob,
+	draftsCountedSince,
 	listCredentials,
 	listJobs
 } from '$lib/server/ai/store';
@@ -34,7 +35,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		listCredentials(db),
 		getAiSettings(db),
 		categoryOptions(db, 'en'),
-		jobsCreatedSince(db, weekAgo),
+		draftsCountedSince(db, weekAgo),
 		costSince(db, monthStart)
 	]);
 
@@ -76,6 +77,17 @@ function parseUrls(raw: string): { urls: string[]; invalid: string[] } {
 }
 
 export const actions: Actions = {
+	delete: async ({ request }) => {
+		const id = Number((await request.formData()).get('id'));
+		if (!Number.isInteger(id) || id < 1) return fail(400, { error: 'Bad id' });
+		if (!(await deleteJob(db, id))) {
+			return fail(400, {
+				error: 'A draft that is still running cannot be deleted. Cancel it first.'
+			});
+		}
+		return { toast: `Draft #${id} deleted.` };
+	},
+
 	create: async ({ request, cookies }) => {
 		const form = await request.formData();
 		const text = (name: string) => String(form.get(name) ?? '').trim();

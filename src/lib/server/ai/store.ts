@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, notInArray, sql } from 'drizzle-orm';
 import type { Database } from '../db/types';
 import {
 	aiCredentials,
@@ -259,12 +259,30 @@ export async function addUsage(
 		.where(eq(aiJobs.id, id));
 }
 
-export async function jobsCreatedSince(db: Database, since: Date): Promise<number> {
+/**
+ * Drafts that count against the weekly limit (PRD §17): every attempt except
+ * the ones that failed or were cancelled. The limit exists to cap published
+ * output; a provider outage should not use up the editor's week.
+ */
+export async function draftsCountedSince(db: Database, since: Date): Promise<number> {
 	const [row] = await db
 		.select({ n: sql<number>`count(*)`.mapWith(Number) })
 		.from(aiJobs)
-		.where(gte(aiJobs.createdAt, since));
+		.where(and(gte(aiJobs.createdAt, since), notInArray(aiJobs.status, ['failed', 'cancelled'])));
 	return row?.n ?? 0;
+}
+
+/**
+ * Deletes a job, its sources and its log — never while it runs, because the
+ * worker would then write to a row that is gone. The draft article it created,
+ * if any, is a separate thing and stays.
+ */
+export async function deleteJob(db: Database, id: number): Promise<boolean> {
+	const rows = await db
+		.delete(aiJobs)
+		.where(and(eq(aiJobs.id, id), notInArray(aiJobs.status, ['queued', 'researching', 'drafting'])))
+		.returning({ id: aiJobs.id });
+	return rows.length > 0;
 }
 
 export async function costSince(db: Database, since: Date): Promise<number> {

@@ -63,7 +63,12 @@ async function send(
 		throw new ProviderError(`Could not reach ${host}.`);
 	}
 
-	const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+	let body: Record<string, unknown> = {};
+	try {
+		body = (await response.json()) as Record<string, unknown>;
+	} catch {
+		if (response.ok) throw new ProviderError(`${host} answered with something other than JSON.`);
+	}
 	if (!response.ok) {
 		const raw = body.message ?? body.detail ?? body.error ?? '';
 		const detail =

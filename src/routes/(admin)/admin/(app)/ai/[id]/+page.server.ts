@@ -7,6 +7,7 @@ import { cancelJob, enqueue, isRunning, resumeJobs } from '$lib/server/ai/runner
 import {
 	appendLog,
 	createJob,
+	deleteJob,
 	getJob,
 	listCredentials,
 	listSources,
@@ -83,6 +84,17 @@ export const load: PageServerLoad = async ({ params, depends }) => {
 };
 
 export const actions: Actions = {
+	delete: async ({ params, cookies }) => {
+		const id = jobId(params.id);
+		if (!(await deleteJob(db, id))) {
+			return fail(400, {
+				error: 'A draft that is still running cannot be deleted. Cancel it first.'
+			});
+		}
+		setFlash(cookies, 'success', `Draft #${id} deleted.`);
+		redirect(303, '/admin/ai');
+	},
+
 	cancel: async ({ params }) => {
 		const moved = await cancelJob(db, jobId(params.id));
 		if (!moved) return fail(400, { error: 'This job has already finished.' });

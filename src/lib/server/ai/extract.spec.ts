@@ -79,4 +79,19 @@ describe('page extraction', () => {
 		const latin1 = Buffer.from('<p>Caf\xe9 in Jakarta</p>', 'latin1');
 		expect(extractPage(latin1, 'text/html; charset=iso-8859-1').text).toBe('Café in Jakarta');
 	});
+
+	it('survives a <template> inside <svg>, which crashed the HTML parser', async () => {
+		const page = extractHtml(
+			`<html><body><svg><template><path d="M0"/></template></svg><article><p>${story}</p></article><script>var x = "</div>";</script></body></html>`
+		);
+		expect(page.text).toContain('The company confirmed the acquisition');
+	});
+
+	it('keeps JSON-LD while dropping other scripts', () => {
+		const page = extractHtml(
+			`<html><head><script>window.a = 1</script><script type="application/ld+json">{"datePublished":"2026-09-02T00:00:00Z"}</script></head><body><p>${story}</p></body></html>`
+		);
+		expect(page.publishedAt).toBe('2026-09-02T00:00:00.000Z');
+		expect(page.text).not.toContain('window.a');
+	});
 });

@@ -1,5 +1,11 @@
 import * as v from 'valibot';
-import { ProviderError, type ChatRequest, type ChatUsage, type ModelClient } from './types';
+import {
+	ProviderError,
+	TruncatedReplyError,
+	type ChatRequest,
+	type ChatUsage,
+	type ModelClient
+} from './types';
 
 /**
  * Structured replies from any model.
@@ -74,9 +80,10 @@ export async function chatJson<TSchema extends v.GenericSchema>(
 		const result = await client.chat({ ...request, messages, json: true });
 		usage.inputTokens += result.usage.inputTokens;
 		usage.outputTokens += result.usage.outputTokens;
+		// Asking a model to repeat an answer that did not fit does not make it fit.
+		if (result.truncated) throw new TruncatedReplyError();
 
 		try {
-			if (result.truncated) throw new ProviderError('The reply was cut off at the output limit.');
 			const parsed = v.safeParse(schema, extractJson(result.text));
 			if (parsed.success) return { data: parsed.output, usage };
 			lastProblem = describeIssues(parsed.issues);
