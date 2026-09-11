@@ -54,8 +54,19 @@ test('signs in, serves the dashboard uncached, and signs out again', async ({ pa
 	await page.goto('/admin/login');
 	await expect(page).toHaveURL('/admin');
 
+	// Signing out asks first, in a modal dialog. Cancelling keeps the session.
 	await page.getByRole('button', { name: /sign out/i }).click();
+	const dialog = page.getByRole('dialog', { name: /sign out/i });
+	await expect(dialog).toBeVisible();
+	await dialog.getByRole('button', { name: /cancel/i }).click();
+	await expect(dialog).toBeHidden();
+	await expect(page).toHaveURL('/admin');
+
+	await page.getByRole('button', { name: /sign out/i }).click();
+	await dialog.getByRole('button', { name: /^sign out$/i }).click();
 	await expect(page).toHaveURL(/\/admin\/login/);
+	// The endpoint redirected, so its message travelled in the flash cookie.
+	await expect(page.getByRole('status').filter({ hasText: 'Signed out' })).toBeVisible();
 
 	// The session is gone server-side, not just from this tab.
 	await page.goto('/admin');

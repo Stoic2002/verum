@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { enhance } from '$app/forms';
+	import { enhanceWithToast } from '$lib/toast.svelte';
 
-	let { data, form } = $props();
+	let { data } = $props();
 
 	const localeOf = (locale: string) => data.topic.locales.find((row) => row.locale === locale);
 </script>
@@ -13,14 +15,11 @@
 	<a href={resolve('/(admin)/admin/(app)/topics')}>← All topics</a>
 </header>
 
-{#if form?.error}<p class="error" role="alert">{form.error}</p>{/if}
-{#if form?.saved}<p class="notice">Saved {form.saved}.</p>{/if}
-
 {#each data.locales as locale (locale)}
 	{@const row = localeOf(locale)}
 	<section>
 		<h2>{locale}</h2>
-		<form method="POST" action="?/saveLocale" class="form-grid">
+		<form method="POST" action="?/saveLocale" class="form-grid" use:enhance={enhanceWithToast()}>
 			<input type="hidden" name="locale" value={locale} />
 
 			<label for="title-{locale}">Title</label>
@@ -39,7 +38,7 @@
 
 <section>
 	<h2>Articles</h2>
-	<form method="POST" action="?/setArticles" class="form-grid">
+	<form method="POST" action="?/setArticles" class="form-grid" use:enhance={enhanceWithToast()}>
 		<div class="picker">
 			{#each data.articles as article (article.id)}
 				<label class="check">

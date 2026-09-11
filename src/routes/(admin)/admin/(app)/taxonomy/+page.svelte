@@ -1,15 +1,26 @@
 <script lang="ts">
 	import { superForm } from 'sveltekit-superforms';
+	import { enhance as kitEnhance } from '$app/forms';
+	import { ConfirmButton } from '$lib/components/ui';
+	import { enhanceWithToast, toastOnUpdate } from '$lib/toast.svelte';
 
 	let { data } = $props();
 
 	// svelte-ignore state_referenced_locally
-	const category = superForm(data.categoryForm, { id: 'category', dataType: 'json' });
+	const category = superForm(data.categoryForm, {
+		onUpdate: toastOnUpdate,
+		id: 'category',
+		dataType: 'json'
+	});
 	// svelte-ignore state_referenced_locally
-	const tag = superForm(data.tagForm, { id: 'tag', dataType: 'json' });
+	const tag = superForm(data.tagForm, {
+		onUpdate: toastOnUpdate,
+		id: 'tag',
+		dataType: 'json'
+	});
 
-	const { form: cForm, errors: cErrors, enhance: cEnhance, message: cMessage } = category;
-	const { form: tForm, errors: tErrors, enhance: tEnhance, message: tMessage } = tag;
+	const { form: cForm, errors: cErrors, enhance: cEnhance } = category;
+	const { form: tForm, errors: tErrors, enhance: tEnhance } = tag;
 
 	function edit(row: (typeof data.categories)[number]) {
 		$cForm.slug = row.slug;
@@ -55,17 +66,15 @@
 	</table>
 
 	<form method="POST" action="?/saveCategory" use:cEnhance class="form-grid">
-		{#if $cMessage}<p class="notice">{$cMessage}</p>{/if}
-
 		<label for="cslug">Slug</label>
 		<input id="cslug" bind:value={$cForm.slug} />
-		{#if $cErrors.slug}<p class="error">{$cErrors.slug}</p>{/if}
+		{#if $cErrors.slug}<p class="error">{$cErrors.slug[0]}</p>{/if}
 
 		<div class="row">
 			<div class="form-grid">
 				<label for="nameEn">Name (en)</label>
 				<input id="nameEn" bind:value={$cForm.nameEn} />
-				{#if $cErrors.nameEn}<p class="error">{$cErrors.nameEn}</p>{/if}
+				{#if $cErrors.nameEn}<p class="error">{$cErrors.nameEn[0]}</p>{/if}
 			</div>
 			<div class="form-grid">
 				<label for="nameId">Name (id)</label>
@@ -107,15 +116,16 @@
 					<td><code>{row.slug}</code></td>
 					<td class="num">{row.article_count}</td>
 					<td>
-						<form
-							method="POST"
-							action="?/deleteTag"
-							onsubmit={(e) => {
-								if (!confirm(`Delete tag “${row.name}”?`)) e.preventDefault();
-							}}
-						>
+						<form method="POST" action="?/deleteTag" use:kitEnhance={enhanceWithToast()}>
 							<input type="hidden" name="id" value={row.id} />
-							<button type="submit" class="destructive">Delete</button>
+							<ConfirmButton
+								class="btn btn--danger btn--sm"
+								title="Delete this tag?"
+								message={`“${row.name}” is removed from every article that carries it. The articles themselves stay.`}
+								confirmLabel="Delete tag"
+							>
+								Delete
+							</ConfirmButton>
 						</form>
 					</td>
 				</tr>
@@ -124,18 +134,16 @@
 	</table>
 
 	<form method="POST" action="?/saveTag" use:tEnhance class="form-grid">
-		{#if $tMessage}<p class="notice">{$tMessage}</p>{/if}
-
 		<div class="row">
 			<div class="form-grid">
 				<label for="tname">Name</label>
 				<input id="tname" bind:value={$tForm.name} />
-				{#if $tErrors.name}<p class="error">{$tErrors.name}</p>{/if}
+				{#if $tErrors.name}<p class="error">{$tErrors.name[0]}</p>{/if}
 			</div>
 			<div class="form-grid">
 				<label for="tslug">Slug</label>
 				<input id="tslug" bind:value={$tForm.slug} />
-				{#if $tErrors.slug}<p class="error">{$tErrors.slug}</p>{/if}
+				{#if $tErrors.slug}<p class="error">{$tErrors.slug[0]}</p>{/if}
 			</div>
 		</div>
 

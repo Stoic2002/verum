@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { superForm } from 'sveltekit-superforms';
+	import { toastOnUpdate } from '$lib/toast.svelte';
 	import { Button, Field } from '$lib/components/ui';
 	import { slugify } from '$lib/slug';
 	import type { TocEntry } from '$lib/server/db/schema';
@@ -8,7 +9,8 @@
 	let { data } = $props();
 
 	// svelte-ignore state_referenced_locally
-	const { form, errors, enhance, submitting, message } = superForm(data.form, {
+	const { form, errors, enhance, submitting } = superForm(data.form, {
+		onUpdate: toastOnUpdate,
 		dataType: 'json',
 		resetForm: false,
 		invalidateAll: false
@@ -165,8 +167,6 @@
 </header>
 
 <form method="POST" use:enhance>
-	{#if $message}<p class="notice">{$message}</p>{/if}
-
 	<div class="grid">
 		<div class="form-grid">
 			<Field id="title" label="Title" error={$errors.title}>

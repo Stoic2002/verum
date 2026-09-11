@@ -35,7 +35,7 @@ export const actions: Actions = {
 		}
 
 		await saveTopicLocale(db, Number(params.id), locale, { title, introMd });
-		return { saved: locale };
+		return { toast: `Saved the ${locale} version.` };
 	},
 
 	setArticles: async ({ request, params }) => {
@@ -46,6 +46,6 @@ export const actions: Actions = {
 			.filter((value) => Number.isInteger(value));
 
 		await setTopicArticles(db, Number(params.id), ids);
-		return { saved: 'articles' };
+		return { toast: 'Article selection saved.' };
 	}
 };

@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { AdminPager, Button, Field, FileInput } from '$lib/components/ui';
+	import { AdminPager, Button, ConfirmButton, Field, FileInput } from '$lib/components/ui';
+	import { enhanceWithToast } from '$lib/toast.svelte';
 
-	let { data, form } = $props();
+	let { data } = $props();
 
 	let uploading = $state(false);
 	let importing = $state(false);
@@ -48,24 +49,17 @@
 		</button>
 	</div>
 
-	{#if form?.error}<p class="error" role="alert">{form.error}</p>{/if}
-	{#if form?.uploaded}
-		<p class="notice">Added #{form.uploaded} — {form.variants} renditions written.</p>
-	{/if}
-
 	{#if source === 'file'}
 		<form
 			method="POST"
 			action="?/upload"
 			enctype="multipart/form-data"
 			class="form-grid"
-			use:enhance={() => {
-				uploading = true;
-				return async ({ update }) => {
-					await update();
-					uploading = false;
-				};
-			}}
+			use:enhance={enhanceWithToast({
+				reset: true,
+				onStart: () => (uploading = true),
+				onDone: () => (uploading = false)
+			})}
 		>
 			<Field
 				id="file"
@@ -109,13 +103,11 @@
 			method="POST"
 			action="?/importUrl"
 			class="form-grid"
-			use:enhance={() => {
-				importing = true;
-				return async ({ update }) => {
-					await update();
-					importing = false;
-				};
-			}}
+			use:enhance={enhanceWithToast({
+				reset: true,
+				onStart: () => (importing = true),
+				onDone: () => (importing = false)
+			})}
 		>
 			<Field
 				id="url"
@@ -214,7 +206,7 @@
 						Insert: <code>::image&#123;id={item.id}&#125;</code>
 					</p>
 
-					<form method="POST" action="?/updateMeta" use:enhance class="tight">
+					<form method="POST" action="?/updateMeta" use:enhance={enhanceWithToast()} class="tight">
 						<input type="hidden" name="id" value={item.id} />
 						<input name="alt" value={item.alt} aria-label="Alt text" required />
 						<input
@@ -225,17 +217,15 @@
 						/>
 						<div class="row">
 							<Button type="submit" size="sm" variant="secondary">Save</Button>
-							<Button
-								type="submit"
-								size="sm"
-								variant="danger"
+							<ConfirmButton
+								class="btn btn--danger btn--sm"
 								formaction="?/delete"
-								onclick={(e) => {
-									if (!confirm('Delete this image and every rendition?')) e.preventDefault();
-								}}
+								title="Delete this image?"
+								message="The original and every rendition are removed from storage. Articles that use it will show a missing-image notice instead."
+								confirmLabel="Delete image"
 							>
 								Delete
-							</Button>
+							</ConfirmButton>
 						</div>
 					</form>
 				</div>

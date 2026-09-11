@@ -1,12 +1,15 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { superForm } from 'sveltekit-superforms';
-	import { Button, Switch } from '$lib/components/ui';
+	import { enhance as kitEnhance } from '$app/forms';
+	import { enhanceWithToast, toastOnUpdate } from '$lib/toast.svelte';
+	import { Button, ConfirmButton, Switch } from '$lib/components/ui';
 
 	let { data } = $props();
 
 	// svelte-ignore state_referenced_locally
-	const { form, errors, enhance, submitting, message } = superForm(data.form, {
+	const { form, errors, enhance, submitting } = superForm(data.form, {
+		onUpdate: toastOnUpdate,
 		dataType: 'json'
 	});
 
@@ -59,7 +62,12 @@
 	</ul>
 
 	{#if data.missingLocales.length}
-		<form method="POST" action="?/addLocale" class="form-inline">
+		<form
+			method="POST"
+			action="?/addLocale"
+			class="form-inline"
+			use:kitEnhance={enhanceWithToast()}
+		>
 			<select name="locale" aria-label="Locale to add">
 				{#each data.missingLocales as locale (locale)}
 					<option value={locale}>{locale}</option>
@@ -77,8 +85,6 @@
 	<h2>Settings</h2>
 
 	<form method="POST" action="?/settings" use:enhance class="stack">
-		{#if $message}<p class="notice">{$message}</p>{/if}
-
 		<label for="categoryId">Category</label>
 		<select id="categoryId" bind:value={$form.categoryId}>
 			{#each data.categories as category (category.id)}
@@ -104,7 +110,7 @@
 					Leave blank to keep the existing date.
 				{/if}
 			</p>
-			{#if $errors.publishAt}<p class="error">{$errors.publishAt}</p>{/if}
+			{#if $errors.publishAt}<p class="error">{$errors.publishAt[0]}</p>{/if}
 		{/if}
 
 		<fieldset>
@@ -167,16 +173,14 @@
 
 <section class="danger">
 	<h2>Delete</h2>
-	<form
-		method="POST"
-		action="?/delete"
-		onsubmit={(e) => {
-			if (!confirm('Delete this article and every language version? This cannot be undone.')) {
-				e.preventDefault();
-			}
-		}}
-	>
-		<Button type="submit" variant="danger">Delete article</Button>
+	<form method="POST" action="?/delete">
+		<ConfirmButton
+			title="Delete this article?"
+			message="Every language version is deleted with it, and its URLs will return 404. This cannot be undone."
+			confirmLabel="Delete article"
+		>
+			Delete article
+		</ConfirmButton>
 	</form>
 </section>
 

@@ -4,6 +4,7 @@ import { db } from '$lib/server/db';
 import { normaliseIdentifier, verifyDecoy, verifyPassword } from '$lib/server/auth/password';
 import { findAdminByIdentifier } from '$lib/server/auth/session';
 import { createSession, deleteExpiredSessions, setSessionCookie } from '$lib/server/auth/session';
+import { consumeFlash } from '$lib/server/flash';
 import { loginByEmail, loginByIp } from '$lib/server/rate-limit';
 import type { PageServerLoad } from './$types';
 
@@ -14,7 +15,11 @@ function safeNext(raw: string | null): string {
 	return raw.startsWith('/admin') ? raw : '/admin';
 }
 
-export const load: PageServerLoad = ({ url }) => ({ next: safeNext(url.searchParams.get('next')) });
+export const load: PageServerLoad = ({ url, cookies }) => ({
+	next: safeNext(url.searchParams.get('next')),
+	// "Signed out", left by the logout endpoint on its way here.
+	flash: consumeFlash(cookies)
+});
 
 export const actions: Actions = {
 	default: async ({ request, cookies, getClientAddress, url }) => {

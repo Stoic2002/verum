@@ -1,3 +1,4 @@
+import { setFlash } from '$lib/server/flash';
 import { dev } from '$app/environment';
 import { redirect, type RequestHandler } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
@@ -12,5 +13,6 @@ export const POST: RequestHandler = async ({ cookies }) => {
 	if (token) await invalidateSession(db, token);
 
 	clearSessionCookie(cookies, !dev);
+	setFlash(cookies, 'info', 'Signed out.');
 	redirect(303, '/admin/login');
 };

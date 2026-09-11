@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { toast } from './toast';
 
 /**
  * Fase 3 exit criteria:
@@ -64,7 +65,7 @@ test('creates an article and renders its markdown', async ({ page }) => {
 	await expect(preview.locator('.callout--warning')).toContainText('Mind the gap.');
 
 	await page.getByRole('button', { name: /^save$/i }).click();
-	await expect(page.locator('.notice')).toContainText('Saved');
+	await expect(toast(page, 'Saved')).toBeVisible();
 });
 
 test('never lets a script in markdown reach the output', async ({ page }) => {
@@ -82,7 +83,7 @@ test('never lets a script in markdown reach the output', async ({ page }) => {
 	await expect(preview).toContainText('After');
 
 	await page.getByRole('button', { name: /^save$/i }).click();
-	await expect(page.locator('.notice')).toContainText('Saved');
+	await expect(toast(page, 'Saved')).toBeVisible();
 
 	await page.reload();
 	// Nothing executed, and the markup itself is gone.
@@ -97,10 +98,53 @@ test('records a 301 when the slug changes', async ({ page }) => {
 
 	await page.getByLabel('Slug').fill(`${slug}-renamed`);
 	await page.getByRole('button', { name: /^save$/i }).click();
-	await expect(page.locator('.notice')).toContainText('301');
+	await expect(toast(page, '301')).toBeVisible();
 
 	await page.goto('/admin/redirects');
 	await expect(page.locator('table')).toContainText(slug);
+});
+
+test('deleting a redirect asks first, and cancelling keeps it', async ({ page }) => {
+	await signIn(page);
+	await page.goto('/admin/redirects');
+
+	const from = `/en/ai/e2e-manual-${stamp}`;
+	await page.getByLabel('From path').fill(from);
+	await page.getByLabel('To path').fill('/en/ai');
+	await page.getByRole('button', { name: /save redirect/i }).click();
+	await expect(toast(page, `Saved ${from}`)).toBeVisible();
+
+	const row = page.locator('tr', { hasText: from });
+	const dialog = page.getByRole('dialog', { name: /delete this redirect/i });
+
+	// Cancel: nothing is sent, the rule stays.
+	await row.getByRole('button', { name: /^delete$/i }).click();
+	await expect(dialog).toBeVisible();
+	await expect(dialog).toContainText(from);
+	await page.keyboard.press('Escape');
+	await expect(dialog).toBeHidden();
+	await expect(row).toHaveCount(1);
+
+	// Confirm: deleted in place, announced by a toast, no page reload.
+	await row.getByRole('button', { name: /^delete$/i }).click();
+	await dialog.getByRole('button', { name: /delete redirect/i }).click();
+	await expect(toast(page, 'Redirect deleted')).toBeVisible();
+	await expect(row).toHaveCount(0);
+});
+
+test('a failed save says why, as an error toast', async ({ page }) => {
+	await signIn(page);
+	await page.goto('/admin/redirects');
+	// Nothing has been submitted yet, so nothing is wrong yet.
+	await expect(page.locator('.error')).toHaveCount(0);
+
+	// Neither value is a site path, so the server's validation refuses the rule.
+	await page.getByLabel('From path').fill('not-a-path');
+	await page.getByLabel('To path').fill('also-not-a-path');
+	await page.getByRole('button', { name: /save redirect/i }).click();
+
+	await expect(page.locator('.toast--error')).toBeVisible();
+	await expect(page.getByRole('alert')).toBeVisible();
 });
 
 test('adds a second locale that starts empty, not translated', async ({ page }) => {
@@ -113,6 +157,8 @@ test('adds a second locale that starts empty, not translated', async ({ page }) 
 	// PRD §7: the other locale is a rewrite. Prefilling it with a translation
 	// is exactly the pattern the scaled content abuse policy names.
 	await expect(page.getByLabel('Body', { exact: false })).toHaveValue('');
+	// Empty on purpose, and not already flagged as invalid before a save.
+	await expect(page.locator('.field__error')).toHaveCount(0);
 });
 
 test('a signed preview link shows the draft to someone without a session', async ({
@@ -158,7 +204,7 @@ test('publishes and the article becomes readable', async ({ page }) => {
 
 	await page.getByLabel('Status').selectOption('published');
 	await page.getByRole('button', { name: /save settings/i }).click();
-	await expect(page.locator('.notice')).toContainText('Saved');
+	await expect(toast(page, 'Saved')).toBeVisible();
 
 	await page.goto('/admin/articles?status=published');
 	await expect(page.locator('table')).toContainText(`E2E article ${stamp}`);

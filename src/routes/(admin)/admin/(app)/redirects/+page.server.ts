@@ -24,7 +24,8 @@ export const load: PageServerLoad = async ({ url }) => {
 		page,
 		total,
 		pages: Math.max(1, Math.ceil(total / PER_PAGE)),
-		form: await superValidate({ status: 301 as const }, adapter)
+		// errors: false — initial values are not a submission, so nothing is "Required" yet.
+		form: await superValidate({ status: 301 as const }, adapter, { errors: false })
 	};
 };
 
@@ -61,6 +62,6 @@ export const actions: Actions = {
 		if (!Number.isInteger(id)) return fail(400, { error: 'Bad id' });
 
 		await db.delete(redirects).where(eq(redirects.id, id));
-		return { deleted: true };
+		return { toast: 'Redirect deleted.' };
 	}
 };

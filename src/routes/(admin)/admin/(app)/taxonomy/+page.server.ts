@@ -14,7 +14,10 @@ const tagAdapter = valibot(tagSchema);
 export const load: PageServerLoad = async () => ({
 	categories: await listCategoriesForAdmin(db),
 	tags: await listTagsForAdmin(db),
-	categoryForm: await superValidate({ isActive: true, sortOrder: 0 }, categoryAdapter),
+	// errors: false — initial values are not a submission, so nothing is "Required" yet.
+	categoryForm: await superValidate({ isActive: true, sortOrder: 0 }, categoryAdapter, {
+		errors: false
+	}),
 	tagForm: await superValidate(tagAdapter)
 });
 
@@ -78,6 +81,6 @@ export const actions: Actions = {
 
 		// article_tags cascades; the articles themselves are untouched.
 		await db.delete(tags).where(eq(tags.id, id));
-		return { deleted: true };
+		return { toast: 'Tag deleted. The articles that carried it are unchanged.' };
 	}
 };

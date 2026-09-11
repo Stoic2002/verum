@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import sharp from 'sharp';
+import { toast } from './toast';
 
 /**
  * Fase 4 exit criteria:
@@ -54,10 +55,10 @@ test('uploads an image and writes every rendition', async ({ page }) => {
 	await page.locator('#credit').fill('Generated for tests');
 	await page.getByRole('button', { name: /^upload$/i }).click();
 
-	const notice = page.locator('.notice');
-	await expect(notice).toContainText('6 renditions');
+	const added = toast(page, '6 renditions');
+	await expect(added).toBeVisible();
 
-	mediaId = Number((await notice.textContent())?.match(/#(\d+)/)?.[1]);
+	mediaId = Number((await added.textContent())?.match(/#(\d+)/)?.[1]);
 	expect(mediaId).toBeGreaterThan(0);
 });
 
@@ -124,7 +125,7 @@ test('an article image renders as a picture that reserves its box', async ({ pag
 	await expect(figure.locator('figcaption')).toHaveText('Figure 1');
 
 	await page.getByRole('button', { name: /^save$/i }).click();
-	await expect(page.locator('.notice')).toContainText('Saved');
+	await expect(toast(page, 'Saved')).toBeVisible();
 });
 
 test('the image adds no layout shift', async ({ page }) => {

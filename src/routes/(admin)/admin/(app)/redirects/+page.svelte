@@ -1,11 +1,16 @@
 <script lang="ts">
 	import { superForm } from 'sveltekit-superforms';
-	import { AdminPager } from '$lib/components/ui';
+	import { enhance as kitEnhance } from '$app/forms';
+	import { AdminPager, ConfirmButton } from '$lib/components/ui';
+	import { enhanceWithToast, toastOnUpdate } from '$lib/toast.svelte';
 
 	let { data } = $props();
 
 	// svelte-ignore state_referenced_locally
-	const { form, errors, enhance, message } = superForm(data.form, { dataType: 'json' });
+	const { form, errors, enhance } = superForm(data.form, {
+		onUpdate: toastOnUpdate,
+		dataType: 'json'
+	});
 </script>
 
 <svelte:head><title>Redirects · VERUM</title></svelte:head>
@@ -28,15 +33,16 @@
 					<td><code>{row.to_path}</code></td>
 					<td class="num">{row.status}</td>
 					<td>
-						<form
-							method="POST"
-							action="?/delete"
-							onsubmit={(e) => {
-								if (!confirm(`Delete redirect for ${row.from_path}?`)) e.preventDefault();
-							}}
-						>
+						<form method="POST" action="?/delete" use:kitEnhance={enhanceWithToast()}>
 							<input type="hidden" name="id" value={row.id} />
-							<button type="submit" class="destructive">Delete</button>
+							<ConfirmButton
+								class="btn btn--danger btn--sm"
+								title="Delete this redirect?"
+								message={`${row.from_path} will return 404 again once this rule is gone.`}
+								confirmLabel="Delete redirect"
+							>
+								Delete
+							</ConfirmButton>
 						</form>
 					</td>
 				</tr>
@@ -48,15 +54,13 @@
 {/if}
 
 <form method="POST" action="?/save" use:enhance class="form-grid">
-	{#if $message}<p class="notice">{$message}</p>{/if}
-
 	<label for="fromPath">From path</label>
-	<input id="fromPath" bind:value={$form.fromPath} placeholder="/en/ai/old-slug" />
-	{#if $errors.fromPath}<p class="error">{$errors.fromPath}</p>{/if}
+	<input id="fromPath" type="text" bind:value={$form.fromPath} placeholder="/en/ai/old-slug" />
+	{#if $errors.fromPath}<p class="error">{$errors.fromPath[0]}</p>{/if}
 
 	<label for="toPath">To path</label>
-	<input id="toPath" bind:value={$form.toPath} placeholder="/en/ai/new-slug" />
-	{#if $errors.toPath}<p class="error">{$errors.toPath}</p>{/if}
+	<input id="toPath" type="text" bind:value={$form.toPath} placeholder="/en/ai/new-slug" />
+	{#if $errors.toPath}<p class="error">{$errors.toPath[0]}</p>{/if}
 
 	<label for="status">Status</label>
 	<select id="status" bind:value={$form.status}>
@@ -69,7 +73,7 @@
 </form>
 
 <style>
-	form {
+	.form-grid {
 		max-width: 32rem;
 		margin-top: 2rem;
 	}

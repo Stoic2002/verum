@@ -987,3 +987,53 @@ Satu detail yang mudah salah: **timestamp di cursor dikirim sebagai teks Postgre
 Cursor yang tidak valid **ditolak dengan 400**, bukan diabaikan: memulai ulang dari atas diam-diam akan memberi picker halaman pertama lagi dan mengulang semua gambar yang sudah dimilikinya.
 
 182 test unit (naik dari 173), termasuk: menjelajah 130 gambar lewat cursor tanpa ulang, tidak ada pengulangan saat gambar baru diunggah di antara dua kali muat, 50 baris dengan timestamp identik terbagi tanpa hilang, dan offset tetap deterministik pada timestamp identik.
+
+## Bagian Q — Toast, dialog konfirmasi, dan sidebar yang simetris
+
+### Q.1 Sidebar: satu kotak 2.25rem untuk semua baris
+
+Penyebab sidebar tidak sejajar saat dilipat: setiap kontrol punya ukuran sendiri. Nav memakai huruf pertama sebagai "ikon" (Dashboard dan Dev inbox sama-sama "D"), brand memakai `font-size: 0`, tombol toggle 1.875rem, dan tombol keluar memakai `btn--sm` dengan padding sendiri.
+
+Sekarang geometrinya satu aturan: rail terlipat 3.75rem, padding samping 0.75rem, sisa **tepat satu kotak 2.25rem**. Brand, toggle, setiap link nav, dan tombol keluar dibangun di atas kotak itu dengan inset dalam yang sama (`(2.25rem − ikon 18px) / 2`). Ikon memakai `@lucide/svelte`.
+
+Hasil yang diukur di browser, bukan dikira-kira: pusat horizontal setiap ikon **30px, baik saat terbuka maupun terlipat** — ikon tidak bergeser saat rail dilipat.
+
+Label disembunyikan secara visual (`clip-path`), bukan `display: none`: link yang terlipat tetap punya nama untuk screen reader dan untuk query role di e2e. Aturan lipat hanya berlaku di atas 60rem; di layar kecil sidebar tetap bar horizontal.
+
+### Q.2 Toast: satu konvensi untuk setiap aksi
+
+| Jenis aksi                                                                             | Sukses                            | Gagal                                                                                  |
+| -------------------------------------------------------------------------------------- | --------------------------------- | -------------------------------------------------------------------------------------- |
+| superforms (artikel, kategori, tag, redirect)                                          | `message(form, …)` → toast sukses | `message(…, {status: 400})` → toast error; tanpa pesan → "Some fields need attention." |
+| `use:enhance` biasa (media, topik, hapus)                                              | action mengembalikan `{ toast }`  | `fail(status, { error })`                                                              |
+| Aksi yang me-redirect (buat artikel, hapus artikel, tambah locale, buat topik, keluar) | **flash cookie**                  | —                                                                                      |
+
+Error field tetap tampil di bawah field-nya — toast memberi tahu _bahwa_ gagal, field memberi tahu _di mana_. Error login juga tetap inline: pesan rate limit harus masih terlihat saat orang menoleh ke form.
+
+**Flash cookie** diperlukan karena hasil action hilang saat redirect: halaman berikutnya dirender dari load baru. Pesan ditulis ke cookie `verum_flash` (path `/admin`, `httpOnly`, maxAge 60 detik), dibaca sekali oleh load berikutnya, dan langsung dihapus. Setiap flash punya id, jadi data layout yang dikirim ulang saat invalidasi tidak memunculkan toast yang sama dua kali. Cookie yang rusak atau tipe yang tidak dikenal diabaikan dan tetap dihapus.
+
+Store toast berada di level modul — pola yang dilarang PRD §10.4 di server. Aman di sini hanya karena setiap penulisan dijaga `browser`: salinan server tidak pernah ditulis. Komentar di file menandai ini.
+
+Aksesibilitas: container toast adalah live region `polite` yang ada sejak render pertama (region yang disisipkan bersamaan dengan isinya sering tidak diumumkan). Toast error membawa `role="alert"`; error bertahan 8 detik, sukses 4 detik; maksimal 4 toast.
+
+### Q.3 Dialog konfirmasi: `<dialog>` native
+
+`window.confirm()` diganti `ConfirmButton` di: hapus artikel, hapus gambar, hapus tag, hapus redirect, dan keluar.
+
+Dibangun di atas `<dialog>.showModal()`, bukan modal buatan sendiri: browser sudah mengurung fokus di dalamnya, membuat halaman di belakang inert, menutup dengan Escape, dan mengembalikan fokus ke tombol pemicu. Modal buatan sendiri harus mengimplementasikan keempatnya dan biasanya melewatkan satu.
+
+Pemicunya tetap tombol `submit` sungguhan. Dengan JavaScript, klik membuka dialog dan tombol konfirmasi memanggil `form.requestSubmit(tombolAsli)` — sehingga `formaction` tetap terbawa (tombol hapus gambar berbagi form dengan simpan alt). Tanpa JavaScript, form langsung terkirim, sama seperti `confirm()` sebelumnya.
+
+### Q.4 Celah form yang ikut ditemukan dari screenshot
+
+- `forms.css` hanya menata `input[type='text']`. Input **tanpa atribut `type`** — yang secara spesifikasi adalah input teks — tampil sebagai kotak bawaan browser di halaman redirect, kategori & tag, dan topik. Sekarang `input:not([type])` ikut ditata.
+- Selector `form { … }` yang scoped di halaman redirect juga mengenai form hapus di dalam setiap baris tabel, sehingga tombol Delete terdorong 2rem ke bawah. Diganti `.form-grid`; hal yang sama di halaman topik.
+- Error field superforms berupa array dan dirender apa adanya: "Required,Must be a site-relative path…,A path cannot redirect to itself". Sekarang hanya pesan pertama, seperti yang sudah dilakukan komponen `Field`.
+- Form yang **baru dibuka sudah penuh "Required"**: redirect, kategori, pengaturan artikel, dan editor locale memanggil `superValidate(dataAwal, adapter)` di `load`, dan superforms memvalidasi data itu seketika. Versi bahasa yang baru ditambahkan — kosong dengan sengaja (§7) — terbuka dengan setiap field ditandai salah. Keempatnya sekarang memakai `{ errors: false }`: error hanya muncul setelah simpan.
+- Tombol lipat ikut tampil di layar kecil dan header mobile berantakan; sekarang baris brand, chip nav yang membungkus, lalu baris akun.
+
+### Q.5 Yang dibuktikan
+
+189 test unit (naik dari 182): flash terbaca sekali lalu hilang, pesan sama dua kali mendapat id berbeda, cookie ber-scope `/admin` dan `httpOnly`, cookie rusak diabaikan dan dihapus.
+
+80 e2e (naik dari 78; ditambah assertion bahwa form yang baru dibuka tidak menampilkan error): keluar membuka dialog, Cancel mempertahankan sesi, konfirmasi keluar lalu toast "Signed out" muncul di halaman login; hapus redirect membuka dialog yang menyebut path-nya, Escape membatalkan, konfirmasi menghapus di tempat dengan toast; simpan yang gagal memunculkan toast error. Semua assertion `.notice` lama dipindah ke toast. Smoke build lulus.

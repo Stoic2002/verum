@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { superForm } from 'sveltekit-superforms';
+	import { toastOnUpdate } from '$lib/toast.svelte';
 	import { Button, Field } from '$lib/components/ui';
 	import { slugify } from '$lib/slug';
 
 	let { data } = $props();
 
 	// svelte-ignore state_referenced_locally
-	const { form, errors, enhance, submitting, message } = superForm(data.form, {
+	const { form, errors, enhance, submitting } = superForm(data.form, {
+		onUpdate: toastOnUpdate,
 		dataType: 'json'
 	});
 
@@ -23,8 +25,6 @@
 <h1>New article</h1>
 
 <form method="POST" use:enhance class="form-grid">
-	{#if $message}<p class="notice" role="alert">{$message}</p>{/if}
-
 	<Field id="title" label="Title" error={$errors.title}>
 		{#snippet children({ id, describedBy, invalid })}
 			<input

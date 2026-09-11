@@ -64,7 +64,7 @@ export const actions: Actions = {
 				{ buffer: Buffer.from(await file.arrayBuffer()), name: file.name },
 				{ alt, credit }
 			);
-			return { uploaded: record.id, variants: record.variants.length };
+			return { toast: `Added #${record.id} — ${record.variants.length} renditions written.` };
 		} catch (error) {
 			if (error instanceof UploadError) return fail(400, { error: error.message });
 			throw error;
@@ -100,7 +100,7 @@ export const actions: Actions = {
 				{ buffer: fetched.buffer, name: fetched.name },
 				{ alt, credit }
 			);
-			return { uploaded: record.id, variants: record.variants.length };
+			return { toast: `Added #${record.id} — ${record.variants.length} renditions written.` };
 		} catch (error) {
 			if (error instanceof UploadError) return fail(400, { error: error.message });
 			if (error instanceof Error && error.name === 'TimeoutError') {
@@ -121,7 +121,7 @@ export const actions: Actions = {
 		if (!alt) return fail(400, { error: 'Alt text is required.' });
 
 		await updateMediaMeta(db, id, { alt, credit: String(data.get('credit') ?? '') });
-		return { updated: true };
+		return { toast: 'Image details saved.' };
 	},
 
 	delete: async ({ request }) => {
@@ -130,6 +130,6 @@ export const actions: Actions = {
 		if (!Number.isInteger(id)) return fail(400, { error: 'Bad id' });
 
 		await deleteMedia(db, id);
-		return { deleted: true };
+		return { toast: 'Image deleted.' };
 	}
 };

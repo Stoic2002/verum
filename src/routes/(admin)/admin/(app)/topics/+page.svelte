@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { enhance } from '$app/forms';
+	import { enhanceWithToast } from '$lib/toast.svelte';
 
-	let { data, form } = $props();
+	let { data } = $props();
 </script>
 
 <svelte:head><title>Topics · VERUM</title></svelte:head>
@@ -34,15 +36,14 @@
 	<p class="empty">No topics yet.</p>
 {/if}
 
-<form method="POST" action="?/create" class="form-grid">
-	{#if form?.error}<p class="error" role="alert">{form.error}</p>{/if}
+<form method="POST" action="?/create" class="form-grid" use:enhance={enhanceWithToast()}>
 	<label for="slug">New topic slug</label>
 	<input id="slug" name="slug" placeholder="openai" required />
 	<div><button type="submit">Create topic</button></div>
 </form>
 
 <style>
-	form {
+	.form-grid {
 		margin-top: 2rem;
 		max-width: 24rem;
 	}

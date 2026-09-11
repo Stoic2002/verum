@@ -2,10 +2,19 @@
 	import '$lib/styles/tokens.css';
 	import '$lib/styles/forms.css';
 	import { enhance } from '$app/forms';
-	import { Button, Field } from '$lib/components/ui';
+	import { Button, Field, Toaster } from '$lib/components/ui';
+	import { toast } from '$lib/toast.svelte';
 
 	let { data, form } = $props();
 	let submitting = $state(false);
+
+	let shownFlash = '';
+	$effect(() => {
+		if (data.flash && data.flash.id !== shownFlash) {
+			shownFlash = data.flash.id;
+			toast(data.flash.type, data.flash.message);
+		}
+	});
 </script>
 
 <svelte:head><title>Sign in · VERUM</title></svelte:head>
@@ -68,6 +77,8 @@
 		<Button type="submit" loading={submitting} loadingLabel="Signing in…">Sign in</Button>
 	</form>
 </main>
+
+<Toaster />
 
 <style>
 	main {

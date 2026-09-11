@@ -1,3 +1,4 @@
+import { setFlash } from '$lib/server/flash';
 import { fail, redirect, type Actions } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { createTopic, listTopicsForAdmin } from '$lib/server/content/topics';
@@ -7,13 +8,18 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async () => ({ topics: await listTopicsForAdmin(db) });
 
 export const actions: Actions = {
-	create: async ({ request }) => {
+	create: async ({ request, cookies }) => {
 		const data = await request.formData();
 		const slug = slugify(String(data.get('slug') ?? ''));
 		if (!slug) return fail(400, { error: 'A slug is required.' });
 
 		try {
 			const id = await createTopic(db, slug);
+			setFlash(
+				cookies,
+				'success',
+				'Topic created. Write its introduction — that is what makes it rank.'
+			);
 			redirect(303, `/admin/topics/${id}`);
 		} catch (error) {
 			if (error instanceof Error && error.message.includes('topics_slug_unique')) {

@@ -1,3 +1,4 @@
+import { setFlash } from '$lib/server/flash';
 import { redirect, type Actions } from '@sveltejs/kit';
 import { valibot } from 'sveltekit-superforms/adapters';
 import { message, superValidate } from 'sveltekit-superforms';
@@ -15,7 +16,7 @@ export const load: PageServerLoad = async () => ({
 });
 
 export const actions: Actions = {
-	default: async ({ request }) => {
+	default: async ({ request, cookies }) => {
 		const form = await superValidate(request, adapter);
 		if (!form.valid) return message(form, 'Fix the errors below.', { status: 400 });
 
@@ -32,6 +33,7 @@ export const actions: Actions = {
 					bodyMd: ''
 				}
 			});
+			setFlash(cookies, 'success', 'Article created.');
 			redirect(303, `/admin/articles/${id}/${locale}`);
 		} catch (error) {
 			// The only realistic failure is the unique (locale, slug) index.

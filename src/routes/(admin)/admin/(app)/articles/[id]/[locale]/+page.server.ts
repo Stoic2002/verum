@@ -49,7 +49,9 @@ export const load: PageServerLoad = async ({ params }) => {
 				metaDesc: row.metaDesc ?? '',
 				correction: row.correction ?? ''
 			},
-			adapter
+			adapter,
+			// A freshly added locale is empty on purpose; it must not open covered in "Required".
+			{ errors: false }
 		)
 	};
 };

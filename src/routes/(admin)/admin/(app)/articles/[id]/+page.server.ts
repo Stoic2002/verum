@@ -1,3 +1,4 @@
+import { setFlash } from '$lib/server/flash';
 import { error, fail, redirect, type Actions } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { valibot } from 'sveltekit-superforms/adapters';
@@ -52,7 +53,9 @@ export const load: PageServerLoad = async ({ params }) => {
 			publishAt: toLocalInput(firstPublished),
 			tagIds: article.tagIds
 		},
-		adapter
+		adapter,
+		// Stored values are not a submission: show errors only after a save.
+		{ errors: false }
 	);
 
 	const storage = getStorage();
@@ -105,7 +108,7 @@ export const actions: Actions = {
 		return message(form, 'Saved.');
 	},
 
-	addLocale: async ({ request, params }) => {
+	addLocale: async ({ request, params, cookies }) => {
 		const id = Number(params.id);
 		const data = await request.formData();
 		const locale = String(data.get('locale') ?? '') as Locale;
@@ -127,11 +130,18 @@ export const actions: Actions = {
 			bodyMd: ''
 		});
 
+		setFlash(
+			cookies,
+			'success',
+			`Added the ${locale} version. It starts empty on purpose — write it, don't translate it.`
+		);
+
 		redirect(303, `/admin/articles/${id}/${locale}`);
 	},
 
-	delete: async ({ params }) => {
+	delete: async ({ params, cookies }) => {
 		await deleteArticle(db, Number(params.id));
+		setFlash(cookies, 'success', 'Article deleted.');
 		redirect(303, '/admin/articles');
 	}
 };
