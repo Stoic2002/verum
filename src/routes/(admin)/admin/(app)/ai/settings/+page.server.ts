@@ -109,6 +109,14 @@ export const actions: Actions = {
 			if (!info) return fail(400, { error: 'Choose a provider.' });
 			defaultLabel = info.label;
 			keyRequired = info.keyRequired;
+			if (info.baseUrlRequired) {
+				baseUrl = text(form, 'baseUrl');
+				if (!baseUrl)
+					return fail(400, { error: 'This provider needs the address of your instance.' });
+				if (!validBaseUrl(baseUrl)) {
+					return fail(400, { error: 'The address must start with http:// or https://.' });
+				}
+			}
 		}
 
 		const label = (text(form, 'label') || defaultLabel).slice(0, 60);
@@ -170,10 +178,13 @@ export const actions: Actions = {
 			const signal = AbortSignal.timeout(PROBE_TIMEOUT_MS);
 
 			if (credential.purpose === 'search') {
-				if (!credential.apiKey) return fail(400, { error: 'No API key stored.' });
+				if (SEARCH_PROVIDERS[credential.kind]?.keyRequired !== false && !credential.apiKey) {
+					return fail(400, { error: 'No API key stored.' });
+				}
 				const results = await createSearchClient({
 					kind: credential.kind as SearchProviderKind,
-					apiKey: credential.apiKey
+					apiKey: credential.apiKey,
+					baseUrl: credential.baseUrl
 				}).search('technology news', { count: 3, signal });
 				return { toast: `${credential.label} works: ${results.length} results for a test query.` };
 			}

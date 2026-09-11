@@ -24,6 +24,7 @@ import {
 } from './store';
 import { verifyClaims } from './verify';
 import type { SearchProviderKind } from '../db/schema';
+import { SEARCH_PROVIDERS } from '../../ai-providers';
 import { isUniqueViolation } from '../db/errors';
 
 /**
@@ -42,7 +43,11 @@ import { isUniqueViolation } from '../db/errors';
 export type PipelineDeps = {
 	db: Database;
 	createModel: (config: ModelConfig) => ModelClient;
-	createSearch: (config: { kind: SearchProviderKind; apiKey: string }) => SearchClient;
+	createSearch: (config: {
+		kind: SearchProviderKind;
+		apiKey: string | null;
+		baseUrl: string | null;
+	}) => SearchClient;
 	fetchSource: (
 		url: string,
 		signal: AbortSignal
@@ -228,7 +233,8 @@ export async function research(deps: PipelineDeps, jobId: number, signal: AbortS
 
 	if (ctx.job.searchCredentialId) {
 		const credential = await getCredentialWithKey(db, ctx.job.searchCredentialId);
-		if (!credential?.apiKey) {
+		const keyless = credential ? SEARCH_PROVIDERS[credential.kind]?.keyRequired === false : false;
+		if (!credential || (!keyless && !credential.apiKey)) {
 			await log(
 				ctx,
 				'warn',
@@ -237,7 +243,8 @@ export async function research(deps: PipelineDeps, jobId: number, signal: AbortS
 		} else {
 			const search = deps.createSearch({
 				kind: credential.kind as SearchProviderKind,
-				apiKey: credential.apiKey
+				apiKey: credential.apiKey,
+				baseUrl: credential.baseUrl
 			});
 			const prompt = queriesPrompt({
 				idea: ctx.job.idea,

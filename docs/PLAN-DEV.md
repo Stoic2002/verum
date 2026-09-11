@@ -1207,3 +1207,18 @@ Endpoint lokal tanpa key diberi key pengganti karena SDK tidak mau mengirim tanp
 **Belum didukung:** Amazon Bedrock, Google Vertex AI, Azure OpenAI / Microsoft Foundry (autentikasi cloud, bukan satu API key). Endpoint Anthropic-compatible Qwen memakai URL per workspace, jadi hanya lewat "Other".
 
 256 test unit (naik dari 241) dan 88 e2e (naik dari 86). E2E baru: DeepSeek mengisi base URL lalu hilang saat pindah ke Claude; endpoint tanpa daftar model lulus Test lewat permintaan satu kata; endpoint Anthropic-compatible memuat model dan lulus Test lewat SDK.
+
+### R.15 Search provider tambahan: Serper, SerpApi, Exa, SearXNG
+
+Diminta pemilik saat hendak menambahkan Serper dan pilihannya tidak ada.
+
+| Provider | Request (dicek dari dokumentasi, 11 September 2026)                                                | Catatan                                                                                                                                                                                                                                                           |
+| -------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Serper   | `POST https://google.serper.dev/search`, header `X-API-KEY`, body `{q, num}` → `organic[]`         | Hasil Google                                                                                                                                                                                                                                                      |
+| SerpApi  | `GET https://serpapi.com/search.json?engine=google&q=…&api_key=…` → `organic_results[]`            | Key **wajib** di query string (tidak ada opsi header). Tidak ada pesan error yang mengulang URL request, dan form memperingatkan bahwa key bisa tercatat di log proxy. Hasil kosong dijawab 200 + `error` — dibaca sebagai daftar kosong, error lain tetap error. |
+| Exa      | `POST https://api.exa.ai/search`, header `x-api-key`, body `{query, numResults}` → `results[]`     | Isi halaman tidak diminta: server ini membaca halamannya sendiri, jadi tidak perlu membayar dua kali.                                                                                                                                                             |
+| SearXNG  | `GET {instance}/search?q=…&format=json` → `results[]` (`url`, `title`, `content`, `publishedDate`) | Self-hosted, tanpa key, butuh alamat instance. Format JSON harus diaktifkan di `search.formats`; 403 dijelaskan sebagai itu, bukan sebagai key ditolak.                                                                                                           |
+
+Migration `0005` memperluas check constraint. Pipeline sekarang menerima search provider tanpa key, dan meneruskan base URL ke adapter.
+
+265 test unit (naik dari 256): setiap adapter diuji bentuk request, header key, pemetaan hasil, batas jumlah hasil, dan penolakan sebelum request kalau key tidak ada; key yang ditolak tidak muncul di pesan error. 89 e2e (naik dari 88): SearXNG ditambahkan tanpa key ke instance tiruan dan lulus Test dengan dua hasil.

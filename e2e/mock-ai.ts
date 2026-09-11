@@ -105,6 +105,33 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
 	if (request.method === 'GET' && PAGES[path]) {
 		return send(response, 200, 'text/html; charset=utf-8', PAGES[path]);
 	}
+	// A self-hosted SearXNG instance with JSON output enabled.
+	if (request.method === 'GET' && path === '/searxng/search') {
+		const params = new URL(request.url ?? '/', MOCK_ORIGIN).searchParams;
+		if (params.get('format') !== 'json') return send(response, 403, 'text/plain', 'Forbidden');
+		return send(
+			response,
+			200,
+			'application/json',
+			JSON.stringify({
+				query: params.get('q'),
+				results: [
+					{
+						url: LAUNCH_URL,
+						title: 'Orbit 2 launch details',
+						content: 'The Orbit 2 laptop ships on 14 October.',
+						publishedDate: '2026-09-01T09:00:00'
+					},
+					{
+						url: REVIEW_URL,
+						title: 'Orbit 2 review: battery',
+						content: 'In our testing the Orbit 2 lasted 11 hours.',
+						publishedDate: null
+					}
+				]
+			})
+		);
+	}
 	// Like Perplexity: chat works, but there is no model list to ask.
 	if (path.startsWith('/nolist/') && path.endsWith('/models')) {
 		return send(

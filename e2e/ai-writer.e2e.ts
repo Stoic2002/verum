@@ -152,6 +152,25 @@ test('adds an Anthropic-compatible endpoint through the Anthropic SDK', async ({
 	await expect(toast(page, `${name} works: the key is accepted and 1 models`)).toBeVisible();
 });
 
+test('adds a self-hosted SearXNG search provider without a key', async ({ page }) => {
+	await signIn(page);
+	await page.goto('/admin/ai/settings');
+
+	const name = `${LABEL} search`;
+	const form = await openAddForm(page, /add a search provider/i);
+	await form.getByLabel('Provider').selectOption('serper');
+	await expect(form.getByLabel('Base URL')).toHaveCount(0);
+
+	await form.getByLabel('Provider').selectOption('searxng');
+	await form.getByLabel('Name').fill(name);
+	await form.getByLabel('Base URL').fill(`${MOCK_ORIGIN}/searxng`);
+	await form.getByRole('button', { name: /add provider/i }).click();
+	await expect(toast(page, `${name} added`)).toBeVisible();
+
+	await providerRow(page, name).getByRole('button', { name: 'Test', exact: true }).click();
+	await expect(toast(page, `${name} works: 2 results`)).toBeVisible();
+});
+
 test('stores an API key encrypted and never sends it back to the browser', async ({ page }) => {
 	await signIn(page);
 	await page.goto('/admin/ai/settings');

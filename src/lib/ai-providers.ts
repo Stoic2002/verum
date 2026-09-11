@@ -227,7 +227,13 @@ export function presetFor(kind: string, baseUrl: string | null): ModelPreset {
 	);
 }
 
-export type SearchInfo = { label: string; note: string; keyRequired: boolean };
+export type SearchInfo = {
+	label: string;
+	note: string;
+	keyRequired: boolean;
+	/** Self-hosted engines have no fixed address. */
+	baseUrlRequired?: boolean;
+};
 
 export const SEARCH_PROVIDERS: Record<string, SearchInfo> = {
 	brave: {
@@ -239,5 +245,26 @@ export const SEARCH_PROVIDERS: Record<string, SearchInfo> = {
 		label: 'Tavily',
 		note: 'Search API built for research agents. Key from the Tavily dashboard.',
 		keyRequired: true
+	},
+	serper: {
+		label: 'Serper (Google results)',
+		note: 'Google search results as JSON. Key from the Serper dashboard.',
+		keyRequired: true
+	},
+	serpapi: {
+		label: 'SerpApi (Google results)',
+		note: 'Google search results as JSON. SerpApi only accepts the key as a query parameter, so it can appear in proxy logs between here and SerpApi.',
+		keyRequired: true
+	},
+	exa: {
+		label: 'Exa',
+		note: 'Search built for AI: finds pages by meaning, not only keywords. Key from the Exa dashboard.',
+		keyRequired: true
+	},
+	searxng: {
+		label: 'SearXNG (self-hosted)',
+		note: 'Your own metasearch instance, no key. JSON output must be enabled under search.formats in its settings.yml, or it answers 403. Public instances usually disable it.',
+		keyRequired: false,
+		baseUrlRequired: true
 	}
 };

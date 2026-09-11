@@ -36,6 +36,13 @@
       "when": 1789109737217,
       "tag": "0004_anthropic_compatible",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789111275599,
+      "tag": "0005_more_search_providers",
+      "breakpoints": true
     }
   ]
 }

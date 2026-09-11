@@ -36,7 +36,14 @@ export const MODEL_PROVIDER_KINDS = [
 ] as const;
 export type ModelProviderKind = (typeof MODEL_PROVIDER_KINDS)[number];
 
-export const SEARCH_PROVIDER_KINDS = ['brave', 'tavily'] as const;
+export const SEARCH_PROVIDER_KINDS = [
+	'brave',
+	'tavily',
+	'serper',
+	'serpapi',
+	'exa',
+	'searxng'
+] as const;
 export type SearchProviderKind = (typeof SEARCH_PROVIDER_KINDS)[number];
 
 export const CREDENTIAL_PURPOSES = ['model', 'search'] as const;
@@ -120,7 +127,7 @@ export const aiCredentials = pgTable(
 		check(
 			'ai_credentials_kind_ck',
 			sql`(purpose = 'model' AND kind IN ('anthropic', 'openai', 'gemini', 'openrouter', 'openai_compatible', 'anthropic_compatible'))
-				OR (purpose = 'search' AND kind IN ('brave', 'tavily'))`
+				OR (purpose = 'search' AND kind IN ('brave', 'tavily', 'serper', 'serpapi', 'exa', 'searxng'))`
 		)
 	]
 );

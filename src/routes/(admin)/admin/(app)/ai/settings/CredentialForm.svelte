@@ -116,7 +116,13 @@
 					</select>
 					{#if credential}<input type="hidden" name="preset" value={choice} />{/if}
 				{:else}
-					<select {id} name="kind" bind:value={choice} disabled={Boolean(credential)}>
+					<select
+						{id}
+						name="kind"
+						bind:value={choice}
+						onchange={() => (baseUrl = '')}
+						disabled={Boolean(credential)}
+					>
 						{#each Object.entries(SEARCH_PROVIDERS) as [value, info] (value)}
 							<option {value}>{info.label}</option>
 						{/each}
@@ -143,15 +149,17 @@
 
 	<p class="meta note">{note}</p>
 
-	{#if compatible}
+	{#if compatible || search?.baseUrlRequired}
 		<Field
 			id="{prefix}-baseUrl"
 			label="Base URL"
-			hint={preset?.baseUrl
-				? 'Filled in from the provider’s documentation. Change it for another region or plan.'
-				: preset?.kind === 'anthropic_compatible'
-					? 'Without /v1 — the Anthropic SDK adds /v1/messages.'
-					: 'Usually ends in /v1.'}
+			hint={search
+				? 'The address of your instance, for example https://searx.example.org'
+				: preset?.baseUrl
+					? 'Filled in from the provider’s documentation. Change it for another region or plan.'
+					: preset?.kind === 'anthropic_compatible'
+						? 'Without /v1 — the Anthropic SDK adds /v1/messages.'
+						: 'Usually ends in /v1.'}
 		>
 			{#snippet children({ id, describedBy })}
 				<input
