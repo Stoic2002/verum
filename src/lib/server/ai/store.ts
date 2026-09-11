@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, sql } from 'drizzle-orm';
 import type { Database } from '../db/types';
 import {
 	aiCredentials,
@@ -202,6 +202,30 @@ export async function transitionJob(
 		.update(aiJobs)
 		.set({ ...patch, status: to })
 		.where(and(eq(aiJobs.id, id), sql`${aiJobs.status} IN ${from}`))
+		.returning({ id: aiJobs.id });
+	return rows.length > 0;
+}
+
+/**
+ * Puts a failed or cancelled job back under review — only when its research
+ * got as far as claims. A job that failed while drafting has lost nothing but
+ * the draft; starting it again would pay to read every source a second time.
+ */
+export async function reopenJob(
+	db: Database,
+	id: number,
+	patch: Partial<typeof aiJobs.$inferInsert> = {}
+): Promise<boolean> {
+	const rows = await db
+		.update(aiJobs)
+		.set({ ...patch, status: 'review', error: null, finishedAt: null })
+		.where(
+			and(
+				eq(aiJobs.id, id),
+				inArray(aiJobs.status, ['failed', 'cancelled']),
+				sql`jsonb_array_length(${aiJobs.claims}) > 0`
+			)
+		)
 		.returning({ id: aiJobs.id });
 	return rows.length > 0;
 }

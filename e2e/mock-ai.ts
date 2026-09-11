@@ -167,7 +167,7 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
 			response,
 			200,
 			'application/json',
-			JSON.stringify({ data: [{ id: 'mock-writer' }] })
+			JSON.stringify({ data: [{ id: 'mock-writer' }, { id: 'mock-draft-fails' }] })
 		);
 	}
 	if (
@@ -175,9 +175,18 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
 		(path === '/v1/chat/completions' || path === '/nolist/v1/chat/completions')
 	) {
 		const payload = JSON.parse(await body(request)) as {
+			model?: string;
 			messages: { role: string; content: string }[];
 		};
 		const system = payload.messages.find((m) => m.role === 'system')?.content ?? '';
+		if (payload.model === 'mock-draft-fails' && system.includes('first draft')) {
+			return send(
+				response,
+				500,
+				'application/json',
+				JSON.stringify({ error: { message: 'Upstream overloaded' } })
+			);
+		}
 		return send(
 			response,
 			200,

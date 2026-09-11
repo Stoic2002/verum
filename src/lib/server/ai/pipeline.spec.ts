@@ -9,7 +9,15 @@ import { ProviderError } from './llm';
 import type { ExtractedPage } from './extract';
 import { PipelineError, assertJobAllowed, runTask, type PipelineDeps } from './pipeline';
 import { encryptSecret } from './secrets';
-import { createJob, getJob, listSources, setJob, transitionJob, updateAiSettings } from './store';
+import {
+	createJob,
+	getJob,
+	listSources,
+	reopenJob,
+	setJob,
+	transitionJob,
+	updateAiSettings
+} from './store';
 
 /**
  * The whole writer against a real database, with the network replaced:
@@ -414,6 +422,72 @@ describe('draft', () => {
 			'why-the-firm-raised-2-5-billion',
 			'why-the-firm-raised-2-5-billion-2'
 		]);
+	});
+});
+
+describe('reopening a job', () => {
+	it('puts a job that failed while drafting back under review, and drafts with another model', async () => {
+		const seen: string[] = [];
+		const script: Script = { claimsAttempts: 0, requests: [] };
+		const d = deps(script, {
+			createModel: (config) => {
+				seen.push(config.model);
+				return fakeModel(script);
+			}
+		});
+		const jobId = await newJob();
+		await run(d, jobId);
+		await transitionJob(db, jobId, ['review'], 'drafting');
+		await transitionJob(db, jobId, ['drafting'], 'failed', {
+			error: 'The provider returned an error (500).',
+			finishedAt: new Date()
+		});
+
+		const [other] = await db
+			.insert(aiCredentials)
+			.values({
+				purpose: 'model',
+				kind: 'openai_compatible',
+				label: 'Other',
+				baseUrl: 'http://other.invalid/v1',
+				model: 'other-1'
+			})
+			.returning({ id: aiCredentials.id });
+
+		expect(
+			await reopenJob(db, jobId, { modelCredentialId: other.id, modelLabel: 'Other · other-1' })
+		).toBe(true);
+
+		const reopened = (await getJob(db, jobId))!;
+		expect(reopened).toMatchObject({
+			status: 'review',
+			error: null,
+			finishedAt: null,
+			modelLabel: 'Other · other-1'
+		});
+		// The research survived: nothing has to be read or paid for again.
+		expect(reopened.outline?.title).toBe(OUTLINE.title);
+		expect(reopened.claims).toHaveLength(3);
+
+		await transitionJob(db, jobId, ['review'], 'drafting');
+		await run(d, jobId);
+
+		expect((await getJob(db, jobId))!.status).toBe('done');
+		expect(seen.at(-1)).toBe('other-1');
+	});
+
+	it('will not reopen a job whose research never produced claims, or one that finished', async () => {
+		const early = await newJob();
+		await setJob(db, early, { status: 'failed', error: 'No sources to read.' });
+		expect(await reopenJob(db, early)).toBe(false);
+
+		const d = deps({ claimsAttempts: 0, requests: [] });
+		const finished = await newJob();
+		await run(d, finished);
+		await transitionJob(db, finished, ['review'], 'drafting');
+		await run(d, finished);
+		expect((await getJob(db, finished))!.status).toBe('done');
+		expect(await reopenJob(db, finished)).toBe(false);
 	});
 });
 

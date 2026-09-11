@@ -227,6 +227,15 @@ export function presetFor(kind: string, baseUrl: string | null): ModelPreset {
 	);
 }
 
+/** How a job names the model it runs on: "DeepSeek · Anthropic API · deepseek-v4-pro". */
+export function modelLabel(credential: {
+	kind: string;
+	baseUrl: string | null;
+	model: string | null;
+}): string {
+	return `${presetFor(credential.kind, credential.baseUrl).display} · ${credential.model ?? ''}`;
+}
+
 export type SearchInfo = {
 	label: string;
 	note: string;

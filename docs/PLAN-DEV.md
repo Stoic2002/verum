@@ -1222,3 +1222,16 @@ Diminta pemilik saat hendak menambahkan Serper dan pilihannya tidak ada.
 Migration `0005` memperluas check constraint. Pipeline sekarang menerima search provider tanpa key, dan meneruskan base URL ke adapter.
 
 265 test unit (naik dari 256): setiap adapter diuji bentuk request, header key, pemetaan hasil, batas jumlah hasil, dan penolakan sebelum request kalau key tidak ada; key yang ditolak tidak muncul di pesan error. 89 e2e (naik dari 88): SearXNG ditambahkan tanpa key ke instance tiruan dan lulus Test dengan dua hasil.
+
+### R.16 Ganti model setelah gagal atau dibatalkan
+
+Sebelumnya "Start again" membuat job baru dengan model dan search provider yang **sama** — tidak berguna kalau modelnya sendiri yang bermasalah (overload, kehabisan kredit, menolak permintaan). Sekarang:
+
+- **Banner gagal/dibatalkan** memuat pilihan model dan web search, default ke yang dipakai job itu.
+- **Back to review** — hanya kalau riset sudah sampai klaim. Job yang sama dikembalikan ke review dengan model yang dipilih; sumber, klaim, dan outline tetap, jadi tidak ada riset yang dibayar dua kali. Kasus paling umum: model gagal saat menulis draf.
+- **Start again** — job baru dengan brief yang sama, **riset ulang**, memakai model dan search yang dipilih sekarang. Tetap dihitung ke batas mingguan. Draf tanpa URL sendiri ditolak kalau search dikosongkan.
+- **Saat review**, model untuk outline dan draf bisa diganti langsung; perubahan dicatat di log job.
+
+`reopenJob` mengubah status hanya dari `failed`/`cancelled` dan hanya kalau `claims` tidak kosong, dalam satu `UPDATE … WHERE` — tidak ada jendela di mana dua klik bisa membuka job yang sudah selesai. Job yang masih berhenti (task masih berjalan) ditolak dengan pesan untuk mencoba sebentar lagi.
+
+268 test unit (naik dari 265): job yang gagal saat draf dibuka kembali dengan model lain, riset utuh, lalu draf selesai dan benar-benar memakai model baru; job tanpa klaim dan job yang sudah selesai tidak bisa dibuka kembali. 90 e2e (naik dari 89): model tiruan yang lulus riset tapi gagal saat draf → Start again dengan model lain sampai review → job yang gagal dibuka kembali, klaimnya tetap tiga, dan draf selesai dengan model lain.

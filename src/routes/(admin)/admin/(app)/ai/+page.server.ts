@@ -1,5 +1,5 @@
 import { fail, redirect, type Actions } from '@sveltejs/kit';
-import { presetFor } from '$lib/ai-providers';
+import { modelLabel } from '$lib/ai-providers';
 import { LIMITS, PipelineError, assertJobAllowed } from '$lib/server/ai/pipeline';
 import { enqueue, resumeJobs } from '$lib/server/ai/runner';
 import { secretsAvailable } from '$lib/server/ai/secrets';
@@ -135,7 +135,7 @@ export const actions: Actions = {
 			seedUrls: urls,
 			modelCredentialId: model.id,
 			searchCredentialId: search?.id ?? null,
-			modelLabel: `${presetFor(model.kind, model.baseUrl).display} · ${model.model}`
+			modelLabel: modelLabel(model)
 		});
 		enqueue(id);
 

@@ -89,7 +89,7 @@ test('adds an OpenAI-compatible provider, loads its models, and tests it', async
 	await form.getByLabel('Name').fill(LABEL);
 	await form.getByLabel('Base URL').fill(`${MOCK_ORIGIN}/v1`);
 	await form.getByRole('button', { name: /load models/i }).click();
-	await expect(toast(page, 'Loaded 1 models')).toBeVisible();
+	await expect(toast(page, 'Loaded 2 models')).toBeVisible();
 
 	await form.getByLabel('Model', { exact: true }).fill('mock-writer');
 	await form.getByRole('button', { name: /add provider/i }).click();
@@ -283,6 +283,52 @@ test('does not publish until the note is resolved and the quality gate is confir
 	}
 	await page.getByRole('button', { name: /save settings/i }).click();
 	await expect(toast(page, 'Saved.')).toBeVisible();
+});
+
+test('a draft that fails can continue with another model, or start again', async ({ page }) => {
+	await signIn(page);
+
+	// Same endpoint, another model: it researches fine and fails when drafting.
+	await page.goto('/admin/ai/settings');
+	const flaky = `${LABEL} flaky`;
+	const form = await openAddForm(page, /add a model provider/i);
+	await form.getByLabel('Provider').selectOption('custom-openai');
+	await form.getByLabel('Name').fill(flaky);
+	await form.getByLabel('Base URL').fill(`${MOCK_ORIGIN}/v1`);
+	await form.getByLabel('Model', { exact: true }).fill('mock-draft-fails');
+	await form.getByRole('button', { name: /add provider/i }).click();
+	await expect(toast(page, `${flaky} added`)).toBeVisible();
+
+	await page.goto('/admin/ai');
+	await page.getByLabel('Idea').fill(`Orbit 2 retry ${stamp}`);
+	await page.getByLabel('Category').selectOption({ index: 0 });
+	await page.getByLabel('Model').selectOption({ label: `${flaky} · mock-draft-fails` });
+	await page.getByLabel('Web search').selectOption('');
+	await page.getByLabel('Sources you already have').fill(`${LAUNCH_URL}\n${REVIEW_URL}`);
+	await page.getByRole('button', { name: /start research/i }).click();
+	await expect(page.getByText('Needs your review')).toBeVisible({ timeout: 30_000 });
+	const failedUrl = page.url();
+
+	await page.getByRole('button', { name: /write draft/i }).click();
+	await expect(page.getByText('This draft failed.')).toBeVisible({ timeout: 30_000 });
+
+	// Start again: a new job, new research, on the model chosen now.
+	await page.getByLabel('Model', { exact: true }).selectOption({ label: `${LABEL} · mock-writer` });
+	await page.getByRole('button', { name: /start again/i }).click();
+	await expect(page).not.toHaveURL(failedUrl);
+	await expect(page.getByText('Needs your review')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('header.head')).toContainText('mock-writer');
+
+	// Back to review on the failed job: its research is kept, the draft uses the other model.
+	await page.goto(failedUrl);
+	await page.getByLabel('Model', { exact: true }).selectOption({ label: `${LABEL} · mock-writer` });
+	await page.getByRole('button', { name: /back to review/i }).click();
+	await expect(toast(page, 'Back to review with')).toBeVisible();
+	await expect(page.getByText('Needs your review')).toBeVisible();
+	await expect(page.locator('li.claim')).toHaveCount(3);
+
+	await page.getByRole('button', { name: /write draft/i }).click();
+	await expect(page.getByText('Draft ready')).toBeVisible({ timeout: 30_000 });
 });
 
 test('removes the provider', async ({ page }) => {

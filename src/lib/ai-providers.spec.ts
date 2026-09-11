@@ -3,6 +3,7 @@ import {
 	COMPATIBLE_KINDS,
 	MODEL_GROUPS,
 	MODEL_PRESETS,
+	modelLabel,
 	modelPreset,
 	presetFor
 } from './ai-providers';
@@ -44,5 +45,15 @@ describe('model provider presets', () => {
 			'DeepSeek · Anthropic API'
 		);
 		expect(modelPreset('nope')).toBeUndefined();
+	});
+
+	it('name the model a job runs on by provider and model id', () => {
+		expect(
+			modelLabel({
+				kind: 'anthropic_compatible',
+				baseUrl: 'https://api.deepseek.com/anthropic',
+				model: 'deepseek-v4-pro'
+			})
+		).toBe('DeepSeek · Anthropic API · deepseek-v4-pro');
 	});
 });

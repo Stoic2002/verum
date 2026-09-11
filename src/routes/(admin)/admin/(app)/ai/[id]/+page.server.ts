@@ -1,12 +1,16 @@
 import { error, fail, redirect, type Actions } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
+import { modelLabel } from '$lib/ai-providers';
 import { outlineToText, parseOutlineText } from '$lib/server/ai/outline-text';
 import { PipelineError, assertJobAllowed } from '$lib/server/ai/pipeline';
 import { cancelJob, enqueue, isRunning, resumeJobs } from '$lib/server/ai/runner';
 import {
+	appendLog,
 	createJob,
 	getJob,
+	listCredentials,
 	listSources,
+	reopenJob,
 	setJob,
 	setSourcesIncluded,
 	transitionJob
@@ -22,6 +26,18 @@ function jobId(raw: string | undefined): number {
 	return id;
 }
 
+/**
+ * The model provider picked in a form, or the job's own when none was sent.
+ * Only a provider that still exists and names a model can be chosen.
+ */
+async function chosenModel(form: FormData, fallback: number | null) {
+	const raw = String(form.get('modelCredentialId') ?? '');
+	const id = raw ? Number(raw) : fallback;
+	if (!id) return null;
+	const credentials = await listCredentials(db, 'model');
+	return credentials.find((c) => c.id === id && c.model) ?? null;
+}
+
 export const load: PageServerLoad = async ({ params, depends }) => {
 	depends('ai:job');
 	await resumeJobs();
@@ -30,7 +46,7 @@ export const load: PageServerLoad = async ({ params, depends }) => {
 	const job = await getJob(db, id);
 	if (!job) error(404, 'Not found');
 
-	const [sources, article, category] = await Promise.all([
+	const [sources, article, category, credentials] = await Promise.all([
 		listSources(db, id),
 		job.articleId
 			? db
@@ -46,7 +62,8 @@ export const load: PageServerLoad = async ({ params, depends }) => {
 					.from(categories)
 					.where(eq(categories.id, job.categoryId))
 					.then((rows) => rows[0] ?? null)
-			: null
+			: null,
+		listCredentials(db)
 	]);
 
 	return {
@@ -55,7 +72,13 @@ export const load: PageServerLoad = async ({ params, depends }) => {
 		article: article && job.articleId ? { id: job.articleId, ...article } : null,
 		category: category?.slug ?? null,
 		outlineText: outlineToText(job.outline),
-		running: isRunning(id)
+		running: isRunning(id),
+		models: credentials
+			.filter((c) => c.purpose === 'model' && c.model)
+			.map((c) => ({ id: c.id, label: c.label, model: c.model })),
+		searches: credentials
+			.filter((c) => c.purpose === 'search')
+			.map((c) => ({ id: c.id, label: c.label }))
 	};
 };
 
@@ -74,6 +97,19 @@ export const actions: Actions = {
 
 		const form = await request.formData();
 		const intent = String(form.get('intent') ?? 'save');
+
+		// The model can change at review: the outline and the draft run on it.
+		let modelNote = '';
+		const picked = String(form.get('modelCredentialId') ?? '');
+		if (picked && Number(picked) !== job.modelCredentialId) {
+			const model = await chosenModel(form, null);
+			if (!model) return fail(400, { error: 'That model provider no longer exists.' });
+			const label = modelLabel(model);
+			await setJob(db, id, { modelCredentialId: model.id, modelLabel: label });
+			await appendLog(db, id, 'info', `Model changed to ${label}.`);
+			modelNote = ` Using ${label}.`;
+		}
+
 		const keptClaims = new Set(form.getAll('claims').map(String));
 		const keptSources = new Set(form.getAll('sources').map(String));
 
@@ -99,7 +135,8 @@ export const actions: Actions = {
 		const outline = hasOutline ? { title, excerpt, sections } : job.outline;
 
 		await setSourcesIncluded(db, id, [...keptSources]);
-		const note = dropped ? ` ${dropped} claim(s) left out: their sources are unticked.` : '';
+		const note =
+			(dropped ? ` ${dropped} claim(s) left out: their sources are unticked.` : '') + modelNote;
 
 		if (intent === 'outline') {
 			await setJob(db, id, { claims });
@@ -126,12 +163,56 @@ export const actions: Actions = {
 		return { toast: `Review saved.${note}` };
 	},
 
-	retry: async ({ params, cookies }) => {
+	/** Back to review on the same job, with the research kept and, optionally, another model. */
+	reopen: async ({ params, request }) => {
+		const id = jobId(params.id);
+		const job = await getJob(db, id);
+		if (!job) error(404, 'Not found');
+		if (isRunning(id)) {
+			return fail(400, { error: 'This job is still stopping. Try again in a moment.' });
+		}
+
+		const model = await chosenModel(await request.formData(), job.modelCredentialId);
+		if (!model) return fail(400, { error: 'Choose a model provider.' });
+
+		const label = modelLabel(model);
+		const reopened = await reopenJob(db, id, { modelCredentialId: model.id, modelLabel: label });
+		if (!reopened) {
+			return fail(400, {
+				error: 'Only a draft whose research finished can go back to review. Start again instead.'
+			});
+		}
+
+		await appendLog(db, id, 'info', `Reopened for review with ${label}.`);
+		return { toast: `Back to review with ${label}. Check the outline, then write the draft.` };
+	},
+
+	/** A new job with the same brief — new research — on the model and search chosen now. */
+	retry: async ({ params, request, cookies }) => {
 		const job = await getJob(db, jobId(params.id));
 		if (!job) error(404, 'Not found');
-		if (!job.modelCredentialId || !job.categoryId) {
+		if (!job.categoryId) {
+			return fail(400, { error: 'The category for this job was deleted. Start a new draft.' });
+		}
+
+		const form = await request.formData();
+		const model = await chosenModel(form, job.modelCredentialId);
+		if (!model) return fail(400, { error: 'Choose a model provider.' });
+
+		let searchCredentialId = job.searchCredentialId;
+		if (form.has('searchCredentialId')) {
+			const raw = String(form.get('searchCredentialId') ?? '');
+			searchCredentialId = raw ? Number(raw) : null;
+			if (searchCredentialId !== null) {
+				const searches = await listCredentials(db, 'search');
+				if (!searches.some((c) => c.id === searchCredentialId)) {
+					return fail(400, { error: 'That search provider no longer exists.' });
+				}
+			}
+		}
+		if (searchCredentialId === null && job.seedUrls.length === 0) {
 			return fail(400, {
-				error: 'The provider or category for this job was deleted. Start a new draft.'
+				error: 'This draft had no URLs of its own, so it needs a search provider.'
 			});
 		}
 
@@ -142,18 +223,19 @@ export const actions: Actions = {
 			throw err;
 		}
 
+		const label = modelLabel(model);
 		const id = await createJob(db, {
 			locale: job.locale,
 			categoryId: job.categoryId,
 			idea: job.idea,
 			angle: job.angle,
 			seedUrls: job.seedUrls,
-			modelCredentialId: job.modelCredentialId,
-			searchCredentialId: job.searchCredentialId,
-			modelLabel: job.modelLabel
+			modelCredentialId: model.id,
+			searchCredentialId,
+			modelLabel: label
 		});
 		enqueue(id);
-		setFlash(cookies, 'info', `Started again as #${id}.`);
+		setFlash(cookies, 'info', `Started again as #${id} with ${label}.`);
 		redirect(303, `/admin/ai/${id}`);
 	}
 };

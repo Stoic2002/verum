@@ -88,11 +88,66 @@
 	</div>
 {/if}
 
-{#if job.status === 'failed'}
-	<div class="banner banner--failed">
-		<p><strong>This draft failed.</strong> {job.error}</p>
-		<form method="POST" action="?/retry" use:enhance={enhanceWithToast()}>
-			<Button type="submit" size="sm" variant="secondary">Start again</Button>
+{#if job.status === 'failed' || job.status === 'cancelled'}
+	{@const canReopen = job.claims.length > 0}
+	<div class="banner banner--failed banner--stack">
+		<p>
+			{#if job.status === 'failed'}
+				<strong>This draft failed.</strong> {job.error}
+			{:else}
+				<strong>This draft was cancelled.</strong>
+			{/if}
+			{#if canReopen}
+				Its research is kept: go back to review with another model, or research it again.
+			{:else}
+				Try again, with another model if this one was the problem.
+			{/if}
+		</p>
+		<form
+			method="POST"
+			action={canReopen ? '?/reopen' : '?/retry'}
+			class="restart"
+			use:enhance={enhanceWithToast()}
+		>
+			<Field id="restart-model" label="Model">
+				{#snippet children({ id })}
+					<select {id} name="modelCredentialId">
+						{#each data.models as model (model.id)}
+							<option value={model.id} selected={model.id === job.modelCredentialId}>
+								{model.label} · {model.model}
+							</option>
+						{/each}
+					</select>
+				{/snippet}
+			</Field>
+			<Field
+				id="restart-search"
+				label="Web search"
+				hint="Used only when the research starts again."
+			>
+				{#snippet children({ id, describedBy })}
+					<select {id} name="searchCredentialId" aria-describedby={describedBy}>
+						{#each data.searches as search (search.id)}
+							<option value={search.id} selected={search.id === job.searchCredentialId}>
+								{search.label}
+							</option>
+						{/each}
+						<option value="" selected={job.searchCredentialId === null}>
+							No search: only this draft's URLs
+						</option>
+					</select>
+				{/snippet}
+			</Field>
+			<div class="restart__actions">
+				{#if canReopen}
+					<Button type="submit" size="sm">Back to review</Button>
+					<Button type="submit" size="sm" variant="secondary" formaction="?/retry"
+						>Start again</Button
+					>
+				{:else}
+					<Button type="submit" size="sm">Start again</Button>
+				{/if}
+			</div>
 		</form>
 	</div>
 {/if}
@@ -271,6 +326,16 @@
 			</section>
 
 			<div class="review-actions">
+				<label class="review-model">
+					<span class="meta">Model</span>
+					<select name="modelCredentialId" aria-label="Model for the outline and the draft">
+						{#each data.models as model (model.id)}
+							<option value={model.id} selected={model.id === job.modelCredentialId}>
+								{model.label} · {model.model}
+							</option>
+						{/each}
+					</select>
+				</label>
 				<Button type="submit" name="intent" value="draft" loading={busy} loadingLabel="Saving…"
 					>Write draft</Button
 				>
@@ -469,5 +534,29 @@
 		padding: 0.75rem 0;
 		background: var(--bg);
 		border-top: 1px solid var(--border);
+	}
+	.banner--stack {
+		flex-direction: column;
+		align-items: stretch;
+	}
+	.restart {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+		align-items: end;
+		gap: 0.75rem 1rem;
+	}
+	.restart__actions {
+		display: flex;
+		gap: 0.5rem;
+	}
+	.review-model {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin-right: 0.5rem;
+	}
+	.review-model select {
+		width: auto;
+		max-width: 20rem;
 	}
 </style>
