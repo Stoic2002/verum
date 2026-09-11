@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import {
+	EmptyReplyError,
 	ProviderError,
 	describeStatus,
 	redact,
@@ -10,7 +11,8 @@ import {
 } from './types';
 
 /**
- * Claude, through the official SDK.
+ * Claude, and every endpoint that speaks the Anthropic Messages API, through
+ * the official SDK.
  *
  * Streaming even though nothing here renders tokens as they arrive: a full
  * article draft is a long response, and a non-streaming request that long can
@@ -21,16 +23,30 @@ import {
 /**
  * Models that accept the server-side `fallbacks: "default"` parameter. If one
  * of them declines a request, Anthropic re-runs it on its recommended
- * fallback model in the same call instead of returning a refusal.
+ * fallback model in the same call instead of returning a refusal. Only ever
+ * sent to Anthropic itself: another vendor's endpoint would reject the field.
  */
 const SERVER_FALLBACK_MODELS = new Set(['claude-opus-5', 'claude-fable-5-1']);
 
 export function createAnthropicClient(config: ModelConfig): ModelClient {
-	if (!config.apiKey) throw new ProviderError('Anthropic needs an API key.');
+	const compatible = config.kind === 'anthropic_compatible';
+	const baseUrl = config.baseUrl?.trim() || undefined;
+	if (compatible && !baseUrl) throw new ProviderError('This provider needs a base URL.');
+
+	// Local servers (Ollama, LM Studio) ignore the key, but the SDK will not
+	// send a request without one.
+	const apiKey = config.apiKey || (compatible ? 'not-needed' : null);
+	if (!apiKey) throw new ProviderError('Anthropic needs an API key.');
+
+	const name = compatible ? new URL(baseUrl!).host : 'Anthropic';
 
 	const client = new Anthropic({
-		apiKey: config.apiKey,
-		baseURL: config.baseUrl?.trim() || undefined,
+		apiKey,
+		// Compatible endpoints differ on the header they read — DeepSeek and
+		// MiniMax document x-api-key; Kimi, Z.ai and Model Studio a bearer token. It
+		// is the same key going to the same host, so both are sent.
+		...(compatible ? { authToken: apiKey } : {}),
+		baseURL: baseUrl,
 		maxRetries: 2,
 		...(config.fetch ? { fetch: config.fetch } : {})
 	});
@@ -39,10 +55,10 @@ export function createAnthropicClient(config: ModelConfig): ModelClient {
 		// An abort is the job being cancelled, not a provider failure.
 		if (error instanceof Anthropic.APIUserAbortError) throw error;
 		if (error instanceof Anthropic.APIConnectionTimeoutError) {
-			throw new ProviderError('The request to Anthropic timed out.');
+			throw new ProviderError(`The request to ${name} timed out.`);
 		}
 		if (error instanceof Anthropic.APIConnectionError) {
-			throw new ProviderError('Could not reach Anthropic.');
+			throw new ProviderError(`Could not reach ${name}.`);
 		}
 		if (
 			error instanceof Anthropic.AuthenticationError ||
@@ -71,14 +87,15 @@ export function createAnthropicClient(config: ModelConfig): ModelClient {
 
 			let message;
 			try {
-				message = SERVER_FALLBACK_MODELS.has(config.model)
-					? await client.beta.messages
-							.stream(
-								{ ...params, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' },
-								{ signal: req.signal }
-							)
-							.finalMessage()
-					: await client.messages.stream(params, { signal: req.signal }).finalMessage();
+				message =
+					!compatible && SERVER_FALLBACK_MODELS.has(config.model)
+						? await client.beta.messages
+								.stream(
+									{ ...params, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' },
+									{ signal: req.signal }
+								)
+								.finalMessage()
+						: await client.messages.stream(params, { signal: req.signal }).finalMessage();
 			} catch (error) {
 				translate(error);
 			}
@@ -96,7 +113,7 @@ export function createAnthropicClient(config: ModelConfig): ModelClient {
 			for (const block of message.content) {
 				if (block.type === 'text') text += block.text;
 			}
-			if (!text) throw new ProviderError('The model returned an empty reply.');
+			if (!text) throw new EmptyReplyError();
 
 			const usage = message.usage;
 			return {

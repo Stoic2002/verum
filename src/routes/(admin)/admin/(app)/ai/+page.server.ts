@@ -1,5 +1,5 @@
 import { fail, redirect, type Actions } from '@sveltejs/kit';
-import { MODEL_PROVIDERS } from '$lib/ai-providers';
+import { presetFor } from '$lib/ai-providers';
 import { LIMITS, PipelineError, assertJobAllowed } from '$lib/server/ai/pipeline';
 import { enqueue, resumeJobs } from '$lib/server/ai/runner';
 import { secretsAvailable } from '$lib/server/ai/secrets';
@@ -127,7 +127,6 @@ export const actions: Actions = {
 			throw error;
 		}
 
-		const provider = MODEL_PROVIDERS[model.kind as keyof typeof MODEL_PROVIDERS];
 		const id = await createJob(db, {
 			locale,
 			categoryId,
@@ -136,7 +135,7 @@ export const actions: Actions = {
 			seedUrls: urls,
 			modelCredentialId: model.id,
 			searchCredentialId: search?.id ?? null,
-			modelLabel: `${provider?.label ?? model.kind} · ${model.model}`
+			modelLabel: `${presetFor(model.kind, model.baseUrl).display} · ${model.model}`
 		});
 		enqueue(id);
 

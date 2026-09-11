@@ -56,6 +56,18 @@ export class ProviderError extends Error {
 }
 
 /**
+ * The provider accepted the request and the model answered with no text.
+ * On a real task that is a failure; on a connection test it proves the key
+ * and the model id — a thinking model can spend a tiny test budget reasoning.
+ */
+export class EmptyReplyError extends ProviderError {
+	constructor(detail = '') {
+		super(`The model returned an empty reply${detail}.`);
+		this.name = 'EmptyReplyError';
+	}
+}
+
+/**
  * Removes the key from anything a provider sent back before it is shown or
  * stored. Some providers echo a masked-but-partial key in 401 bodies; the
  * message goes into the job log, which is rendered in the admin.

@@ -1172,3 +1172,38 @@ Pengecekan slug duplikat di form "New article", editor locale, dan topik memakai
 - provider dihapus lewat dialog konfirmasi.
 
 Test publish yang lama sekarang ikut mencentang quality gate.
+
+### R.14 Provider bernama, Anthropic-compatible, dan Test yang tidak salah lapor
+
+Ditambahkan setelah pemilik bertanya apakah provider hanya lima dan apakah ada Anthropic-compatible.
+
+**Dropdown dikelompokkan, dengan base URL terisi otomatis:**
+
+| Kelompok             | Pilihan                                                                                                                                         |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Direct               | Claude, ChatGPT, Gemini, OpenRouter                                                                                                             |
+| OpenAI-compatible    | DeepSeek, Groq, Mistral, xAI (Grok), Kimi, Z.ai (GLM), MiniMax, Qwen (Model Studio), Together AI, Fireworks AI, Perplexity (Sonar), dan "Other" |
+| Anthropic-compatible | DeepSeek, Kimi, Z.ai (GLM), MiniMax, dan "Other"                                                                                                |
+| Local                | Ollama dan LM Studio, masing-masing lewat API OpenAI dan API Anthropic                                                                          |
+
+Preset **bukan jenis provider baru**: yang disimpan tetap `kind` + base URL, dan preset dikenali ulang dari keduanya. Base URL diambil dari **dokumentasi resmi masing-masing provider pada 11 September 2026**, bukan dari ingatan — dua di antaranya ternyata berbeda dari yang umum beredar (DeepSeek OpenAI tanpa `/v1`; Together sekarang `api.together.ai`). Field tetap bisa diubah untuk region atau paket lain (Z.ai Coding Plan, region Model Studio). Test memeriksa setiap preset dikenali kembali dari data yang tersimpan.
+
+**`anthropic_compatible`** — SDK resmi Anthropic dengan base URL lain; migration `0004` memperluas check constraint. Dua detail yang penting:
+
+- Provider berbeda soal header: DeepSeek dan MiniMax mendokumentasikan `x-api-key`, Kimi, Z.ai, dan Model Studio memakai bearer token. Keduanya dikirim — key yang sama ke host yang sama.
+- `fallbacks: "default"` hanya dikirim ke Anthropic sendiri, bahkan kalau nama modelnya kebetulan `claude-opus-5`; vendor lain akan menolak field itu. Diuji dengan fetch palsu yang merekam request SDK.
+
+Endpoint lokal tanpa key diberi key pengganti karena SDK tidak mau mengirim tanpa key. Catatan di form: `localhost` hanya sampai ke mesin yang sama — di VPS, itu VPS-nya.
+
+**Test tidak lagi bergantung pada `/models`.** Banyak endpoint compatible tidak punya daftar model (atau hanya sebagian). Urutannya sekarang:
+
+1. Daftar model menyebut model yang dipakai → berhasil, tanpa token.
+2. Daftar tidak ada (404/405/501), kosong, atau tidak menyebut model → satu permintaan chat 32 token ke model itu.
+3. Key ditolak (401/403) → dilaporkan sebagai key ditolak, **tanpa** permintaan chat.
+4. Balasan kosong dihitung berhasil: permintaan diterima, dan model thinking bisa menghabiskan 32 token untuk berpikir.
+
+"Load models" pada endpoint tanpa daftar sekarang mengatakan itu dengan jelas dan menyuruh mengetik id model, bukan melaporkan error 404.
+
+**Belum didukung:** Amazon Bedrock, Google Vertex AI, Azure OpenAI / Microsoft Foundry (autentikasi cloud, bukan satu API key). Endpoint Anthropic-compatible Qwen memakai URL per workspace, jadi hanya lewat "Other".
+
+256 test unit (naik dari 241) dan 88 e2e (naik dari 86). E2E baru: DeepSeek mengisi base URL lalu hilang saat pindah ke Claude; endpoint tanpa daftar model lulus Test lewat permintaan satu kata; endpoint Anthropic-compatible memuat model dan lulus Test lewat SDK.

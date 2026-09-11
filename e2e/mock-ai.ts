@@ -105,6 +105,36 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
 	if (request.method === 'GET' && PAGES[path]) {
 		return send(response, 200, 'text/html; charset=utf-8', PAGES[path]);
 	}
+	// Like Perplexity: chat works, but there is no model list to ask.
+	if (path.startsWith('/nolist/') && path.endsWith('/models')) {
+		return send(
+			response,
+			404,
+			'application/json',
+			JSON.stringify({ error: { message: 'Not found' } })
+		);
+	}
+	// The Anthropic Models API shape, for an Anthropic-compatible endpoint.
+	if (request.method === 'GET' && path === '/anthropic/v1/models') {
+		return send(
+			response,
+			200,
+			'application/json',
+			JSON.stringify({
+				data: [
+					{
+						type: 'model',
+						id: 'mock-writer',
+						display_name: 'Mock writer',
+						created_at: '2026-09-01T00:00:00Z'
+					}
+				],
+				has_more: false,
+				first_id: 'mock-writer',
+				last_id: 'mock-writer'
+			})
+		);
+	}
 	if (request.method === 'GET' && path === '/v1/models') {
 		return send(
 			response,
@@ -113,7 +143,10 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
 			JSON.stringify({ data: [{ id: 'mock-writer' }] })
 		);
 	}
-	if (request.method === 'POST' && path === '/v1/chat/completions') {
+	if (
+		request.method === 'POST' &&
+		(path === '/v1/chat/completions' || path === '/nolist/v1/chat/completions')
+	) {
 		const payload = JSON.parse(await body(request)) as {
 			messages: { role: string; content: string }[];
 		};

@@ -30,7 +30,9 @@ export const MODEL_PROVIDER_KINDS = [
 	'openai',
 	'gemini',
 	'openrouter',
-	'openai_compatible'
+	'openai_compatible',
+	// DeepSeek, Kimi, GLM, MiniMax, Ollama, LM Studio … through the Anthropic SDK with another base URL.
+	'anthropic_compatible'
 ] as const;
 export type ModelProviderKind = (typeof MODEL_PROVIDER_KINDS)[number];
 
@@ -97,7 +99,7 @@ export const aiCredentials = pgTable(
 		purpose: text('purpose', { enum: CREDENTIAL_PURPOSES }).notNull(),
 		kind: text('kind').notNull(),
 		label: text('label').notNull(),
-		/** Only for openai_compatible (and optional overrides); null means the provider default. */
+		/** For the *_compatible kinds; null means the provider's own default endpoint. */
 		baseUrl: text('base_url'),
 		/** Model id for purpose=model; null for search. */
 		model: text('model'),
@@ -117,7 +119,7 @@ export const aiCredentials = pgTable(
 		check('ai_credentials_purpose_ck', sql`purpose IN ('model', 'search')`),
 		check(
 			'ai_credentials_kind_ck',
-			sql`(purpose = 'model' AND kind IN ('anthropic', 'openai', 'gemini', 'openrouter', 'openai_compatible'))
+			sql`(purpose = 'model' AND kind IN ('anthropic', 'openai', 'gemini', 'openrouter', 'openai_compatible', 'anthropic_compatible'))
 				OR (purpose = 'search' AND kind IN ('brave', 'tavily'))`
 		)
 	]

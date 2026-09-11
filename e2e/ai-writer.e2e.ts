@@ -23,6 +23,13 @@ async function signIn(page: Page) {
 	await expect(page).toHaveURL('/admin');
 }
 
+/** A provider row by its exact name; several names share a prefix in this file. */
+function providerRow(page: Page, label: string) {
+	return page
+		.locator('li.credential')
+		.filter({ has: page.locator('strong', { hasText: new RegExp(`^${label}$`) }) });
+}
+
 async function openAddForm(page: Page, summary: RegExp) {
 	const details = page.locator('details', { has: page.locator('summary', { hasText: summary }) });
 	await details.evaluate((el) => ((el as HTMLDetailsElement).open = true));
@@ -71,7 +78,14 @@ test('adds an OpenAI-compatible provider, loads its models, and tests it', async
 	await page.goto('/admin/ai/settings');
 
 	const form = await openAddForm(page, /add a model provider/i);
-	await form.getByLabel('Provider').selectOption('openai_compatible');
+	// A named provider fills in the base URL from its documentation.
+	await form.getByLabel('Provider').selectOption('deepseek');
+	await expect(form.getByLabel('Base URL')).toHaveValue('https://api.deepseek.com');
+	await form.getByLabel('Provider').selectOption('anthropic');
+	await expect(form.getByLabel('Base URL')).toHaveCount(0);
+
+	await form.getByLabel('Provider').selectOption('custom-openai');
+	await expect(form.getByLabel('Base URL')).toHaveValue('');
 	await form.getByLabel('Name').fill(LABEL);
 	await form.getByLabel('Base URL').fill(`${MOCK_ORIGIN}/v1`);
 	await form.getByRole('button', { name: /load models/i }).click();
@@ -81,7 +95,7 @@ test('adds an OpenAI-compatible provider, loads its models, and tests it', async
 	await form.getByRole('button', { name: /add provider/i }).click();
 	await expect(toast(page, `${LABEL} added`)).toBeVisible();
 
-	const row = page.locator('li.credential', { hasText: LABEL });
+	const row = providerRow(page, LABEL);
 	await row.getByRole('button', { name: 'Test', exact: true }).click();
 	await expect(toast(page, `${LABEL} works`)).toBeVisible();
 
@@ -91,6 +105,51 @@ test('adds an OpenAI-compatible provider, loads its models, and tests it', async
 	await page.getByLabel('Drafts per 7 days').fill('100');
 	await page.getByRole('button', { name: /save settings/i }).click();
 	await expect(toast(page, 'Settings saved')).toBeVisible();
+});
+
+test('checks an endpoint that has no model list by asking the model', async ({ page }) => {
+	await signIn(page);
+	await page.goto('/admin/ai/settings');
+
+	const name = `${LABEL} no list`;
+	const form = await openAddForm(page, /add a model provider/i);
+	await form.getByLabel('Provider').selectOption('custom-openai');
+	await form.getByLabel('Name').fill(name);
+	await form.getByLabel('Base URL').fill(`${MOCK_ORIGIN}/nolist/v1`);
+	await form.getByRole('button', { name: /load models/i }).click();
+	await expect(page.locator('.toast--error')).toContainText('does not publish a model list');
+
+	await form.getByLabel('Model', { exact: true }).fill('mock-writer');
+	await form.getByRole('button', { name: /add provider/i }).click();
+	await expect(toast(page, `${name} added`)).toBeVisible();
+
+	await providerRow(page, name).getByRole('button', { name: 'Test', exact: true }).click();
+	await expect(toast(page, 'one-word request and answered')).toBeVisible();
+});
+
+test('adds an Anthropic-compatible endpoint through the Anthropic SDK', async ({ page }) => {
+	await signIn(page);
+	await page.goto('/admin/ai/settings');
+
+	const name = `${LABEL} anthropic`;
+	const form = await openAddForm(page, /add a model provider/i);
+	await form.getByLabel('Provider').selectOption('deepseek-anthropic');
+	await expect(form.getByLabel('Base URL')).toHaveValue('https://api.deepseek.com/anthropic');
+
+	await form.getByLabel('Provider').selectOption('custom-anthropic');
+	await form.getByLabel('Name').fill(name);
+	await form.getByLabel('Base URL').fill(`${MOCK_ORIGIN}/anthropic`);
+	await form.getByRole('button', { name: /load models/i }).click();
+	await expect(toast(page, 'Loaded 1 models')).toBeVisible();
+
+	await form.getByLabel('Model', { exact: true }).fill('mock-writer');
+	await form.getByRole('button', { name: /add provider/i }).click();
+	await expect(toast(page, `${name} added`)).toBeVisible();
+
+	const row = providerRow(page, name);
+	await expect(row).toContainText('Anthropic-compatible endpoint');
+	await row.getByRole('button', { name: 'Test', exact: true }).click();
+	await expect(toast(page, `${name} works: the key is accepted and 1 models`)).toBeVisible();
 });
 
 test('stores an API key encrypted and never sends it back to the browser', async ({ page }) => {
@@ -107,7 +166,7 @@ test('stores an API key encrypted and never sends it back to the browser', async
 	await expect(toast(page, `Key test ${stamp} added`)).toBeVisible();
 
 	await page.reload();
-	const row = page.locator('li.credential', { hasText: `Key test ${stamp}` });
+	const row = providerRow(page, `Key test ${stamp}`);
 	await expect(row).toContainText('…abcd');
 	// The page itself mentions AI_KEY_SECRET, so look for this key specifically:
 	// neither whole nor its distinctive middle may reach the browser.
@@ -211,7 +270,7 @@ test('removes the provider', async ({ page }) => {
 	await signIn(page);
 	await page.goto('/admin/ai/settings');
 
-	const row = page.locator('li.credential', { hasText: LABEL });
+	const row = providerRow(page, LABEL);
 	await row.getByRole('button', { name: /^remove$/i }).click();
 	await page
 		.getByRole('dialog')

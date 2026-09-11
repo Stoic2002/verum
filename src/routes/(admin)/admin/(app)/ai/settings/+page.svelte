@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { MODEL_PROVIDERS, SEARCH_PROVIDERS } from '$lib/ai-providers';
+	import { SEARCH_PROVIDERS, presetFor } from '$lib/ai-providers';
 	import { Button, ConfirmButton, Field } from '$lib/components/ui';
 	import { enhanceWithToast } from '$lib/toast.svelte';
 	import CredentialForm from './CredentialForm.svelte';
@@ -9,10 +9,10 @@
 	let { data } = $props();
 	let editing = $state<number | null>(null);
 
-	const providerLabel = (kind: string) =>
-		(MODEL_PROVIDERS as Record<string, { label: string }>)[kind]?.label ??
-		(SEARCH_PROVIDERS as Record<string, { label: string }>)[kind]?.label ??
-		kind;
+	const providerLabel = (item: { purpose: string; kind: string; baseUrl: string | null }) =>
+		item.purpose === 'model'
+			? presetFor(item.kind, item.baseUrl).display
+			: (SEARCH_PROVIDERS[item.kind]?.label ?? item.kind);
 	const price = (value: number | null) => (value === null ? '—' : `$${value}`);
 </script>
 
@@ -43,7 +43,7 @@
 						<div>
 							<strong>{item.label}</strong>
 							<span class="meta">
-								{providerLabel(item.kind)}{#if item.model}
+								{providerLabel(item)}{#if item.model}
 									· <code>{item.model}</code>{/if}
 								· key {item.keyHint ?? 'none'}
 								{#if purpose === 'model'}· in {price(item.inputUsdPerMtok)} / out {price(

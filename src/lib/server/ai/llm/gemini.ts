@@ -1,4 +1,5 @@
 import {
+	EmptyReplyError,
 	ProviderError,
 	describeStatus,
 	redact,
@@ -76,9 +77,7 @@ export function createGeminiClient(config: ModelConfig): ModelClient {
 			const candidate = body.candidates?.[0];
 			const text = (candidate?.content?.parts ?? []).map((p) => p.text ?? '').join('');
 			if (!text) {
-				throw new ProviderError(
-					`The model returned an empty reply${candidate?.finishReason ? ` (${candidate.finishReason})` : ''}.`
-				);
+				throw new EmptyReplyError(candidate?.finishReason ? ` (${candidate.finishReason})` : '');
 			}
 
 			return {

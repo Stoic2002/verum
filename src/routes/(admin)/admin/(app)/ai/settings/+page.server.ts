@@ -1,7 +1,7 @@
 import { fail, type Actions } from '@sveltejs/kit';
-import { MODEL_PROVIDERS, SEARCH_PROVIDERS } from '$lib/ai-providers';
+import { COMPATIBLE_KINDS, SEARCH_PROVIDERS, modelPreset } from '$lib/ai-providers';
 import { parseDomainList } from '$lib/server/ai/domain';
-import { createModelClient, ProviderError } from '$lib/server/ai/llm';
+import { checkConnection, createModelClient, ProviderError } from '$lib/server/ai/llm';
 import { createSearchClient } from '$lib/server/ai/search';
 import { SecretsUnavailableError, secretsAvailable } from '$lib/server/ai/secrets';
 import {
@@ -14,12 +14,7 @@ import {
 	updateCredential
 } from '$lib/server/ai/store';
 import { db } from '$lib/server/db';
-import {
-	MODEL_PROVIDER_KINDS,
-	SEARCH_PROVIDER_KINDS,
-	type ModelProviderKind,
-	type SearchProviderKind
-} from '$lib/server/db/schema';
+import type { ModelProviderKind, SearchProviderKind } from '$lib/server/db/schema';
 import type { PageServerLoad } from './$types';
 
 const PROBE_TIMEOUT_MS = 20_000;
@@ -70,36 +65,59 @@ function failure(error: unknown) {
 	});
 }
 
+/**
+ * Where a model provider's kind, base URL and key rule come from: the preset
+ * chosen in the form. The kind is never taken from the browser directly, so a
+ * hand-edited form cannot store a combination the adapters do not handle.
+ */
+function resolveModelProvider(form: FormData) {
+	const preset = modelPreset(text(form, 'preset'));
+	if (!preset) return { error: 'Choose a provider.' } as const;
+
+	const compatible = COMPATIBLE_KINDS.has(preset.kind);
+	const baseUrl = compatible ? text(form, 'baseUrl') || preset.baseUrl || '' : '';
+	if (compatible && !baseUrl) return { error: 'This provider needs a base URL.' } as const;
+	if (baseUrl && !validBaseUrl(baseUrl)) {
+		return { error: 'The base URL must start with http:// or https://.' } as const;
+	}
+	return { preset, kind: preset.kind as ModelProviderKind, baseUrl: baseUrl || null } as const;
+}
+
 export const actions: Actions = {
 	saveCredential: async ({ request }) => {
 		const form = await request.formData();
 		const id = Number(text(form, 'id')) || null;
 		const purpose = text(form, 'purpose') === 'search' ? 'search' : 'model';
-		const kind = text(form, 'kind');
 		const apiKey = text(form, 'apiKey');
 		const inputUsdPerMtok = optionalNumber(text(form, 'inputUsdPerMtok'));
 		const outputUsdPerMtok = optionalNumber(text(form, 'outputUsdPerMtok'));
 
-		const kinds: readonly string[] =
-			purpose === 'model' ? MODEL_PROVIDER_KINDS : SEARCH_PROVIDER_KINDS;
-		if (!kinds.includes(kind)) return fail(400, { error: 'Choose a provider.' });
+		let kind: string;
+		let baseUrl: string | null = null;
+		let defaultLabel: string;
+		let keyRequired: boolean;
 
-		const info =
-			purpose === 'model'
-				? MODEL_PROVIDERS[kind as ModelProviderKind]
-				: SEARCH_PROVIDERS[kind as SearchProviderKind];
+		if (purpose === 'model') {
+			const resolved = resolveModelProvider(form);
+			if ('error' in resolved) return fail(400, { error: resolved.error });
+			({ kind, baseUrl } = resolved);
+			defaultLabel = resolved.preset.display;
+			keyRequired = resolved.preset.keyRequired;
+		} else {
+			kind = text(form, 'kind');
+			const info = SEARCH_PROVIDERS[kind];
+			if (!info) return fail(400, { error: 'Choose a provider.' });
+			defaultLabel = info.label;
+			keyRequired = info.keyRequired;
+		}
 
-		const label = (text(form, 'label') || info.label).slice(0, 60);
+		const label = (text(form, 'label') || defaultLabel).slice(0, 60);
 		const model = purpose === 'model' ? text(form, 'model') : '';
-		const baseUrl = info.baseUrl === 'hidden' ? '' : text(form, 'baseUrl');
 
-		if (purpose === 'model' && !model)
+		if (purpose === 'model' && !model) {
 			return fail(400, { error: 'Enter a model id, or load the list.' });
+		}
 		if (model.length > 200) return fail(400, { error: 'That model id is too long.' });
-		if (info.baseUrl === 'required' && !baseUrl)
-			return fail(400, { error: 'This provider needs a base URL.' });
-		if (baseUrl && !validBaseUrl(baseUrl))
-			return fail(400, { error: 'The base URL must start with http:// or https://.' });
 		if (inputUsdPerMtok === 'invalid' || outputUsdPerMtok === 'invalid') {
 			return fail(400, { error: 'Prices must be positive numbers, or empty.' });
 		}
@@ -110,7 +128,7 @@ export const actions: Actions = {
 
 		const fields = {
 			label,
-			baseUrl: baseUrl || null,
+			baseUrl,
 			model: model || null,
 			apiKey,
 			inputUsdPerMtok,
@@ -120,16 +138,21 @@ export const actions: Actions = {
 		if (id) {
 			const existing = await getCredentialWithKey(db, id).catch(() => null);
 			if (!existing) return fail(404, { error: 'That provider no longer exists.' });
-			if (info.keyRequired && !apiKey && !existing.keyHint) {
+			if (existing.kind !== kind) {
+				return fail(400, {
+					error: 'The provider type cannot be changed. Add a new provider instead.'
+				});
+			}
+			if (keyRequired && !apiKey && !existing.keyHint) {
 				return fail(400, { error: 'This provider needs an API key.' });
 			}
 			await updateCredential(db, id, fields);
 			return { toast: `${label} saved.` };
 		}
 
-		if (info.keyRequired && !apiKey) return fail(400, { error: 'This provider needs an API key.' });
+		if (keyRequired && !apiKey) return fail(400, { error: 'This provider needs an API key.' });
 		await createCredential(db, { purpose, kind, ...fields });
-		return { toast: `${label} added. Use “Test” to check the key.` };
+		return { toast: `${label} added. Use “Test” to check it.` };
 	},
 
 	deleteCredential: async ({ request }) => {
@@ -155,20 +178,28 @@ export const actions: Actions = {
 				return { toast: `${credential.label} works: ${results.length} results for a test query.` };
 			}
 
-			const models = await createModelClient({
-				kind: credential.kind as ModelProviderKind,
-				apiKey: credential.apiKey,
-				baseUrl: credential.baseUrl,
-				model: credential.model ?? ''
-			}).listModels(signal);
+			const model = credential.model ?? '';
+			const result = await checkConnection(
+				createModelClient({
+					kind: credential.kind as ModelProviderKind,
+					apiKey: credential.apiKey,
+					baseUrl: credential.baseUrl,
+					model
+				}),
+				model,
+				signal
+			);
 
-			if (models.length && credential.model && !models.includes(credential.model)) {
-				return fail(400, {
-					error: `The key works, but “${credential.model}” is not among its ${models.length} models. Check the model id.`
-				});
+			if (result.via === 'models') {
+				return {
+					toast: `${credential.label} works: the key is accepted and ${result.models} models are available.`
+				};
 			}
 			return {
-				toast: `${credential.label} works: the key is accepted and ${models.length} models are available.`
+				toast:
+					result.listed === false
+						? `${credential.label} works: ${model} is not in the endpoint’s model list, but it answered a one-word request.`
+						: `${credential.label} works: the endpoint has no model list, so ${model} was sent a one-word request and answered.`
 			};
 		} catch (error) {
 			return failure(error);
@@ -178,24 +209,38 @@ export const actions: Actions = {
 	/** Lists models for the form, from typed-in values or a stored key. */
 	probeModels: async ({ request }) => {
 		const form = await request.formData();
-		const kind = text(form, 'kind') as ModelProviderKind;
-		if (!MODEL_PROVIDER_KINDS.includes(kind)) return fail(400, { error: 'Choose a provider.' });
+		const resolved = resolveModelProvider(form);
+		if ('error' in resolved) return fail(400, { error: resolved.error });
 
 		let apiKey: string | null = text(form, 'apiKey') || null;
 		const id = Number(text(form, 'id')) || null;
 		try {
 			if (!apiKey && id) apiKey = (await getCredentialWithKey(db, id))?.apiKey ?? null;
-			const info = MODEL_PROVIDERS[kind];
-			const baseUrl = info.baseUrl === 'hidden' ? null : text(form, 'baseUrl') || null;
-			if (info.baseUrl === 'required' && !baseUrl)
-				return fail(400, { error: 'Enter the base URL first.' });
-			if (info.keyRequired && !apiKey) return fail(400, { error: 'Enter the API key first.' });
+			if (resolved.preset.keyRequired && !apiKey) {
+				return fail(400, { error: 'Enter the API key first.' });
+			}
 
-			const models = await createModelClient({ kind, apiKey, baseUrl, model: '' }).listModels(
-				AbortSignal.timeout(PROBE_TIMEOUT_MS)
-			);
+			const models = await createModelClient({
+				kind: resolved.kind,
+				apiKey,
+				baseUrl: resolved.baseUrl,
+				model: ''
+			}).listModels(AbortSignal.timeout(PROBE_TIMEOUT_MS));
+
+			if (models.length === 0) {
+				return fail(400, {
+					error:
+						'The endpoint answered with an empty model list. Type the model id; “Test” will check it.'
+				});
+			}
 			return { models, toast: `Loaded ${models.length} models. Pick one in the Model field.` };
 		} catch (error) {
+			if (error instanceof ProviderError && [404, 405, 501].includes(error.status ?? 0)) {
+				return fail(400, {
+					error:
+						'This endpoint does not publish a model list. Type the model id; “Test” will check it with a one-word request.'
+				});
+			}
 			return failure(error);
 		}
 	},
@@ -208,8 +253,9 @@ export const actions: Actions = {
 		if (!Number.isInteger(weeklyLimit) || weeklyLimit < 0 || weeklyLimit > 100) {
 			return fail(400, { error: 'The weekly limit must be a whole number from 0 to 100.' });
 		}
-		if (budget === 'invalid')
+		if (budget === 'invalid') {
 			return fail(400, { error: 'The budget must be a positive number, or empty.' });
+		}
 
 		const trustedDomains = parseDomainList(text(form, 'trustedDomains'));
 		const blockedDomains = parseDomainList(text(form, 'blockedDomains'));

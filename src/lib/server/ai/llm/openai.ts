@@ -1,4 +1,5 @@
 import {
+	EmptyReplyError,
 	ProviderError,
 	describeStatus,
 	redact,
@@ -86,7 +87,7 @@ export function createOpenAiClient(config: ModelConfig): ModelClient {
 
 			const choice = body.choices?.[0];
 			const text = choice?.message?.content ?? '';
-			if (!text) throw new ProviderError('The model returned an empty reply.');
+			if (!text) throw new EmptyReplyError();
 
 			return {
 				text,
