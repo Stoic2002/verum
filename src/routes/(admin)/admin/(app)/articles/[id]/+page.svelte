@@ -4,6 +4,7 @@
 	import { enhance as kitEnhance } from '$app/forms';
 	import { enhanceWithToast, toastOnUpdate } from '$lib/toast.svelte';
 	import { Button, ConfirmButton, Switch } from '$lib/components/ui';
+	import { QUALITY_GATE, type QualityGateKey } from '$lib/quality-gate';
 
 	let { data } = $props();
 
@@ -18,6 +19,18 @@
 
 	function toggleTag(id: number, checked: boolean) {
 		$form.tagIds = checked ? [...$form.tagIds, id] : $form.tagIds.filter((t) => t !== id);
+	}
+
+	const goingLive = $derived(
+		($form.status === 'published' || $form.status === 'scheduled') &&
+			data.article.status !== 'published' &&
+			data.article.status !== 'scheduled'
+	);
+
+	function toggleGate(key: QualityGateKey, on: boolean) {
+		$form.qualityGate = on
+			? [...$form.qualityGate, key]
+			: $form.qualityGate.filter((item) => item !== key);
 	}
 </script>
 
@@ -111,6 +124,30 @@
 				{/if}
 			</p>
 			{#if $errors.publishAt}<p class="error">{$errors.publishAt[0]}</p>{/if}
+		{/if}
+
+		{#if data.editorNotes.length && ($form.status === 'published' || $form.status === 'scheduled')}
+			<p class="error">
+				Unresolved editor notes in:
+				{data.editorNotes.map((row) => `${row.locale} (${row.count})`).join(', ')}.
+			</p>
+		{/if}
+
+		{#if goingLive}
+			<fieldset class="gate">
+				<legend>Quality gate</legend>
+				<p class="meta">PRD §5.5. All four, or it is not published.</p>
+				{#each QUALITY_GATE as item (item.key)}
+					<label class="check gate__item">
+						<input
+							type="checkbox"
+							checked={$form.qualityGate.includes(item.key)}
+							onchange={(e) => toggleGate(item.key, e.currentTarget.checked)}
+						/>
+						<span><strong>{item.label}.</strong> {item.question}</span>
+					</label>
+				{/each}
+			</fieldset>
 		{/if}
 
 		<fieldset>
@@ -266,5 +303,16 @@
 	}
 	.danger h2 {
 		color: var(--danger);
+	}
+	.gate {
+		display: grid;
+		gap: 0.5rem;
+	}
+	.gate .meta {
+		margin: 0;
+	}
+	.gate__item {
+		align-items: flex-start;
+		line-height: 1.45;
 	}
 </style>

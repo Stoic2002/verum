@@ -1,3 +1,4 @@
+import { QUALITY_GATE_KEYS, countEditorNotes } from '$lib/quality-gate';
 import { setFlash } from '$lib/server/flash';
 import { error, fail, redirect, type Actions } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
@@ -17,7 +18,7 @@ import { articleSettingsSchema } from '$lib/server/content/schemas';
 import { getStorage, listMedia, pictureFor } from '$lib/server/media';
 import { articleSurfaces, purgeUrls } from '$lib/server/cdn';
 import { siteOrigin } from '$lib/server/site';
-import { LOCALES, articles, type Locale } from '$lib/server/db/schema';
+import { articleLocales, LOCALES, articles, type Locale } from '$lib/server/db/schema';
 import type { PageServerLoad } from './$types';
 
 const adapter = valibot(articleSettingsSchema);
@@ -60,9 +61,16 @@ export const load: PageServerLoad = async ({ params }) => {
 
 	const storage = getStorage();
 	const library = (await listMedia(db, { limit: 60 })).items;
+	const bodies = await db
+		.select({ locale: articleLocales.locale, bodyMd: articleLocales.bodyMd })
+		.from(articleLocales)
+		.where(eq(articleLocales.articleId, id));
 
 	return {
 		article,
+		editorNotes: bodies
+			.map((row) => ({ locale: row.locale, count: countEditorNotes(row.bodyMd) }))
+			.filter((row) => row.count > 0),
 		form,
 		media: library.map((row) => ({
 			id: row.id,
@@ -86,6 +94,37 @@ export const actions: Actions = {
 
 		const { categoryId, coverMediaId, status, isLiving, publishAt, tagIds } = form.data;
 
+		if (status === 'published' || status === 'scheduled') {
+			// Placeholders for the editor's own judgment must never reach readers,
+			// whether or not the article is already live.
+			const bodies = await db
+				.select({ locale: articleLocales.locale, bodyMd: articleLocales.bodyMd })
+				.from(articleLocales)
+				.where(eq(articleLocales.articleId, id));
+			const unresolved = bodies.filter((row) => countEditorNotes(row.bodyMd) > 0);
+			if (unresolved.length) {
+				return message(
+					form,
+					`Resolve the [[EDITOR: …]] notes in the ${unresolved.map((row) => row.locale).join(' and ')} version first. They mark what only you can write.`,
+					{ status: 400 }
+				);
+			}
+
+			// The gate is asked at the moment of going live, not on every later save.
+			const [current] = await db
+				.select({ status: articles.status })
+				.from(articles)
+				.where(eq(articles.id, id));
+			const goingLive = current && current.status !== 'published' && current.status !== 'scheduled';
+			if (goingLive && !QUALITY_GATE_KEYS.every((key) => form.data.qualityGate.includes(key))) {
+				return message(
+					form,
+					'Confirm all four quality-gate questions before publishing (PRD §5.5).',
+					{ status: 400 }
+				);
+			}
+		}
+
 		await db
 			.update(articles)
 			.set({ categoryId, isLiving, coverMediaId: coverMediaId || null })
@@ -105,6 +144,7 @@ export const actions: Actions = {
 			await purgeUrls(surfaces);
 		}
 
+		form.data.qualityGate = [];
 		return message(form, 'Saved.');
 	},
 

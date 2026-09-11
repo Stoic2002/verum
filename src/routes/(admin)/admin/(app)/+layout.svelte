@@ -11,6 +11,7 @@
 		LogOut,
 		PanelLeftClose,
 		PanelLeftOpen,
+		Sparkles,
 		Tags
 	} from '@lucide/svelte';
 	import { resolve } from '$app/paths';
@@ -54,6 +55,7 @@
 	const nav = [
 		{ href: resolve('/admin'), label: 'Dashboard', icon: LayoutDashboard },
 		{ href: resolve('/(admin)/admin/(app)/articles'), label: 'Articles', icon: FileText },
+		{ href: resolve('/(admin)/admin/(app)/ai'), label: 'AI writer', icon: Sparkles },
 		{ href: resolve('/(admin)/admin/(app)/media'), label: 'Media', icon: Image },
 		{ href: resolve('/(admin)/admin/(app)/topics'), label: 'Topics', icon: Layers },
 		{ href: resolve('/(admin)/admin/(app)/taxonomy'), label: 'Categories & tags', icon: Tags },

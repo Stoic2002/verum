@@ -30,13 +30,24 @@ export async function setupTestDatabase() {
 	return { db, client };
 }
 
-/** Empties every table but keeps the schema, triggers and sequences reset. */
-export async function truncateAll(db: Database) {
+/**
+ * Empties every table but keeps the schema, triggers and sequences reset.
+ *
+ * `keepAiProviders` spares the AI writer's provider accounts and settings.
+ * Tests want a clean slate; `db:demo` does not — reloading demo content must
+ * not delete the API keys an editor typed in. (Jobs still go: they reference
+ * articles, and TRUNCATE … CASCADE follows that reference.)
+ */
+export async function truncateAll(db: Database, options: { keepAiProviders?: boolean } = {}) {
 	await db.execute(sql`
 		TRUNCATE TABLE
 			article_stats, article_tags, topic_articles, topic_locales, topics,
 			article_locales, articles, category_locales, categories, tags,
-			media, sessions, admin_users, newsletter_subscribers, redirects
+			media, sessions, admin_users, newsletter_subscribers, redirects,
+			ai_job_sources, ai_jobs
 		RESTART IDENTITY CASCADE
 	`);
+	if (!options.keepAiProviders) {
+		await db.execute(sql`TRUNCATE TABLE ai_credentials, ai_settings RESTART IDENTITY CASCADE`);
+	}
 }

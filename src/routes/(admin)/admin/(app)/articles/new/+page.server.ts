@@ -7,6 +7,7 @@ import { categoryOptions } from '$lib/server/db/queries/admin';
 import { createArticle, slugify } from '$lib/server/content/articles';
 import { newArticleSchema } from '$lib/server/content/schemas';
 import type { PageServerLoad } from './$types';
+import { isUniqueViolation } from '$lib/server/db/errors';
 
 const adapter = valibot(newArticleSchema);
 
@@ -37,7 +38,7 @@ export const actions: Actions = {
 			redirect(303, `/admin/articles/${id}/${locale}`);
 		} catch (error) {
 			// The only realistic failure is the unique (locale, slug) index.
-			if (error instanceof Error && error.message.includes('article_locales_slug_idx')) {
+			if (isUniqueViolation(error, 'article_locales_slug_idx')) {
 				form.errors.slug = ['That slug is already used in this locale.'];
 				return message(form, 'Slug already taken.', { status: 400 });
 			}

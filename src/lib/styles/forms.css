@@ -295,9 +295,18 @@ input[type='radio']:focus-visible {
 
 input[type='checkbox']:disabled,
 input[type='radio']:disabled {
-	background: var(--surface-2);
+	/* background-color, not the shorthand: the shorthand also wiped the checkmark
+	   image, so a ticked box that was disabled read as unticked. */
+	background-color: var(--surface-2);
 	border-color: var(--border);
 	cursor: not-allowed;
+}
+/* Disabled keeps its state visible: a read-only list must still show what was chosen. */
+input[type='checkbox']:checked:disabled,
+input[type='radio']:checked:disabled {
+	background-color: var(--accent);
+	border-color: var(--accent);
+	opacity: 0.5;
 }
 .check:has(input:disabled) {
 	color: var(--text-3);

@@ -355,7 +355,8 @@ const TAGS = [
 
 async function main() {
 	console.log('Clearing content…');
-	await truncateAll(db);
+	// Provider keys survive a demo reload; see truncateAll.
+	await truncateAll(db, { keepAiProviders: true });
 
 	await db.insert(adminUsers).values([
 		{

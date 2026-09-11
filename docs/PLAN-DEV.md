@@ -1037,3 +1037,138 @@ Pemicunya tetap tombol `submit` sungguhan. Dengan JavaScript, klik membuka dialo
 189 test unit (naik dari 182): flash terbaca sekali lalu hilang, pesan sama dua kali mendapat id berbeda, cookie ber-scope `/admin` dan `httpOnly`, cookie rusak diabaikan dan dihapus.
 
 80 e2e (naik dari 78; ditambah assertion bahwa form yang baru dibuka tidak menampilkan error): keluar membuka dialog, Cancel mempertahankan sesi, konfirmasi keluar lalu toast "Signed out" muncul di halaman login; hapus redirect membuka dialog yang menyebut path-nya, Escape membatalkan, konfirmasi menghapus di tempat dengan toast; simpan yang gagal memunculkan toast error. Semua assertion `.notice` lama dipindah ke toast. Smoke build lulus.
+
+## Bagian R — AI writer: riset, verifikasi sumber, dan draf
+
+Diminta pemilik setelah Fase 7: agent AI yang membantu menulis artikel, dengan provider yang bisa dipilih (Claude, ChatGPT, Gemini, OpenRouter, dan endpoint lain), API key yang dimasukkan sendiri, dan pengecekan referensi di internet sebelum artikel dirangkai.
+
+### R.1 Posisi terhadap PRD
+
+- **§6.1 mengizinkan** AI untuk riset awal dan drafting. Yang **tidak** diserahkan: pemilihan topik dan sudut pandang (editor mengisi keduanya), klaim faktual tanpa verifikasi manusia (writer berhenti untuk review), penilaian dan opini (ditinggalkan sebagai catatan `[[EDITOR: …]]`), dan information gain (pertanyaan pertama quality gate).
+- **§5.5** sekarang ditegakkan di kode untuk _semua_ artikel, bukan hanya draf AI (R.9).
+- **§17** — batas mingguan dan alarm biaya bulanan ditegakkan sebelum job dibuat.
+- **§7** — tidak ada tombol terjemahkan; versi `id` tetap ditulis sebagai job tersendiri.
+- **§D.4 (skema beku)** — empat tabel baru lewat migration `0003_ai_writer`, alasannya tercatat di `schema/ai.ts`.
+
+### R.2 Alur
+
+```
+editor: ide + angle + kategori + bahasa + model + (search | URL sendiri)
+  → research: rencana query → search → unduh halaman → ekstrak teks
+  → model: klaim + kutipan verbatim per sumber
+  → KODE: cari setiap kutipan di teks halaman → status per klaim
+  → model: outline dari klaim yang lolos
+  → STOP: editor meninjau sumber, klaim, dan outline
+  → draft: model menulis hanya dari klaim yang dicentang
+  → KODE: [S1] → tautan ke halaman yang benar-benar dibaca, daftar Sumber, catatan editor
+  → artikel berstatus draft → editor menulis bagiannya → quality gate → publish
+```
+
+### R.3 Provider model
+
+| Pilihan                                  | Implementasi                                                                                                                                                                                                                                                                                                                         |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Claude                                   | **SDK resmi `@anthropic-ai/sdk`**, streaming + `finalMessage()` (draf panjang tidak kena timeout HTTP). `stop_reason: "refusal"` dicek sebelum membaca konten. Untuk `claude-opus-5` dan `claude-fable-5-1` dikirim `fallbacks: "default"` (beta `server-side-fallback-2026-07-01`). Default model yang disarankan: `claude-opus-5`. |
+| ChatGPT, OpenRouter, "OpenAI-compatible" | Satu adapter Chat Completions via `fetch`. Mencakup DeepSeek, Groq, Mistral, Together, Ollama/LM Studio lokal — cukup isi base URL. Tanpa `max_tokens`/`temperature` (model reasoning OpenAI menolak bentuk klasiknya); JSON mode hanya dikirim ke OpenAI sendiri, karena parameter asing = 400 di server yang ketat.                |
+| Gemini                                   | API native `generateContent`, key lewat header `x-goog-api-key` (bukan `?key=` yang masuk log).                                                                                                                                                                                                                                      |
+
+"opencode" adalah aplikasi agent untuk coding, bukan penyedia model; endpoint apa pun yang berbahasa Chat Completions masuk lewat opsi OpenAI-compatible.
+
+**Balasan terstruktur dari provider mana pun:** tidak semua provider bisa dipaksa JSON, jadi kontraknya ditegakkan di sisi kita — parse longgar (fence, prosa di sekitar), validasi ketat dengan valibot, dan **satu** kesempatan memperbaiki dengan daftar kesalahannya.
+
+"Load models" dan "Test" memakai endpoint daftar model: membuktikan key diterima tanpa menghabiskan token, dan memperingatkan kalau id model yang diisi tidak ada di daftar.
+
+### R.4 Search sebagai provider terpisah
+
+Brave Search API atau Tavily, opsional. Bukan fitur browsing bawaan model: hanya sebagian provider yang punya, hasilnya berbeda-beda, dan tidak bisa diperiksa ulang. Daftar URL biasa sama untuk semua model, dan halamannya diunduh server ini — di sanalah kutipan bisa diverifikasi. Tanpa search provider, writer hanya membaca URL dari editor, yang sering justru pilihan terbaik untuk berita dengan sumber primer yang jelas.
+
+### R.5 Apa yang diverifikasi, dan apa yang tidak
+
+Model wajib menyertakan kutipan verbatim + id sumber untuk setiap klaim. **Kode** (`verify.ts`) lalu mencari kutipan itu di teks halaman:
+
+- Normalisasi dulu: NFKC, kutip lengkung, dash, spasi, karakter zero-width, huruf besar-kecil.
+- Kutipan < 20 karakter ditolak — frasa sependek itu cocok di mana saja.
+- Elipsis boleh, tapi potongannya harus muncul **berurutan** dan masing-masing ≥ 8 karakter, supaya kata dari dua paragraf tidak bisa dijahit menjadi kalimat yang tidak pernah ditulis.
+- Angka di pernyataan yang tidak ada di kutipan terverifikasi mana pun → `mismatch`. Pemisah ribuan diabaikan karena "1.000" (id) = "1,000" (en).
+- Id sumber yang tidak pernah dibaca job ini → tidak dipercaya.
+
+| Status                | Arti                                          | Default dicentang |
+| --------------------- | --------------------------------------------- | ----------------- |
+| Confirmed             | kutipan ditemukan di ≥ 2 **penerbit** berbeda | ya                |
+| Single source         | ditemukan, satu penerbit                      | ya                |
+| Numbers not in quotes | kutipan ada, tapi angka di klaim tidak        | tidak             |
+| Quote not found       | parafrase atau karangan                       | tidak             |
+
+"Penerbit" = domain terdaftar: `news.detik.com` dan `finance.detik.com` dihitung satu. Ini aproksimasi kecil dari Public Suffix List (dua label terakhir, atau tiga di bawah `co.id`, `co.uk`, dll.) yang condong menggabungkan — kesalahannya hanya membuat klaim terlihat _kurang_ terkonfirmasi.
+
+**Yang tidak dibuktikan, dan dikatakan di UI:** kutipan membuktikan _kata-kata itu ada di halaman itu_, bukan bahwa halamannya benar. Dua situs yang memuat rilis kantor berita yang sama tetap terhitung dua penerbit.
+
+### R.6 Keamanan
+
+- **API key** dienkripsi AES-256-GCM sebelum masuk database; kunci diturunkan dengan HKDF dari `AI_KEY_SECRET` (≥ 32 karakter), dengan AAD yang mengikat ciphertext ke kegunaannya. Ciphertext yang diubah atau secret yang salah **gagal keras**, tidak menghasilkan key sampah yang lalu dikirim ke provider. Halaman hanya menerima `…a1b2`; fungsi dekripsi satu-satunya tidak pernah dipanggil dari `load`. Pesan error provider disaring dari key sebelum masuk log job. E2E memeriksa HTML halaman tidak mengandung key setelah reload.
+- **SSRF:** pengunduh halaman memakai guard yang sama dengan impor gambar, sekarang digeneralisasi menjadi `fetchPublic` (setiap redirect divalidasi ulang, batas byte, timeout). Untuk e2e ada `AI_UNSAFE_TEST_SOURCE_ORIGIN`: **satu origin persis**, tidak pernah diset di lingkungan nyata, tidak bisa melebar menjadi rentang.
+- **Prompt injection dari halaman web:** teks halaman dipagari `<source>` dan setiap system prompt menyebutnya data, bukan instruksi. Itu mengurangi peluang; yang benar-benar membatasi adalah bahwa model **tidak punya aksi apa pun** selain mengembalikan teks, setiap fakta dicek kode terhadap halaman, dan tautan sitasi dibangun dari database — model hanya bisa menulis _id_, id yang tidak dikenal dibuang. Ada test yang memastikan teks "Ignore all previous instructions" dari halaman hanya muncul di dalam pagar.
+- Tidak ada yang terbit otomatis.
+
+### R.7 Pagar editorial
+
+- **Batas mingguan** (default 5, §17) dihitung dari job yang dibuat 7 hari terakhir, dicek sebelum ada biaya.
+- **Anggaran bulanan** opsional; butuh harga per 1M token yang diisi di provider (harga tiap provider berubah-ubah, jadi tidak di-hardcode). Biaya dan token tercatat per job.
+- **Domain tepercaya** ditandai di daftar sumber; **domain diblokir** tidak pernah diunduh, termasuk subdomain dan redirect ke sana.
+
+### R.8 Menjalankan job
+
+Tanpa layanan antrean: satu editor, VPS 1 core, dan job sebagian besar menunggu provider. Antrean in-process, satu job sekaligus; **baris database adalah sumber kebenaran**. Restart saat riset → job ditandai gagal dengan pesan jelas (riset menulis baris sumber sambil jalan, menjalankannya ulang akan bentrok); job `queued`/`drafting` dilanjutkan. Cancel memakai `AbortController` sampai ke fetch dan panggilan model; artikel yang sempat dibuat saat job dibatalkan dihapus lagi. Halaman job memantau dengan polling 2,5 detik — tahan proxy dan reconnect tanpa kode tambahan.
+
+Teks halaman disimpan di tabel `ai_job_sources`, bukan kolom JSON di job: halaman job di-polling, dan kolom yang tidak di-`select` adalah satu-satunya cara andal menjaga puluhan kilobyte teks tetap di server.
+
+### R.9 Catatan editor dan quality gate
+
+- Draf selalu berisi minimal satu `[[EDITOR: …]]` — kalau model tidak menaruhnya, kode menambah bagian "Penilaian kami"/"Our assessment". Catatan terlihat di preview.
+- Editor menampilkan jumlah catatan secara live dan tautan ke laporan riset.
+- **Artikel apa pun tidak bisa di-publish/schedule selama ada catatan di versi bahasa mana pun**, dan artikel yang sudah live tidak bisa disimpan dengan catatan baru.
+- **Saat artikel pertama kali live**, empat pertanyaan §5.5 harus dicentang. Tidak disimpan — ini jeda, bukan catatan audit. Simpan ulang artikel yang sudah live tidak ditanya lagi.
+
+### R.10 Bug lama yang ikut ditemukan
+
+Pengecekan slug duplikat di form "New article", editor locale, dan topik memakai `error.message.includes('…_idx')`. Drizzle membungkus error driver: `message` luarnya "Failed query: …" berisi SQL, dan nama constraint hanya ada di `cause`. Pengecekan itu **tidak pernah cocok**, jadi slug duplikat berakhir 500, bukan pesan di form. Diganti `isUniqueViolation()` yang menelusuri `cause` (kode `23505` + nama constraint), dengan test yang memakai error asli dari Postgres.
+
+### R.11 `db:demo` tidak lagi menghapus API key
+
+`truncateAll` dipakai test dan `db:demo`. Test butuh tabel AI kosong; reload data demo tidak boleh menghapus key yang sudah diketik editor. Opsi `keepAiProviders` menyisakan `ai_credentials` dan `ai_settings`; job tetap hilang karena mereferensikan artikel.
+
+### R.12 Keterbatasan yang diketahui
+
+- Halaman yang butuh JavaScript atau berbayar → "too little readable text". PDF belum dibaca.
+- Satu job bisa terhenti karena restart di tengah riset; tombol "Start again" membuat job baru dengan input yang sama.
+- Estimasi biaya hanya seakurat harga yang diisi.
+- Kualitas outline dan draf tetap tergantung model; verifikasi hanya menjamin faktanya berasal dari halaman yang dibaca.
+
+### R.13 Yang dibuktikan
+
+241 test unit/integrasi (naik dari 189), di antaranya:
+
+- **Enkripsi key:** round-trip; ciphertext tidak memuat bagian key; IV berbeda setiap kali; ciphertext yang diubah dan secret yang salah ditolak; secret pendek ditolak.
+- **Verifikasi kutipan:** kutip lengkung, baris baru, dan zero-width tetap cocok; parafrase dan kutipan pendek ditolak; elipsis hanya diterima kalau berurutan; dua subdomain satu penerbit bukan konfirmasi; angka karangan → `mismatch`; id sumber karangan tidak dipercaya.
+- **Ekstraksi halaman:** navigasi, banner cookie, aside, skrip, dan teks tersembunyi dibuang; paragraf tidak menyatu; judul, penerbit, dan tanggal dari meta, JSON-LD, atau `<time>`; charset yang dideklarasikan dihormati; PDF ditolak dengan jelas.
+- **Sitasi:** marker jadi tautan bernomor ke halaman yang dibaca; id tak dikenal dibuang tanpa bekas; judul ganda dihapus; daftar Sumber; hasilnya dirender lewat pipeline artikel asli dengan tautan yang berfungsi.
+- **Pipeline penuh terhadap Postgres** dengan model, search, dan halaman palsu:
+  - klaim dari dua penerbit → confirmed; kutipan karangan → tidak dicentang; balasan JSON rusak diperbaiki dalam satu percobaan ulang;
+  - token dan biaya dihitung dari harga provider;
+  - domain diblokir tidak pernah diunduh; paywall dan error dicatat alasannya;
+  - teks halaman hanya ada di dalam pagar `<source>`;
+  - error provider muncul sebagai pesannya sendiri; job yang dibatalkan tetap `cancelled`;
+  - draf menjadi artikel `draft` dengan tautan hanya ke halaman yang dibaca, hanya dari klaim yang dicentang, slug bentrok dapat `-2`;
+  - batas mingguan dan anggaran bulanan menolak job baru.
+- **Slug duplikat** dikenali dari error Postgres asli, dan artikel yang setengah jadi ikut di-rollback.
+
+86 e2e (naik dari 80), terhadap server mock yang berbicara Chat Completions dan menyajikan dua halaman berita:
+
+- menambah provider OpenAI-compatible, memuat model, dan menguji koneksi;
+- key tersimpan tampil sebagai `…abcd` dan tidak ada di HTML setelah reload;
+- riset berhenti di review dengan status klaim yang benar;
+- draf ditulis dengan tautan sitasi, daftar Sumber, catatan editor, dan tautan balik ke laporan riset;
+- publish ditolak selama catatan editor ada, lalu ditolak lagi sampai empat pertanyaan quality gate dicentang;
+- provider dihapus lewat dialog konfirmasi.
+
+Test publish yang lama sekarang ikut mencentang quality gate.

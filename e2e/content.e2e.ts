@@ -203,6 +203,13 @@ test('publishes and the article becomes readable', async ({ page }) => {
 	await page.goto(articleUrl);
 
 	await page.getByLabel('Status').selectOption('published');
+	// Going live asks the four PRD §5.5 questions first.
+	for (const box of await page
+		.getByRole('group', { name: /quality gate/i })
+		.getByRole('checkbox')
+		.all()) {
+		await box.check();
+	}
 	await page.getByRole('button', { name: /save settings/i }).click();
 	await expect(toast(page, 'Saved')).toBeVisible();
 

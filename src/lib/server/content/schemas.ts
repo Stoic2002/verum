@@ -1,4 +1,5 @@
 import * as v from 'valibot';
+import { QUALITY_GATE_KEYS } from '../../quality-gate';
 import { ARTICLE_STATUSES, LOCALES } from '../db/schema';
 
 /**
@@ -49,7 +50,9 @@ export const articleSettingsSchema = v.object({
 	isLiving: v.boolean(),
 	/** Local datetime string from <input type="datetime-local">; empty means now. */
 	publishAt: v.pipe(v.string(), v.trim()),
-	tagIds: v.array(v.pipe(v.number(), v.integer()))
+	tagIds: v.array(v.pipe(v.number(), v.integer())),
+	/** PRD §5.5 confirmations. Checked when the article goes live, never stored. */
+	qualityGate: v.optional(v.array(v.picklist(QUALITY_GATE_KEYS)), [])
 });
 
 export const categorySchema = v.object({

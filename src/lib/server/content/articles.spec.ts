@@ -5,6 +5,7 @@ import { setupTestDatabase, truncateAll } from '../db/testing';
 import type { Database } from '../db/types';
 import { articleLocales, articles, categories, redirects } from '../db/schema';
 import { getPublishedBySlug } from '../db/queries/articles';
+import { isUniqueViolation } from '../db/errors';
 import { createArticle, saveArticleLocale, setArticleStatus, slugify } from './articles';
 
 let db: Database;
@@ -180,5 +181,21 @@ describe('publishing', () => {
 			.where(and(eq(articleLocales.articleId, id), eq(articleLocales.locale, 'en')));
 
 		expect(await getPublishedBySlug(db, { locale: 'en', slug: 'first-article' })).not.toBeNull();
+	});
+});
+
+describe('duplicate slugs', () => {
+	it('fail with an error the forms can recognise, and leave no half-written article', async () => {
+		await createArticle(db, { categoryId, locale: 'en', content: content() });
+
+		const failure = await createArticle(db, { categoryId, locale: 'en', content: content() }).catch(
+			(error: unknown) => error
+		);
+
+		expect(isUniqueViolation(failure, 'article_locales_slug_idx')).toBe(true);
+		expect(isUniqueViolation(failure, 'some_other_idx')).toBe(false);
+		// The article row is inserted in the same transaction, so it rolled back too.
+		const [{ n }] = await db.select({ n: sql<number>`count(*)`.mapWith(Number) }).from(articles);
+		expect(n).toBe(1);
 	});
 });

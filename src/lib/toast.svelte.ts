@@ -50,7 +50,7 @@ function stringField(data: Record<string, unknown> | undefined, key: string): st
  * nothing here — its message travels in the flash cookie instead, because the
  * result is gone by the time the next page renders.
  */
-function announce(result: ActionResult): void {
+export function announce(result: ActionResult): void {
 	if (result.type === 'failure') {
 		toast('error', stringField(result.data, 'error') ?? 'That did not work. Try again.');
 	} else if (result.type === 'success') {

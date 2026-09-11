@@ -63,7 +63,7 @@ function isBlockedAddress(address: string): boolean {
  * authenticated editor can reach, the guard below is proportionate; it would
  * not be if this were public.
  */
-async function assertPublicUrl(raw: string): Promise<URL> {
+async function assertPublicUrl(raw: string, allowOrigin?: string | null): Promise<URL> {
 	let url: URL;
 	try {
 		url = new URL(raw);
@@ -74,6 +74,9 @@ async function assertPublicUrl(raw: string): Promise<URL> {
 	if (url.protocol !== 'http:' && url.protocol !== 'https:') {
 		throw new UploadError('Only http and https URLs can be imported.');
 	}
+
+	// Test fixtures only: one exact origin, set explicitly (see fetchPublic).
+	if (allowOrigin && url.origin === allowOrigin) return url;
 
 	// URL keeps the brackets on an IPv6 literal — `[::1]` — and they break both
 	// isIP and the resolver. Strip them before either sees the host.
@@ -103,11 +106,12 @@ async function assertPublicUrl(raw: string): Promise<URL> {
 }
 
 /** Reads the body with a hard byte ceiling, so Content-Length cannot lie. */
-async function readCapped(response: Response): Promise<Buffer> {
+async function readCapped(response: Response, maxBytes: number, noun: string): Promise<Buffer> {
+	const tooLarge = () =>
+		new UploadError(`That ${noun} is larger than ${maxBytes / 1024 / 1024} MB.`);
+
 	const declared = Number(response.headers.get('content-length') ?? 0);
-	if (declared > MAX_UPLOAD_BYTES) {
-		throw new UploadError(`That image is larger than ${MAX_UPLOAD_BYTES / 1024 / 1024} MB.`);
-	}
+	if (declared > maxBytes) throw tooLarge();
 
 	const reader = response.body?.getReader();
 	if (!reader) throw new UploadError('That URL returned no content.');
@@ -120,9 +124,9 @@ async function readCapped(response: Response): Promise<Buffer> {
 		if (done) break;
 
 		total += value.length;
-		if (total > MAX_UPLOAD_BYTES) {
+		if (total > maxBytes) {
 			await reader.cancel();
-			throw new UploadError(`That image is larger than ${MAX_UPLOAD_BYTES / 1024 / 1024} MB.`);
+			throw tooLarge();
 		}
 		chunks.push(value);
 	}
@@ -130,25 +134,49 @@ async function readCapped(response: Response): Promise<Buffer> {
 	return Buffer.concat(chunks);
 }
 
-export type FetchedImage = { buffer: Buffer; name: string; source: string };
+export type PublicFetchOptions = {
+	accept: string;
+	maxBytes: number;
+	/** What the thing is called in error messages: "image", "page". */
+	noun: string;
+	userAgent: string;
+	signal?: AbortSignal;
+	/**
+	 * One exact origin exempt from the address checks. Exists for the e2e
+	 * suite, whose fixture pages are necessarily on 127.0.0.1; production
+	 * never sets it. Exact-origin only, so it cannot widen into a range.
+	 */
+	allowOrigin?: string | null;
+};
 
-export async function fetchImageFromUrl(raw: string): Promise<FetchedImage> {
-	let current = await assertPublicUrl(raw.trim());
+export type PublicFetchResult = { buffer: Buffer; contentType: string; url: URL };
+
+/**
+ * Fetches a URL that came from outside — an editor's paste, a search result —
+ * with every hop checked against the blocked ranges above.
+ */
+export async function fetchPublic(
+	raw: string,
+	options: PublicFetchOptions
+): Promise<PublicFetchResult> {
+	let current = await assertPublicUrl(raw.trim(), options.allowOrigin);
+	const timeout = AbortSignal.timeout(TIMEOUT_MS);
+	const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
 
 	for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
 		const response = await fetch(current, {
 			// Redirects are followed by hand so each hop is validated too —
 			// otherwise a public URL can bounce straight to 169.254.169.254.
 			redirect: 'manual',
-			signal: AbortSignal.timeout(TIMEOUT_MS),
-			headers: { accept: 'image/*', 'user-agent': 'VERUM/1.0 (+media import)' }
+			signal,
+			headers: { accept: options.accept, 'user-agent': options.userAgent }
 		});
 
 		if (response.status >= 300 && response.status < 400) {
 			const location = response.headers.get('location');
 			if (!location) throw new UploadError('That URL redirected to nowhere.');
 
-			current = await assertPublicUrl(new URL(location, current).href);
+			current = await assertPublicUrl(new URL(location, current).href, options.allowOrigin);
 			continue;
 		}
 
@@ -156,19 +184,30 @@ export async function fetchImageFromUrl(raw: string): Promise<FetchedImage> {
 			throw new UploadError(`That URL returned ${response.status}.`);
 		}
 
-		const buffer = await readCapped(response);
-
-		// Content-type is not trusted as proof — processImage re-decodes the
-		// bytes with sharp, and that is what actually settles whether this is an
-		// image. This only catches the obvious wrong answer early.
-		const type = response.headers.get('content-type') ?? '';
-		if (type && !type.startsWith('image/')) {
-			throw new UploadError(`That URL returned ${type.split(';')[0]}, not an image.`);
-		}
-
-		const name = decodeURIComponent(current.pathname.split('/').pop() || 'image');
-		return { buffer, name, source: current.href };
+		const buffer = await readCapped(response, options.maxBytes, options.noun);
+		return { buffer, contentType: response.headers.get('content-type') ?? '', url: current };
 	}
 
 	throw new UploadError('Too many redirects.');
+}
+
+export type FetchedImage = { buffer: Buffer; name: string; source: string };
+
+export async function fetchImageFromUrl(raw: string): Promise<FetchedImage> {
+	const { buffer, contentType, url } = await fetchPublic(raw, {
+		accept: 'image/*',
+		maxBytes: MAX_UPLOAD_BYTES,
+		noun: 'image',
+		userAgent: 'VERUM/1.0 (+media import)'
+	});
+
+	// Content-type is not trusted as proof — processImage re-decodes the
+	// bytes with sharp, and that is what actually settles whether this is an
+	// image. This only catches the obvious wrong answer early.
+	if (contentType && !contentType.startsWith('image/')) {
+		throw new UploadError(`That URL returned ${contentType.split(';')[0]}, not an image.`);
+	}
+
+	const name = decodeURIComponent(url.pathname.split('/').pop() || 'image');
+	return { buffer, name, source: url.href };
 }

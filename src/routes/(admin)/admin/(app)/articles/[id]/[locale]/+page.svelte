@@ -4,6 +4,7 @@
 	import { toastOnUpdate } from '$lib/toast.svelte';
 	import { Button, Field } from '$lib/components/ui';
 	import { slugify } from '$lib/slug';
+	import { countEditorNotes } from '$lib/quality-gate';
 	import type { TocEntry } from '$lib/server/db/schema';
 
 	let { data } = $props();
@@ -144,6 +145,8 @@
 
 	let slugTouched = $state(false);
 	const publicPath = $derived(`/${data.locale}/${data.categorySlug}/${$form.slug}`);
+
+	const editorNotes = $derived(countEditorNotes($form.bodyMd ?? ''));
 </script>
 
 <svelte:head><title>{$form.title || 'Editing'} · VERUM</title></svelte:head>
@@ -165,6 +168,24 @@
 		</a>
 	</div>
 </header>
+
+{#if data.aiJob || editorNotes > 0}
+	<div class="ai-note" class:ai-note--warn={editorNotes > 0} role="status">
+		{#if data.aiJob}
+			<span>
+				Drafted with the AI writer from {data.aiJob.used} of {data.aiJob.claims} extracted claims.
+				<a href={resolve('/(admin)/admin/(app)/ai/[id]', { id: String(data.aiJob.id) })}
+					>Research report →</a
+				>
+			</span>
+		{/if}
+		{#if editorNotes > 0}
+			<strong
+				>{editorNotes} editor {editorNotes === 1 ? 'note' : 'notes'} to resolve before publishing.</strong
+			>
+		{/if}
+	</div>
+{/if}
 
 <form method="POST" use:enhance>
 	<div class="grid">
@@ -534,5 +555,19 @@
 			position: static;
 			max-height: none;
 		}
+	}
+	.ai-note {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.375rem 1rem;
+		margin: 0 0 1rem;
+		padding: 0.625rem 0.875rem;
+		border-radius: var(--r-md);
+		background: var(--accent-tint);
+		font-size: 0.8125rem;
+	}
+	.ai-note--warn {
+		background: var(--danger-tint);
 	}
 </style>

@@ -1,3 +1,6 @@
+import { eq } from 'drizzle-orm';
+import { countEditorNotes } from '$lib/quality-gate';
+import { jobForArticle } from '$lib/server/ai/store';
 import { error, type Actions } from '@sveltejs/kit';
 import { valibot } from 'sveltekit-superforms/adapters';
 import { message, superValidate } from 'sveltekit-superforms';
@@ -9,8 +12,9 @@ import { articleSurfaces, purgeUrls } from '$lib/server/cdn';
 import { siteOrigin } from '$lib/server/site';
 import { articleLocaleSchema } from '$lib/server/content/schemas';
 import { getStorage, listMedia, pictureFor } from '$lib/server/media';
-import { LOCALES, type Locale } from '$lib/server/db/schema';
+import { LOCALES, articles, type Locale } from '$lib/server/db/schema';
 import type { PageServerLoad } from './$types';
+import { isUniqueViolation } from '$lib/server/db/errors';
 
 const adapter = valibot(articleLocaleSchema);
 
@@ -39,6 +43,15 @@ export const load: PageServerLoad = async ({ params }) => {
 		status: article.status,
 		stats: { wordCount: row.wordCount, readingMinutes: row.readingMinutes },
 		previewToken: createPreviewToken(id, locale),
+		// Set when the AI writer drafted this article: the editor links back to its research.
+		aiJob: await jobForArticle(db, id).then(
+			(job) =>
+				job && {
+					id: job.id,
+					claims: job.claims.length,
+					used: job.claims.filter((c) => c.included).length
+				}
+		),
 		form: await superValidate(
 			{
 				slug: row.slug,
@@ -64,6 +77,19 @@ export const actions: Actions = {
 		const form = await superValidate(request, adapter);
 		if (!form.valid) return message(form, 'Fix the errors below.', { status: 400 });
 
+		const [current] = await db
+			.select({ status: articles.status })
+			.from(articles)
+			.where(eq(articles.id, id));
+		const live = current?.status === 'published' || current?.status === 'scheduled';
+		if (live && countEditorNotes(form.data.bodyMd) > 0) {
+			return message(
+				form,
+				'This article is live: remove the [[EDITOR: …]] notes before saving, or unpublish it first.',
+				{ status: 400 }
+			);
+		}
+
 		try {
 			const result = await saveArticleLocale(db, id, locale, form.data);
 
@@ -88,7 +114,7 @@ export const actions: Actions = {
 					: 'Saved.'
 			);
 		} catch (err) {
-			if (err instanceof Error && err.message.includes('article_locales_slug_idx')) {
+			if (isUniqueViolation(err, 'article_locales_slug_idx')) {
 				form.errors.slug = ['That slug is already used in this locale.'];
 				return message(form, 'Slug already taken.', { status: 400 });
 			}

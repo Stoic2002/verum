@@ -34,11 +34,13 @@
 		"paraglide:compile": "paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --strategy url"
 	},
 	"dependencies": {
+		"@anthropic-ai/sdk": "^0.125.0",
 		"@lucide/svelte": "^1.44.0",
 		"@node-rs/argon2": "^2.2.0",
 		"@shikijs/rehype": "^4.4.3",
 		"aws4fetch": "^1.0.20",
 		"drizzle-orm": "^0.45.2",
+		"hast-util-from-html": "^2.0.3",
 		"hast-util-to-string": "^3.0.1",
 		"nodemailer": "^10.0.1",
 		"postgres": "^3.4.9",
