@@ -110,6 +110,15 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const intent = String(form.get('intent') ?? 'save');
 
+		// Notes can be sharpened after reading the research: the outline rebuild
+		// and the draft read the job afresh, so they follow the latest version.
+		if (form.has('notes')) {
+			const notes = String(form.get('notes') ?? '').trim();
+			if (notes.length > 2000)
+				return fail(400, { error: 'Keep the notes under 2,000 characters.' });
+			if (notes !== job.notes) await setJob(db, id, { notes });
+		}
+
 		// The model can change at review: the outline and the draft run on it.
 		let modelNote = '';
 		const picked = String(form.get('modelCredentialId') ?? '');
@@ -241,6 +250,7 @@ export const actions: Actions = {
 			categoryId: job.categoryId,
 			idea: job.idea,
 			angle: job.angle,
+			notes: job.notes,
 			seedUrls: job.seedUrls,
 			modelCredentialId: model.id,
 			searchCredentialId,

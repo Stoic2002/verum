@@ -554,6 +554,38 @@ describe('reopening a job', () => {
 	});
 });
 
+describe('editor notes', () => {
+	it('reach every step as part of the brief, never as system instructions', async () => {
+		const script: Script = { claimsAttempts: 0, requests: [] };
+		const d = deps(script);
+		const notes = "DO: prefer official statements.\nDON'T: name the child.";
+		const jobId = await newJob({ notes });
+
+		await run(d, jobId);
+		await transitionJob(db, jobId, ['review'], 'drafting');
+		await run(d, jobId);
+
+		for (const step of [
+			'plan web searches',
+			'extract verifiable facts',
+			'outline an article',
+			'first draft'
+		]) {
+			const request = script.requests.find((r) => r.system.includes(step));
+			expect(request, step).toBeDefined();
+			expect(request!.messages[0].content, step).toContain("DON'T: name the child.");
+			expect(request!.messages[0].content, step).toContain('except where they would break');
+			expect(request!.system, step).not.toContain('name the child');
+		}
+	});
+
+	it('leave the brief unchanged when empty', async () => {
+		const script: Script = { claimsAttempts: 0, requests: [] };
+		await run(deps(script), await newJob());
+		expect(script.requests[0].messages[0].content).not.toContain("Editor's notes");
+	});
+});
+
 describe('guard rails', () => {
 	it('enforces the weekly limit before anything is spent', async () => {
 		await updateAiSettings(db, {

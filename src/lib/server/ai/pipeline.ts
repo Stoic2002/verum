@@ -256,6 +256,7 @@ export async function research(deps: PipelineDeps, jobId: number, signal: AbortS
 			const prompt = queriesPrompt({
 				idea: ctx.job.idea,
 				angle: ctx.job.angle,
+				notes: ctx.job.notes,
 				locale: ctx.job.locale,
 				today: deps.now().toISOString().slice(0, 10)
 			});
@@ -380,6 +381,7 @@ export async function research(deps: PipelineDeps, jobId: number, signal: AbortS
 		const prompt = claimsPrompt({
 			idea: ctx.job.idea,
 			angle: ctx.job.angle,
+			notes: ctx.job.notes,
 			locale: ctx.job.locale,
 			sources: readable,
 			maxCharsPerSource
@@ -464,6 +466,7 @@ async function makeOutline(ctx: Context, claims: AiClaim[]): Promise<AiOutline |
 	const prompt = outlinePrompt({
 		idea: ctx.job.idea,
 		angle: ctx.job.angle,
+		notes: ctx.job.notes,
 		locale: ctx.job.locale,
 		claims: kept
 	});
@@ -515,6 +518,7 @@ export async function draft(deps: PipelineDeps, jobId: number, signal: AbortSign
 	const prompt = draftPrompt({
 		idea: job.idea,
 		angle: job.angle,
+		notes: job.notes,
 		locale: job.locale,
 		outline: job.outline,
 		claims,

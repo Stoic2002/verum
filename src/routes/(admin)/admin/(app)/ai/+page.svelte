@@ -86,6 +86,23 @@
 				{/snippet}
 			</Field>
 
+			<Field
+				id="notes"
+				label="Notes for the writer"
+				optional
+				hint="What to do and what to avoid, in your own words. Followed at every step — but never over the rule that facts come only from the sources."
+			>
+				{#snippet children({ id, describedBy })}
+					<textarea
+						{id}
+						name="notes"
+						rows="4"
+						maxlength="2000"
+						placeholder="DO: official statements, neutral tone, explain the background&#10;DON'T: name minors, speculate about motives, sensational words"
+						aria-describedby={describedBy}></textarea>
+				{/snippet}
+			</Field>
+
 			<div class="row">
 				<Field id="locale" label="Language">
 					{#snippet children({ id })}

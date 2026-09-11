@@ -1258,3 +1258,14 @@ Laporan pemilik: job berhenti lama setelah "Read 5 of 10 pages", lalu gagal deng
 **Draf AI bisa dihapus**, dari daftar maupun halaman job, dengan dialog konfirmasi. Tidak bisa selama job berjalan (worker akan menulis ke baris yang sudah hilang). Artikel draf yang sempat dibuat tetap ada di Articles, dan dialog menyebutkannya.
 
 282 test unit (naik dari 268): streaming yang terpotong di tengah event, reasoning yang menghabiskan batas, koneksi putus, fallback tanpa `stream_options`, server yang menjawab JSON, Gemini dengan thought parts; retry ekstraksi dengan kutipan lebih pendek dan tidak ada retry untuk key ditolak; draf gagal/dibatalkan tidak dihitung; hapus job beserta sumbernya tapi tidak saat berjalan; `<template>` di dalam `<svg>` dan JSON-LD tetap terbaca. 91 e2e (naik dari 90): server mock sekarang menjawab dengan streaming, dan draf gagal dihapus dari halamannya.
+
+### R.18 Catatan editor untuk writer (DO / DON'T)
+
+Form New draft punya kolom **Notes for the writer** (opsional, maks. 2.000 karakter): arahan editor tentang apa yang dilakukan dan dihindari — misalnya "DO: pernyataan resmi, nada netral / DON'T: menyebut nama anak, berspekulasi soal motif".
+
+- Disimpan di kolom `ai_jobs.notes` (migration `0006`), ikut disalin saat "Start again", dan tetap ada saat job dibuka kembali.
+- Dikirim di **setiap tahap** — rencana pencarian, ekstraksi klaim, outline, draf — sebagai bagian dari brief di pesan user, **bukan** di system prompt. Brief menyatakan bahwa notes diikuti kecuali kalau bertentangan dengan aturan fakta, sumber, dan kutipan: "tambahkan jumlah korban" tidak boleh menjadi angka yang tidak ada di sumber mana pun.
+- Bisa diubah saat review; rebuild outline dan penulisan draf membaca job dari database, jadi memakai versi terbaru.
+- Tampil di halaman job di bawah angle.
+
+284 test unit (naik dari 282): notes muncul di keempat permintaan model dan tidak pernah di system prompt; brief tanpa notes tidak berubah. E2E alur riset mengisi notes dan memeriksa notes masih ada dan bisa diubah saat review (91 e2e).

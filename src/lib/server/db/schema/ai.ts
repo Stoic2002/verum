@@ -170,6 +170,8 @@ export const aiJobs = pgTable(
 		idea: text('idea').notNull(),
 		/** The editor's angle — also theirs to choose. */
 		angle: text('angle').notNull().default(''),
+		/** The editor's standing instructions for this piece: what to do and what to avoid. */
+		notes: text('notes').notNull().default(''),
 		seedUrls: text('seed_urls')
 			.array()
 			.notNull()

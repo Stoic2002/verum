@@ -38,11 +38,25 @@ function fence(source: SourceForPrompt, maxChars: number): string {
 	return `<source ${attrs}>\n${source.title ? `Title: ${source.title}\n\n` : ''}${body}\n</source>`;
 }
 
-export function brief(input: { idea: string; angle: string; locale: Locale }): string {
+export type Brief = { idea: string; angle: string; notes?: string; locale: Locale };
+
+/**
+ * The editor's brief, sent as the user message of every step.
+ *
+ * Notes are the editor's own instructions — do this, avoid that — and are
+ * followed everywhere. They sit here, not in the system prompt, and say
+ * outright that they cannot override the rules on facts: "add the casualty
+ * figures" must not become a number no source contains.
+ */
+export function brief(input: Brief): string {
+	const notes = input.notes?.trim();
 	return [
 		`Topic (chosen by the editor): ${input.idea}`,
 		input.angle ? `Angle (chosen by the editor): ${input.angle}` : '',
-		`Article language: ${LANGUAGE[input.locale]}`
+		`Article language: ${LANGUAGE[input.locale]}`,
+		notes
+			? `Editor's notes on what to do and what to avoid. Follow them, except where they would break your instructions about facts, sources and quotes:\n${notes}`
+			: ''
 	]
 		.filter(Boolean)
 		.join('\n');
@@ -53,6 +67,7 @@ export function brief(input: { idea: string; angle: string; locale: Locale }): s
 export function queriesPrompt(input: {
 	idea: string;
 	angle: string;
+	notes?: string;
 	locale: Locale;
 	today: string;
 }) {
@@ -67,6 +82,7 @@ export function queriesPrompt(input: {
 export function claimsPrompt(input: {
 	idea: string;
 	angle: string;
+	notes?: string;
 	locale: Locale;
 	sources: SourceForPrompt[];
 	maxCharsPerSource: number;
@@ -102,11 +118,12 @@ function claimList(claims: AiClaim[]): string {
 export function outlinePrompt(input: {
 	idea: string;
 	angle: string;
+	notes?: string;
 	locale: Locale;
 	claims: AiClaim[];
 }) {
 	return {
-		system: `You outline an article for an independent technology publication. The editor chose the topic and angle; follow them.
+		system: `You outline an article for an independent technology publication. The editor chose the topic and angle, and may have left notes; follow them.
 
 Reply with JSON only, in this shape:
 {"title": "...", "excerpt": "...", "sections": [{"heading": "...", "points": ["...", "..."]}]}
@@ -129,6 +146,7 @@ export const EDITOR_MARKER = EDITOR_NOTE_MARKER;
 export function draftPrompt(input: {
 	idea: string;
 	angle: string;
+	notes?: string;
 	locale: Locale;
 	outline: AiOutline;
 	claims: AiClaim[];

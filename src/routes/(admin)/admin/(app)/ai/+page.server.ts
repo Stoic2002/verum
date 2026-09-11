@@ -94,6 +94,7 @@ export const actions: Actions = {
 
 		const idea = text('idea');
 		const angle = text('angle');
+		const notes = text('notes');
 		const locale = text('locale') as Locale;
 		const categoryId = Number(text('categoryId'));
 		const modelCredentialId = Number(text('modelCredentialId'));
@@ -106,6 +107,7 @@ export const actions: Actions = {
 		if (idea.length > 500 || angle.length > 500) {
 			return fail(400, { error: 'Keep the idea and the angle under 500 characters each.' });
 		}
+		if (notes.length > 2000) return fail(400, { error: 'Keep the notes under 2,000 characters.' });
 		if (!LOCALES.includes(locale)) return fail(400, { error: 'Choose a language.' });
 		if (!Number.isInteger(categoryId) || categoryId < 1) {
 			return fail(400, { error: 'Choose a category.' });
@@ -144,6 +146,7 @@ export const actions: Actions = {
 			categoryId,
 			idea,
 			angle,
+			notes,
 			seedUrls: urls,
 			modelCredentialId: model.id,
 			searchCredentialId: search?.id ?? null,

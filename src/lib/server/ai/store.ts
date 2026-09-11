@@ -135,6 +135,8 @@ export type NewJob = {
 	categoryId: number;
 	idea: string;
 	angle: string;
+	/** What to do and avoid, from the editor. */
+	notes?: string;
 	seedUrls: string[];
 	modelCredentialId: number;
 	searchCredentialId: number | null;

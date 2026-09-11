@@ -210,6 +210,9 @@ test('researches from the given pages, checks the claims, and stops for review',
 
 	await page.getByLabel('Idea').fill(`Orbit 2 laptop launch ${stamp}`);
 	await page.getByLabel('Angle').fill('Is the battery upgrade worth it?');
+	await page
+		.getByLabel('Notes for the writer')
+		.fill("DO: cite the launch page.\nDON'T: guess prices in other markets.");
 	await page.getByLabel('Category').selectOption({ index: 0 });
 	await page.getByLabel('Model').selectOption({ label: `${LABEL} · mock-writer` });
 	await page.getByLabel('Web search').selectOption('');
@@ -232,6 +235,10 @@ test('researches from the given pages, checks the claims, and stops for review',
 	await expect(invented.getByRole('checkbox')).not.toBeChecked();
 
 	await expect(page.getByLabel('Title')).toHaveValue(OUTLINE_TITLE);
+	// The notes travel with the job and can still be changed before drafting.
+	await expect(page.getByLabel('Notes for the writer')).toHaveValue(
+		/guess prices in other markets/
+	);
 });
 
 test('writes a draft article with linked citations and a note for the editor', async ({ page }) => {

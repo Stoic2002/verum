@@ -53,6 +53,9 @@
 			{(job.inputTokens + job.outputTokens).toLocaleString('en')} tokens · {usd(job.costUsd)}
 		</p>
 		{#if job.angle}<p class="angle">{job.angle}</p>{/if}
+		{#if job.notes && !reviewing}
+			<p class="notes"><span class="meta">Notes</span>{job.notes}</p>
+		{/if}
 	</div>
 	<div class="head__status">
 		<JobStatus status={job.status} />
@@ -302,6 +305,18 @@
 					</p>
 				{/if}
 				<div class="form-grid">
+					<Field
+						id="notes"
+						label="Notes for the writer"
+						optional
+						hint="Change them before rebuilding the outline or writing the draft."
+					>
+						{#snippet children({ id, describedBy })}
+							<textarea {id} name="notes" rows="3" maxlength="2000" aria-describedby={describedBy}
+								>{job.notes}</textarea
+							>
+						{/snippet}
+					</Field>
 					<Field id="title" label="Title" hint="Honest: the article must fully answer it.">
 						{#snippet children({ id, describedBy })}
 							<input
@@ -572,5 +587,14 @@
 	.review-model select {
 		width: auto;
 		max-width: 20rem;
+	}
+	.notes {
+		display: grid;
+		gap: 0.125rem;
+		max-width: 48rem;
+		margin: 0.5rem 0 0;
+		color: var(--text-2);
+		font-size: 0.875rem;
+		white-space: pre-line;
 	}
 </style>
