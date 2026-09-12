@@ -22,6 +22,10 @@ log "Fetching"
 sudo -u "$APP_USER" git fetch --depth 50 origin main
 sudo -u "$APP_USER" git reset --hard origin/main
 
+# Provisioning links this; a checkout restored from a backup may not have it,
+# and the build fails with "DATABASE_URL is not set" when it is missing.
+[[ -e "$APP_DIR/.env" ]] || ln -sfn "$ENV_FILE" "$APP_DIR/.env"
+
 log "Dependencies"
 sudo -u "$APP_USER" bun install --frozen-lockfile
 
@@ -49,4 +53,4 @@ code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT:-3000}/en
 echo "GET /en -> $code"
 [[ "$code" == "200" ]] || { echo "Smoke test failed" >&2; exit 1; }
 
-log "Deployed: $(git -C "$APP_DIR" log --oneline -1)"
+log "Deployed: $(sudo -u "$APP_USER" git -C "$APP_DIR" log --oneline -1)"

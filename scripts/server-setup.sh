@@ -142,6 +142,9 @@ if [[ ! -d "$APP_DIR/app/.git" ]]; then
 	sudo -u "$APP_USER" git clone --depth 50 "$REPO" "$APP_DIR/app"
 fi
 sudo -u "$APP_USER" mkdir -p "$APP_DIR/.media"
+# `bun run build` loads .env from the project directory, while systemd loads
+# /etc/verum/.env. A link keeps one file rather than two copies of the secrets.
+ln -sfn "$ENV_FILE" "$APP_DIR/app/.env"
 
 log "systemd service"
 cat >/etc/systemd/system/verum.service <<UNIT
