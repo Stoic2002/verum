@@ -35,6 +35,19 @@ cat >/etc/caddy/Caddyfile <<CADDY
 $DOMAIN, www.$DOMAIN {
 	encode zstd gzip
 
+	header {
+		# A year, and every subdomain: img.$DOMAIN serves media over HTTPS too.
+		# No preload directive yet — that one is hard to undo.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		# The app sends its own Content-Security-Policy per response (vite.config.ts):
+		# it carries per-page script hashes, which a static header here cannot.
+		-Server
+	}
+
 	@www host www.$DOMAIN
 	redir @www https://$DOMAIN{uri} permanent
 

@@ -26,6 +26,37 @@ export default defineConfig({
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
 			adapter: adapter(),
+			/**
+			 * Content Security Policy (PRD §15).
+			 *
+			 * Hashes, not nonces: pages are cached by Cloudflare for up to a day,
+			 * and a nonce baked into a cached page is the same nonce for every
+			 * reader — a value that only looks unique. SvelteKit hashes its own
+			 * inline scripts; the theme script in app.html is ours, so its hash is
+			 * listed here and kept honest by src/app-html.spec.ts.
+			 */
+			csp: {
+				mode: 'hash',
+				directives: {
+					'default-src': ['self'],
+					'script-src': ['self', 'sha256-E3hQCJv/L05Gz58235OseuXI9Tzkx6bfnTI59R9qYCk='],
+					// Shiki writes colours as style attributes on every token, and a
+					// style attribute cannot execute anything.
+					'style-src': ['self', 'unsafe-inline'],
+					// Article images come from the media domain, and an author may
+					// embed one from elsewhere; https only keeps mixed content out.
+					'img-src': ['self', 'data:', 'https:'],
+					'font-src': ['self'],
+					'connect-src': ['self'],
+					// The only frame this site renders (PLAN-DEV §J).
+					'frame-src': ['https://www.youtube-nocookie.com'],
+					'object-src': ['none'],
+					'base-uri': ['self'],
+					'form-action': ['self'],
+					'frame-ancestors': ['none']
+				}
+			},
+
 			typescript: {
 				config: (config) => {
 					config.include.push('../drizzle.config.ts');
