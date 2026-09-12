@@ -55,9 +55,16 @@ if (!listed.ok) throw new Error(`list failed: ${listed.status}`);
 const xml = await listed.text();
 
 const cutoff = Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000;
-const objects = [...xml.matchAll(/<Key>([^<]+)<\/Key>\s*<LastModified>([^<]+)<\/LastModified>/g)];
+// R2 orders <Size> before <LastModified>, where AWS does not: read each
+// <Contents> block and pull the two fields out of it by name.
+const objects = [...xml.matchAll(/<Contents>([\s\S]*?)<\/Contents>/g)]
+	.map((match) => ({
+		key: /<Key>([^<]+)<\/Key>/.exec(match[1])?.[1] ?? '',
+		modified: /<LastModified>([^<]+)<\/LastModified>/.exec(match[1])?.[1] ?? ''
+	}))
+	.filter((object) => object.key);
 let removed = 0;
-for (const [, objectKey, modified] of objects) {
+for (const { key: objectKey, modified } of objects) {
 	if (Date.parse(modified) >= cutoff) continue;
 	const deleted = await client.fetch(`${bucket}/${objectKey}`, { method: 'DELETE' });
 	if (deleted.ok || deleted.status === 404) removed++;

@@ -40,7 +40,13 @@ fail=0
 [ "$TABLES" -ge 15 ] || { echo "FAIL: expected at least 15 tables, got $TABLES" >&2; fail=1; }
 [ "$TRIGGER" = "1" ] || { echo "FAIL: search vector trigger missing" >&2; fail=1; }
 [ "$GIN" = "1" ] || { echo "FAIL: GIN index missing" >&2; fail=1; }
-[ "$VECTORS" -gt 0 ] || { echo "FAIL: no search vectors survived the restore" >&2; fail=1; }
+if [ "$ARTICLES" -gt 0 ]; then
+	[ "$VECTORS" -gt 0 ] || { echo "FAIL: no search vectors survived the restore" >&2; fail=1; }
+else
+	# A fresh production database has no articles yet; the probe below still
+	# proves the trigger works in the restored copy.
+	echo "  (no articles in this dump; search vectors checked by the probe instead)"
+fi
 
 # The trigger must still fire in the restored database, not just exist.
 psql "$SCRATCH_URL" -q -c "
