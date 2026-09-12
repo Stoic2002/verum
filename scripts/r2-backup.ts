@@ -50,7 +50,7 @@ console.log(`uploaded ${key} (${(body.byteLength / 1024 / 1024).toFixed(1)} MB)`
 
 // Prune: list what is there, delete what is past retention. Listing is one
 // request; deleting only touches what has aged out.
-const listed = await client.fetch(`${bucket}?list-type=2&prefix=${encodeURIComponent(PREFIX)}`);
+const listed = await client.fetch(`${bucket}?list-type=2&prefix=${PREFIX}`);
 if (!listed.ok) throw new Error(`list failed: ${listed.status}`);
 const xml = await listed.text();
 
