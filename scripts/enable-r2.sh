@@ -21,7 +21,7 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 log "Enabling the R2 settings"
-sed -i -E 's|^#(R2_(ACCOUNT_ID|ACCESS_KEY_ID|SECRET_ACCESS_KEY|BUCKET|PUBLIC_URL)=)|\1|' "$ENV_FILE"
+sed -i -E 's/^#[[:space:]]*(R2_[A-Z_]+=)/\1/' "$ENV_FILE"
 sed -i -E "s|^R2_PUBLIC_URL=.*|R2_PUBLIC_URL=\"${PUBLIC_URL%/}\"|" "$ENV_FILE"
 grep -E '^R2_' "$ENV_FILE" | sed -E 's|(SECRET_ACCESS_KEY=").{4}[^"]*|\1....(hidden)|'
 
