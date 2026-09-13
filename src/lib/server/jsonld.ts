@@ -63,7 +63,6 @@ export type ArticleJsonLd = {
 	locale: string;
 	publishedAt: string;
 	modifiedAt: string | null;
-	authorName: string;
 	image?: string | null;
 	wordCount?: number;
 	section?: string;
@@ -81,7 +80,9 @@ export function article(data: ArticleJsonLd, publisher: Publisher): JsonLd {
 		// dateModified drives the "updated" signal that living articles depend on
 		// (PRD §12.4); falling back to datePublished keeps it from being absent.
 		dateModified: data.modifiedAt ?? data.publishedAt,
-		author: { '@type': 'Person', name: data.authorName },
+		// Articles are credited to VERUM itself, not to a person: the author is
+		// the same Organization node the homepage declares.
+		author: { '@id': `${publisher.url}/#organization` },
 		publisher: { '@id': `${publisher.url}/#organization` },
 		...(data.image ? { image: [data.image] } : {}),
 		...(data.wordCount ? { wordCount: data.wordCount } : {}),

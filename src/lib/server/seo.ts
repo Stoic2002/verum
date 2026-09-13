@@ -7,15 +7,6 @@ import { LOCALES } from './db/schema';
 
 export { graph };
 
-/**
- * Byline identity (PRD §6.2).
- *
- * A consistent pseudonym is an E-E-A-T signal; changing it costs whatever
- * authority the name has accumulated. It lives here so there is one place to
- * change it, and only once.
- */
-export const AUTHOR_NAME = 'Arul';
-
 export function publisherFor(requestUrl: URL): Publisher {
 	const url = siteOrigin(requestUrl);
 	return { name: siteName(), url };
@@ -128,7 +119,6 @@ export function articleSeo(
 					locale,
 					publishedAt: data.publishedAt,
 					modifiedAt: data.modifiedAt,
-					authorName: AUTHOR_NAME,
 					image: data.image?.url ?? null,
 					wordCount: data.wordCount,
 					section: categoryName,
