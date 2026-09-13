@@ -9,8 +9,8 @@ import { expect, test } from '@playwright/test';
  * text, which is the failure that actually matters.
  */
 
-const TAGLINE_EN = 'AI and technology, tested by someone who uses it.';
-const TAGLINE_ID = 'AI dan teknologi, diuji oleh orang yang memakainya.';
+const TAGLINE_EN = 'AI and technology, explained with evidence — not press releases.';
+const TAGLINE_ID = 'AI dan teknologi, dijelaskan dengan bukti — bukan siaran pers.';
 
 test('serves the locale named in the URL', async ({ page }) => {
 	await page.goto('/en');

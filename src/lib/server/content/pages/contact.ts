@@ -9,7 +9,7 @@ export function contact(locale: Locale, ctx: PageContext): StaticPage {
 			description: `Cara menghubungi ${ctx.siteName} untuk koreksi, hak jawab, atau pertanyaan.`,
 			markdown: `Email: [${ctx.contactEmail}](mailto:${ctx.contactEmail})
 
-Semua pesan dibaca oleh ${ctx.authorName}. Respons dalam **7 hari kerja**.
+Semua pesan dibaca oleh ${ctx.team}. Respons dalam **7 hari kerja**.
 
 ## Koreksi dan hak jawab
 
@@ -31,7 +31,7 @@ Untuk permintaan terkait data pribadi — akses, koreksi, atau penghapusan — l
 - Siaran pers untuk ditulis ulang
 - Tawaran menerbitkan artikel yang sudah jadi
 
-Tulisan di sini dikerjakan sendiri. Tidak ada slot untuk konten kiriman.`
+Tulisan di sini dikerjakan oleh tim sendiri. Tidak ada slot untuk konten kiriman.`
 		};
 	}
 
@@ -40,7 +40,7 @@ Tulisan di sini dikerjakan sendiri. Tidak ada slot untuk konten kiriman.`
 		description: `How to reach ${ctx.siteName} about a correction, a right of reply, or a question.`,
 		markdown: `Email: [${ctx.contactEmail}](mailto:${ctx.contactEmail})
 
-Everything is read by ${ctx.authorName}. Response within **7 working days**.
+Everything is read by ${ctx.team}. Response within **7 working days**.
 
 ## Corrections and right of reply
 

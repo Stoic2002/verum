@@ -177,7 +177,7 @@ Ini inti produk. Jangan dikompres.
 - Meta per halaman: title ≤60, description ≤155, canonical **ke locale itu sendiri**, `hreflang` + `x-default`, OG/Twitter, `<html lang>`
 - Structured data: `Article`, `BreadcrumbList`, `Organization` + `WebSite`+`SearchAction`, `FAQPage` kondisional
 - `sitemap.xml` index → per-locale, anotasi `xhtml:link`, regen saat publish, tag <3 artikel dikeluarkan
-- RSS, `robots.txt` (izinkan GPTBot/PerplexityBot/ClaudeBot/Google-Extended per §12.6), `ads.txt`
+- `robots.txt` (izinkan GPTBot/PerplexityBot/ClaudeBot/Google-Extended per §12.6), `ads.txt`
 - Middleware redirect 301 dari tabel `redirects`
 - Halaman statis: About, Contact, Privacy Policy, Terms, Editorial Policy
 - Beli domain, pasang Cloudflare, **Cache Rules** (koreksi A.2 #4), purge API saat publish/update
@@ -565,7 +565,7 @@ Gantinya `src/lib/urls.spec.ts`: 5 test yang menguji bentuk URL sesuai §12.1, t
 
 - `/[locale]/search` belum ada; Fase 6.
 - Form newsletter dirender **disabled** karena route-nya baru ada di Fase 6. Form yang diam-diam membuang alamat lebih buruk daripada "belum".
-- Meta lengkap, hreflang, structured data, RSS, sitemap: Fase 7. Yang ada sekarang hanya title, description, dan canonical.
+- Meta lengkap, hreflang, structured data, sitemap: Fase 7. Yang ada sekarang hanya title, description, dan canonical.
 - Halaman statis (About, Privacy, dsb.) belum ada — footer sudah menautkannya dan tautan itu masih 404 sampai Fase 7.
 
 ---
@@ -754,9 +754,9 @@ Menaruh lookup redirect di depan setiap request berarti satu round-trip database
 
 Query string dibawa serta: link kampanye dengan `?utm_source=` yang mengikuti slug lama tetap bisa diukur setelah pindah. Ada test-nya.
 
-### M.5 RSS ringkasan, bukan teks penuh
+### M.5 RSS dihapus
 
-PRD §8.1 sudah menyebut "ringkasan + link", dan alasannya layak dicatat: feed teks penuh menyerahkan salinan bersih setiap artikel kepada setiap scraper, dan salinan itu **rutin mengalahkan aslinya** di peringkat. Excerpt sudah cukup bagi pembaca untuk memutuskan — itu gunanya feed.
+Awalnya ada `/rss.xml` berisi ringkasan + link. Dihapus 13 September 2026 atas keputusan pemilik: belum ada pembaca yang memakainya, dan setiap permukaan publik adalah satu hal lagi yang harus dijaga. Kalau mau dikembalikan, route-nya ada di riwayat git (commit sebelum penghapusan), berikut test-nya — dan tetap ringkasan, bukan teks penuh, karena feed teks penuh menyerahkan salinan bersih kepada scraper.
 
 ### M.6 `ads.txt` mengembalikan 404 sampai diisi
 
@@ -1269,3 +1269,12 @@ Form New draft punya kolom **Notes for the writer** (opsional, maks. 2.000 karak
 - Tampil di halaman job di bawah angle.
 
 284 test unit (naik dari 282): notes muncul di keempat permintaan model dan tidak pernah di system prompt; brief tanpa notes tidak berubah. E2E alur riset mengisi notes dan memeriksa notes masih ada dan bisa diubah saat review (91 e2e).
+
+### R.19 Kredit gambar wajib
+
+PRD §14 hanya mengizinkan stock berlisensi jelas atau gambar buatan sendiri. Supaya itu bisa diperiksa pembaca (dan reviewer AdSense), setiap gambar menampilkan kreditnya tepat di bawahnya:
+
+- **Media library:** kredit wajib di semua jalur masuk (upload file maupun impor URL), plus _source link_ opsional (`media.credit_url`, migrasi 0007). Gambar sendiri tetap dikredit, mis. "VERUM". Link hanya http/https (`$lib/credit.ts`), diberi `rel="nofollow noopener noreferrer"`.
+- **Tampilan:** cover di bawah gambar lede ("Image: …" / "Gambar: …"), gambar `::image` di dalam `figcaption` setelah caption. Kredit tidak ikut dihitung sebagai prosa (figcaption sudah dikecualikan dari search dan waktu baca).
+- **Gerbang publish:** artikel tidak bisa diterbitkan/dijadwalkan — dan versi bahasa artikel yang sudah live tidak bisa disimpan — selama cover atau gambar inline-nya belum punya kredit.
+- **Koreksi kredit:** body_html dirender saat simpan, jadi mengubah kredit di media library merender ulang semua versi bahasa yang memakai gambar itu (tanpa menaikkan `modified_at`) lalu purge cache-nya. Cover dibaca langsung dari tabel media.

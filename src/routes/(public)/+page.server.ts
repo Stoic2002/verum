@@ -33,8 +33,8 @@ export const load: PageServerLoad = async ({ url, locals, setHeaders }) => {
 
 	const tagline =
 		locale === 'id'
-			? 'AI dan teknologi, diuji oleh orang yang memakainya.'
-			: 'AI and technology, tested by someone who uses it.';
+			? 'AI dan teknologi, dijelaskan dengan bukti — bukan siaran pers.'
+			: 'AI and technology, explained with evidence — not press releases.';
 
 	return {
 		seo: homeSeo({ requestUrl: url, locale }, tagline),

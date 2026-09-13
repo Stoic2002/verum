@@ -17,7 +17,7 @@ export function editorialPolicy(locale: Locale, ctx: PageContext): StaticPage {
 
 AI dipakai di situs ini untuk riset awal, penyusunan draf, dan penyuntingan bahasa. Sebagian besar draf awal dibantu AI.
 
-**Setiap artikel melewati review dan verifikasi manusia sebelum terbit.** Tidak ada tulisan yang diterbitkan tanpa dibaca, diperiksa, dan disetujui oleh ${ctx.authorName}.
+**Setiap artikel melewati review dan verifikasi manusia sebelum terbit.** Tidak ada tulisan yang diterbitkan tanpa dibaca, diperiksa, dan disetujui oleh ${ctx.team}.
 
 Yang tidak pernah diserahkan ke AI:
 
@@ -49,6 +49,8 @@ Untuk melaporkan kesalahan: [${ctx.contactEmail}](mailto:${ctx.contactEmail}). R
 
 Hanya stock berlisensi jelas (misalnya Unsplash, Pexels) atau buatan sendiri. Gambar tidak diambil dari artikel media lain.
 
+Setiap gambar diberi kredit tepat di bawahnya: siapa pembuatnya dan, bila ada, tautan ke sumber serta lisensinya. Tangkapan layar sebuah produk dikreditkan ke tim yang mengambilnya.
+
 ## Afiliasi dan konten bersponsor
 
 Kalau sebuah tautan menghasilkan komisi, itu dinyatakan secara eksplisit di artikelnya dan tautannya diberi atribut \`rel="sponsored"\`. Artikel bersponsor ditandai jelas sebagai bersponsor.
@@ -70,14 +72,14 @@ ${ctx.siteName} adalah publikasi teknologi, bukan media pers, dan tidak berafili
 
 AI is used on this site for initial research, drafting, and language editing. A substantial part of a first draft is AI-assisted.
 
-**Every article goes through human review and verification before it is published.** Nothing appears here that has not been read, checked and approved by ${ctx.authorName}.
+**Every article goes through human review and verification before it is published.** Nothing appears here that has not been read, checked and approved by ${ctx.team}.
 
 What is never delegated to AI:
 
 - **Choosing topics and angles.** What is worth writing about is an editorial judgement.
 - **Factual claims without verification.** Every number, date, product name and factual statement is checked against a primary source by a person.
-- **Judgement, recommendations and opinion.** When an article recommends one tool over another, that is the view of someone who used it.
-- **The part that makes the article worth reading.** Numbers from tests I ran, screenshots of my own attempts, and conclusions earned by use.
+- **Judgement, recommendations and opinion.** When an article recommends one tool over another, that is the view of the people who used it.
+- **The part that makes the article worth reading.** Numbers from tests we ran, screenshots of our own attempts, and conclusions earned by use.
 
 ## The bar for publication
 
@@ -86,7 +88,7 @@ Four questions every article has to answer:
 1. **Information gain.** There is at least one thing here that is not in the top five Google results.
 2. **Verification.** Every factual claim has been checked against a primary source.
 3. **Honest headline.** The article actually answers its own title.
-4. **Defensible.** If someone challenges it, I can show what it rests on.
+4. **Defensible.** If someone challenges it, we can show what it rests on.
 
 An article that fails any of them is not published.
 
@@ -101,6 +103,8 @@ To report an error: [${ctx.contactEmail}](mailto:${ctx.contactEmail}). Response 
 ## Images
 
 Only clearly licensed stock (Unsplash, Pexels and similar) or images made here. Images are not taken from other publications' articles.
+
+Every image carries a credit directly beneath it naming who made it and, where there is one, a link to its source and licence. Screenshots of a product are credited to the team that took them.
 
 ## Affiliate links and sponsored content
 

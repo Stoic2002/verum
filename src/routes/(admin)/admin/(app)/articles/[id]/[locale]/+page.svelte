@@ -34,7 +34,7 @@
 			const response = await fetch('/admin/api/render', {
 				method: 'POST',
 				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ markdown }),
+				body: JSON.stringify({ markdown, locale: data.locale }),
 				signal
 			});
 			if (!response.ok) throw new Error(`Render failed (${response.status})`);

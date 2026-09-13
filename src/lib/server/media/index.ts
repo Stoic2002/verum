@@ -22,7 +22,7 @@ export type { MediaRecord } from './types';
 export async function uploadImage(
 	db: Database,
 	file: { buffer: Buffer; name: string },
-	meta: { alt: string; credit?: string | null }
+	meta: { alt: string; credit?: string | null; creditUrl?: string | null }
 ): Promise<MediaRecord> {
 	const processed = await processImage(file.buffer);
 	const storage = getStorage();
@@ -49,6 +49,7 @@ export async function uploadImage(
 			bytes: processed.bytes,
 			alt: meta.alt.trim(),
 			credit: meta.credit?.trim() || null,
+			creditUrl: meta.creditUrl?.trim() || null,
 			variants: processed.variants
 		})
 		.returning();
@@ -76,7 +77,7 @@ export async function listMedia(
 	const rows = await db.execute<MediaRecord & { total: number }>(sql`
 		SELECT
 			m.id, m.r2_key AS "r2Key", m.original_name AS "originalName", m.mime_type AS "mimeType",
-			m.width, m.height, m.bytes, m.alt, m.credit, m.variants,
+			m.width, m.height, m.bytes, m.alt, m.credit, m.credit_url AS "creditUrl", m.variants,
 			count(*) OVER ()::int AS total
 		FROM media m
 		${filter}
@@ -107,11 +108,15 @@ export async function getMediaByIds(db: Database, ids: number[]) {
 export async function updateMediaMeta(
 	db: Database,
 	id: number,
-	meta: { alt: string; credit?: string | null }
+	meta: { alt: string; credit?: string | null; creditUrl?: string | null }
 ) {
 	await db
 		.update(media)
-		.set({ alt: meta.alt.trim(), credit: meta.credit?.trim() || null })
+		.set({
+			alt: meta.alt.trim(),
+			credit: meta.credit?.trim() || null,
+			creditUrl: meta.creditUrl?.trim() || null
+		})
 		.where(eq(media.id, id));
 }
 
@@ -207,7 +212,7 @@ export async function listMediaAfter(
 		await db.execute<MediaRecord & { createdAtText: string; remaining: number }>(sql`
 			SELECT
 				m.id, m.r2_key AS "r2Key", m.original_name AS "originalName", m.mime_type AS "mimeType",
-				m.width, m.height, m.bytes, m.alt, m.credit, m.variants,
+				m.width, m.height, m.bytes, m.alt, m.credit, m.credit_url AS "creditUrl", m.variants,
 				m.created_at::text AS "createdAtText",
 				count(*) OVER ()::int AS remaining
 			FROM media m
@@ -231,6 +236,7 @@ export async function listMediaAfter(
 			bytes: row.bytes,
 			alt: row.alt,
 			credit: row.credit,
+			creditUrl: row.creditUrl,
 			variants: row.variants
 		})),
 		left: Math.max(0, remaining - rows.length),

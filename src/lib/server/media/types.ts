@@ -11,5 +11,6 @@ export type MediaRecord = {
 	bytes: number;
 	alt: string;
 	credit: string | null;
+	creditUrl: string | null;
 	variants: MediaVariant[];
 };

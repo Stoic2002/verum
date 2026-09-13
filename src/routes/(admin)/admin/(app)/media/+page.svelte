@@ -83,12 +83,35 @@
 				{/snippet}
 			</Field>
 
-			<Field id="credit" label="Credit" optional hint="Source and licence (PRD §14).">
+			<Field
+				id="credit"
+				label="Credit"
+				hint="Shown under the image. Who made it and where: “Jane Doe / Unsplash”. Your own image: “VERUM”."
+			>
 				{#snippet children({ id, describedBy })}
 					<input
 						{id}
 						name="credit"
-						placeholder="Unsplash / Jane Doe"
+						required
+						maxlength="200"
+						placeholder="Jane Doe / Unsplash"
+						aria-describedby={describedBy}
+					/>
+				{/snippet}
+			</Field>
+
+			<Field
+				id="credit-url"
+				label="Source link"
+				optional
+				hint="The page the image came from, e.g. the Unsplash photo page. Linked from the credit."
+			>
+				{#snippet children({ id, describedBy })}
+					<input
+						{id}
+						name="creditUrl"
+						type="url"
+						placeholder="https://unsplash.com/photos/…"
 						aria-describedby={describedBy}
 					/>
 				{/snippet}
@@ -139,14 +162,32 @@
 			<Field
 				id="url-credit"
 				label="Credit"
-				hint="Required here: record where it came from. PRD §14 allows only clearly licensed stock or your own images."
+				hint="Shown under the image. Only clearly licensed stock or your own images (PRD §14) — never a picture from another publication."
 			>
 				{#snippet children({ id, describedBy })}
 					<input
 						{id}
 						name="credit"
 						required
-						placeholder="Unsplash / Jane Doe"
+						maxlength="200"
+						placeholder="Jane Doe / Unsplash"
+						aria-describedby={describedBy}
+					/>
+				{/snippet}
+			</Field>
+
+			<Field
+				id="url-credit-url"
+				label="Source link"
+				optional
+				hint="The page that shows the image and its licence — not the image file itself."
+			>
+				{#snippet children({ id, describedBy })}
+					<input
+						{id}
+						name="creditUrl"
+						type="url"
+						placeholder="https://unsplash.com/photos/…"
 						aria-describedby={describedBy}
 					/>
 				{/snippet}
@@ -214,7 +255,19 @@
 							value={item.credit ?? ''}
 							aria-label="Credit"
 							placeholder="Credit"
+							required
+							maxlength="200"
 						/>
+						<input
+							name="creditUrl"
+							type="url"
+							value={item.creditUrl ?? ''}
+							aria-label="Source link"
+							placeholder="Source link (optional)"
+						/>
+						{#if !item.credit}
+							<p class="missing-credit">No credit — articles using this image cannot go live.</p>
+						{/if}
 						<div class="row">
 							<Button type="submit" size="sm" variant="secondary">Save</Button>
 							<ConfirmButton
@@ -328,5 +381,10 @@
 	}
 	.empty {
 		color: var(--text-3);
+	}
+	.missing-credit {
+		margin: 0;
+		color: var(--danger);
+		font-size: 0.75rem;
 	}
 </style>

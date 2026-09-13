@@ -1,7 +1,7 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"phase0_smoke": "Foundation is up.",
-	"site_tagline": "AI and technology, tested by someone who uses it.",
+	"site_tagline": "AI and technology, explained with evidence — not press releases.",
 	"nav_home": "Home",
 	"nav_search": "Search",
 	"nav_skip": "Skip to content",
@@ -40,6 +40,7 @@
 	"theme_light": "Light",
 	"theme_dark": "Dark",
 	"theme_system": "System",
+	"footer_blurb": "Guides, comparisons and analysis for people who work with AI. Every factual claim is checked against its source, and every article is reviewed by a person before it is published.",
 	"footer_editorial": "Editorial policy",
 	"footer_about": "About",
 	"footer_contact": "Contact",

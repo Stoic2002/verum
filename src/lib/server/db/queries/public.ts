@@ -36,6 +36,8 @@ const cardColumns = sql`
 	m.width AS media_width,
 	m.height AS media_height,
 	m.r2_key AS media_key,
+	m.credit AS media_credit,
+	m.credit_url AS media_credit_url,
 	m.variants AS media_variants
 `;
 
@@ -62,6 +64,8 @@ export type ArticleCard = {
 	media_width: number | null;
 	media_height: number | null;
 	media_key: string | null;
+	media_credit: string | null;
+	media_credit_url: string | null;
 	media_variants:
 		{ format: string; width: number; height: number; key: string; bytes: number }[] | null;
 };

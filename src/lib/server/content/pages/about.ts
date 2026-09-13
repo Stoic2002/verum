@@ -2,21 +2,22 @@ import type { Locale } from '../../db/schema';
 import type { PageContext, StaticPage } from './index';
 
 /**
- * PRD §6.2: an honest persona under a consistent pseudonym. No invented
- * credentials, and no claiming to be an editorial team when it is one person.
+ * No personal name on these pages: the site is presented as the work of the
+ * VERUM development team. Still no invented credentials, and no claim to be a
+ * press outlet (PRD §14).
  */
 export function about(locale: Locale, ctx: PageContext): StaticPage {
 	if (locale === 'id') {
 		return {
 			title: `Tentang ${ctx.siteName}`,
-			description: `Siapa yang menulis ${ctx.siteName}, dan bagaimana artikelnya dikerjakan.`,
-			markdown: `${ctx.siteName} ditulis oleh **${ctx.authorName}**, seorang developer di Indonesia.
+			description: `Siapa di balik ${ctx.siteName}, dan bagaimana artikelnya dikerjakan.`,
+			markdown: `${ctx.siteName} dikelola oleh **${ctx.team}**, sekelompok developer di Indonesia yang memakai tool AI untuk pekerjaan sehari-hari.
 
-Ini bukan tim redaksi. Satu orang yang menulis, menyunting, dan bertanggung jawab atas setiap tulisan di sini.
+${ctx.siteName} adalah publikasi teknologi, bukan media pers. Tim yang sama menulis, menyunting, dan bertanggung jawab atas setiap tulisan di sini.
 
 ## Kenapa situs ini ada
 
-Sebagian besar tulisan tentang tool AI adalah siaran pers yang ditulis ulang. Yang jarang ada: seseorang yang benar-benar memakai tool itu untuk pekerjaan sungguhan, lalu menuliskan apa yang terjadi.
+Sebagian besar tulisan tentang tool AI adalah siaran pers yang ditulis ulang. Yang jarang ada: orang yang benar-benar memakai tool itu untuk pekerjaan sungguhan, lalu menuliskan apa yang terjadi.
 
 Itu yang dikerjakan di sini. Setiap artikel harus memuat minimal satu hal yang tidak ada di hasil pencarian teratas — angka dari pengujian sendiri, tangkapan layar percobaan sendiri, atau penilaian dari pemakaian langsung.
 
@@ -27,7 +28,7 @@ Sebelum terbit, setiap artikel harus lolos empat pertanyaan:
 1. Apakah ada sesuatu di sini yang tidak ada di lima hasil teratas Google?
 2. Apakah setiap klaim faktual, angka, dan tanggal sudah dicek ke sumber primer?
 3. Apakah isi artikel benar-benar menjawab judulnya?
-4. Kalau ada yang mempertanyakan artikel ini, bisakah saya menunjukkan dasarnya?
+4. Kalau ada yang mempertanyakan artikel ini, bisakah kami menunjukkan dasarnya?
 
 Artikel yang gagal di salah satu poin tidak diterbitkan, sekalipun sudah selesai ditulis.
 
@@ -37,7 +38,7 @@ AI dipakai dalam proses penulisan di sini, dan itu tidak disembunyikan. Yang tid
 
 ## Yang tidak ditulis di sini
 
-Politik, bencana, kesehatan, dan keuangan personal. Bukan karena tidak penting — justru sebaliknya. Topik-topik itu menuntut keahlian yang tidak saya punya, dan salah menulisnya merugikan pembaca dengan cara yang tidak bisa diperbaiki oleh koreksi.
+Politik, bencana, kesehatan, dan keuangan personal. Bukan karena tidak penting — justru sebaliknya. Topik-topik itu menuntut keahlian yang tidak kami punya, dan salah menulisnya merugikan pembaca dengan cara yang tidak bisa diperbaiki oleh koreksi.
 
 ## Menghubungi
 
@@ -47,16 +48,16 @@ Koreksi, keberatan, atau pertanyaan: [${ctx.contactEmail}](mailto:${ctx.contactE
 
 	return {
 		title: `About ${ctx.siteName}`,
-		description: `Who writes ${ctx.siteName}, and how the articles are made.`,
-		markdown: `${ctx.siteName} is written by **${ctx.authorName}**, a developer based in Indonesia.
+		description: `Who is behind ${ctx.siteName}, and how the articles are made.`,
+		markdown: `${ctx.siteName} is run by **${ctx.team}**, a group of developers based in Indonesia who use AI tools in their daily work.
 
-This is not an editorial team. One person writes, edits, and is answerable for everything published here.
+${ctx.siteName} is a technology publication, not a press outlet. The same team writes, edits, and is answerable for everything published here.
 
 ## Why this site exists
 
-Most writing about AI tools is a press release, rewritten. What is rare is someone who actually used the tool for real work and then wrote down what happened.
+Most writing about AI tools is a press release, rewritten. What is rare is people who actually used the tool for real work and then wrote down what happened.
 
-That is the job here. Every article has to contain at least one thing that is not already in the top search results — a number from a test I ran, a screenshot of my own attempt, or a judgement earned by using the thing.
+That is the job here. Every article has to contain at least one thing that is not already in the top search results — a number from a test we ran, a screenshot of our own attempt, or a judgement earned by using the thing.
 
 ## How it works
 
@@ -65,7 +66,7 @@ Before anything is published, it has to pass four questions:
 1. Is there something here that is not in the top five Google results?
 2. Has every factual claim, number and date been checked against a primary source?
 3. Does the article actually answer its own headline?
-4. If someone challenges this piece, can I show what it rests on?
+4. If someone challenges this piece, can we show what it rests on?
 
 An article that fails any of them is not published, however finished it is.
 
@@ -75,7 +76,7 @@ AI is used in the writing process here, and that is not hidden. What is not dele
 
 ## What is not covered
 
-Politics, disasters, health, and personal finance. Not because they do not matter — because they do. Those subjects demand expertise I do not have, and getting them wrong harms readers in ways a correction cannot undo.
+Politics, disasters, health, and personal finance. Not because they do not matter — because they do. Those subjects demand expertise we do not have, and getting them wrong harms readers in ways a correction cannot undo.
 
 ## Getting in touch
 

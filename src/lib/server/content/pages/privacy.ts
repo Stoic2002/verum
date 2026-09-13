@@ -18,7 +18,7 @@ export function privacy(locale: Locale, ctx: PageContext): StaticPage {
 			ads: false,
 			markdown: `Terakhir diperbarui: ${ctx.updated}
 
-Pengelola situs ini: ${ctx.authorName}. Kontak: [${ctx.contactEmail}](mailto:${ctx.contactEmail}).
+Pengelola situs ini: ${ctx.team}. Kontak: [${ctx.contactEmail}](mailto:${ctx.contactEmail}).
 
 ## Yang dikumpulkan situs ini sendiri
 
@@ -66,7 +66,7 @@ Perubahan pada kebijakan ini akan tercermin pada tanggal di atas.`
 		ads: false,
 		markdown: `Last updated: ${ctx.updated}
 
-This site is operated by ${ctx.authorName}. Contact: [${ctx.contactEmail}](mailto:${ctx.contactEmail}).
+This site is operated by ${ctx.team}. Contact: [${ctx.contactEmail}](mailto:${ctx.contactEmail}).
 
 ## What this site collects itself
 

@@ -136,7 +136,7 @@ Setiap halaman mengirim `Cache-Control` sendiri, karena tiap halaman berbeda:
 | Artikel terbit         | 24 jam + `stale-while-revalidate` | Jarang berubah                   |
 | Homepage, kategori     | 60 detik                          | Berubah tiap ada yang terbit     |
 | Topik                  | 5 menit                           |                                  |
-| Sitemap, RSS           | 1 jam                             |                                  |
+| Sitemap                | 1 jam                             |                                  |
 | Search, admin, preview | `no-store`                        | Tidak boleh di-cache sama sekali |
 
 `s-maxage` khusus untuk cache bersama seperti CDN; browser pembaca memakai

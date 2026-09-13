@@ -14,7 +14,7 @@ import { referencedMediaIds, renderMarkdown } from '$lib/server/content/render';
  * Guarded by the /admin session check in hooks.server.ts.
  */
 export const POST: RequestHandler = async ({ request }) => {
-	const { markdown } = (await request.json()) as { markdown?: unknown };
+	const { markdown, locale } = (await request.json()) as { markdown?: unknown; locale?: unknown };
 
 	if (typeof markdown !== 'string') {
 		return json({ error: 'markdown must be a string' }, { status: 400 });
@@ -25,7 +25,8 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	const { html, toc, wordCount, readingMinutes } = await renderMarkdown(markdown, {
 		media: await getMediaByIds(db, referencedMediaIds(markdown)),
-		mediaUrl: (key) => getStorage().url(key)
+		mediaUrl: (key) => getStorage().url(key),
+		locale: locale === 'id' ? 'id' : 'en'
 	});
 
 	return json({ html, toc, wordCount, readingMinutes });

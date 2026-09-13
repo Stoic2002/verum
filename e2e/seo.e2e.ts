@@ -190,23 +190,9 @@ test.describe('machines', () => {
 		expect(body).not.toContain('/tag/postgres');
 	});
 
-	test('the feed is summary-and-link, never full text', async ({ request }) => {
-		const response = await request.get('/rss.xml');
-		const body = await response.text();
-
-		expect(response.headers()['content-type']).toContain('xml');
-		expect(body).toContain('<rss version="2.0"');
-		expect(body).toContain('<atom:link');
-		expect(body).toContain('Best AI coding tools');
-		// The rendered body would hand scrapers a clean copy to outrank us with.
-		expect(body).not.toContain('<h2');
-	});
-
-	test('the Indonesian feed is a different feed', async ({ request }) => {
-		const body = await (await request.get('/rss.xml?locale=id')).text();
-
-		expect(body).toContain('<language>id</language>');
-		expect(body).toContain('Membandingkan');
+	test('there is no feed', async ({ request }) => {
+		// Removed on purpose; a stale link to it would be a 404 in every footer.
+		expect((await request.get('/rss.xml')).status()).toBe(404);
 	});
 
 	test('ads.txt is absent rather than a placeholder', async ({ request }) => {

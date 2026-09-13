@@ -90,7 +90,8 @@ async function writeLocale(
 	// and stays a pure function of (markdown, media).
 	const rendered = await renderMarkdown(content.bodyMd, {
 		media: await getMediaByIds(tx, referencedMediaIds(content.bodyMd)),
-		mediaUrl: (key) => getStorage().url(key)
+		mediaUrl: (key) => getStorage().url(key),
+		locale
 	});
 
 	const [existing] = await tx
@@ -174,6 +175,110 @@ async function recordSlugRedirect(
 	// 3. The live path must never be a redirect source — which happens when a
 	//    slug is reverted to one it used before.
 	await tx.execute(sql`DELETE FROM redirects WHERE from_path = ${to} OR from_path = to_path`);
+}
+
+/**
+ * Which of these images has no credit recorded. Ids with no row — an image
+ * deleted from the library — are left to the missing-image notice instead.
+ */
+export async function mediaWithoutCredit(
+	db: Database,
+	ids: (number | null | undefined)[]
+): Promise<number[]> {
+	const unique = [...new Set(ids.filter((id): id is number => Number.isInteger(id) && id! > 0))];
+	if (unique.length === 0) return [];
+
+	const found = await getMediaByIds(db, unique);
+	return [...found.values()]
+		.filter((record) => !record.credit?.trim())
+		.map((record) => record.id)
+		.sort((a, b) => a - b);
+}
+
+/**
+ * Images a live article would show without a credit: its cover, and every
+ * `::image` in any language version (PRD §14).
+ *
+ * `override` stands in for the version being saved, so the check sees the
+ * body about to be written rather than the one already stored.
+ */
+export async function uncreditedMedia(
+	db: Database,
+	articleId: number,
+	override?: { locale: Locale; bodyMd: string }
+): Promise<number[]> {
+	const [article] = await db
+		.select({ cover: articles.coverMediaId })
+		.from(articles)
+		.where(eq(articles.id, articleId))
+		.limit(1);
+	if (!article) return [];
+
+	const rows = await db
+		.select({ locale: articleLocales.locale, bodyMd: articleLocales.bodyMd })
+		.from(articleLocales)
+		.where(eq(articleLocales.articleId, articleId));
+
+	const bodies = rows.filter((row) => row.locale !== override?.locale).map((row) => row.bodyMd);
+	if (override) bodies.push(override.bodyMd);
+
+	return mediaWithoutCredit(db, [article.cover, ...bodies.flatMap(referencedMediaIds)]);
+}
+
+/**
+ * Re-renders every language version that shows this image inline.
+ *
+ * body_html is written on save, so a credit corrected in the media library
+ * would otherwise stay wrong on every article already using the image. The
+ * modified date is left alone: fixing a credit is not an edit to the article.
+ *
+ * Returns the pages to purge, including articles that use it only as a cover —
+ * those read the credit live, but the edge still holds the old page.
+ */
+export async function rerenderArticlesUsingMedia(db: Database, mediaId: number) {
+	const rows = await db.execute<{
+		article_id: number;
+		locale: Locale;
+		body_md: string;
+		slug: string;
+		category_slug: string;
+		cover_media_id: number | null;
+	}>(sql`
+		SELECT al.article_id, al.locale, al.body_md, al.slug, c.slug AS category_slug, a.cover_media_id
+		FROM article_locales al
+		JOIN articles a ON a.id = al.article_id
+		JOIN categories c ON c.id = a.category_id
+		WHERE a.cover_media_id = ${mediaId} OR al.body_md LIKE '%::image{%'
+	`);
+
+	const touched: { locale: Locale; categorySlug: string; slug: string }[] = [];
+	for (const row of rows) {
+		const ids = referencedMediaIds(row.body_md);
+		const inline = ids.includes(mediaId);
+
+		if (inline) {
+			const rendered = await renderMarkdown(row.body_md, {
+				media: await getMediaByIds(db, ids),
+				mediaUrl: (key) => getStorage().url(key),
+				locale: row.locale
+			});
+			await db
+				.update(articleLocales)
+				.set({ bodyHtml: rendered.html })
+				.where(
+					and(
+						eq(articleLocales.articleId, Number(row.article_id)),
+						eq(articleLocales.locale, row.locale)
+					)
+				);
+		}
+
+		if (inline || Number(row.cover_media_id) === mediaId) {
+			touched.push({ locale: row.locale, categorySlug: row.category_slug, slug: row.slug });
+		}
+	}
+
+	return touched;
 }
 
 /**

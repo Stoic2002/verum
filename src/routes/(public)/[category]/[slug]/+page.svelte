@@ -3,6 +3,7 @@
 	import { m } from '$lib/paraglide/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import * as urls from '$lib/urls';
+	import { creditLabel } from '$lib/credit';
 	import AdSlot from '$lib/components/AdSlot.svelte';
 	import ArticleCard from '$lib/components/ArticleCard.svelte';
 	import LocaleBanner from '$lib/components/LocaleBanner.svelte';
@@ -99,6 +100,18 @@
 					loading="eager"
 					fetchpriority="high"
 				/>
+				{#if article.imageCredit}
+					<figcaption class="credit">
+						{creditLabel(locale)}:
+						{#if article.imageCredit.href}
+							<a href={article.imageCredit.href} rel="nofollow noopener noreferrer" target="_blank">
+								{article.imageCredit.text}
+							</a>
+						{:else}
+							{article.imageCredit.text}
+						{/if}
+					</figcaption>
+				{/if}
 			</figure>
 		{/if}
 
@@ -271,6 +284,31 @@
 	}
 	.lede-image :global(img) {
 		border-radius: var(--r-xl);
+	}
+	/* Small and quiet, but always there: where the image came from (PRD §14). */
+	.credit,
+	.prose :global(.figure-credit) {
+		color: var(--text-3);
+		font-size: 0.75rem;
+		line-height: 1.5;
+	}
+	.credit {
+		margin-top: 0.5rem;
+	}
+	.prose :global(.figure-credit) {
+		display: block;
+		margin-top: 0.125rem;
+	}
+	.credit a,
+	.prose :global(.figure-credit a) {
+		color: inherit;
+		text-decoration: underline;
+		text-decoration-color: var(--border-strong);
+		text-underline-offset: 2px;
+	}
+	.credit a:hover,
+	.prose :global(.figure-credit a:hover) {
+		color: var(--accent);
 	}
 
 	.toc {

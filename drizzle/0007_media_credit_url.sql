@@ -1,0 +1,1 @@
+ALTER TABLE "media" ADD COLUMN "credit_url" text;

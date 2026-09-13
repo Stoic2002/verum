@@ -1,4 +1,5 @@
 import { QUALITY_GATE_KEYS, countEditorNotes } from '$lib/quality-gate';
+import { missingCreditMessage } from '$lib/credit';
 import { setFlash } from '$lib/server/flash';
 import { error, fail, redirect, type Actions } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
@@ -8,12 +9,14 @@ import { db } from '$lib/server/db';
 import { categoryOptions, getArticleForAdmin, tagOptions } from '$lib/server/db/queries/admin';
 import {
 	deleteArticle,
+	mediaWithoutCredit,
 	saveArticleLocale,
 	setArticleStatus,
 	setArticleTags,
 	slugify
 } from '$lib/server/content/articles';
 import { createPreviewToken } from '$lib/server/content/preview-token';
+import { referencedMediaIds } from '$lib/server/content/render';
 import { articleSettingsSchema } from '$lib/server/content/schemas';
 import { getStorage, listMedia, pictureFor } from '$lib/server/media';
 import { articleSurfaces, purgeUrls } from '$lib/server/cdn';
@@ -108,6 +111,16 @@ export const actions: Actions = {
 					`Resolve the [[EDITOR: …]] notes in the ${unresolved.map((row) => row.locale).join(' and ')} version first. They mark what only you can write.`,
 					{ status: 400 }
 				);
+			}
+
+			// Checked on every save while live, like the notes: a cover can be
+			// swapped for an uncredited one long after the article went out.
+			const uncredited = await mediaWithoutCredit(db, [
+				coverMediaId || null,
+				...bodies.flatMap((row) => referencedMediaIds(row.bodyMd))
+			]);
+			if (uncredited.length) {
+				return message(form, missingCreditMessage(uncredited), { status: 400 });
 			}
 
 			// The gate is asked at the moment of going live, not on every later save.

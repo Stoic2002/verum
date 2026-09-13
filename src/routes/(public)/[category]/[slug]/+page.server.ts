@@ -1,4 +1,5 @@
 import { error } from '@sveltejs/kit';
+import { safeCreditUrl } from '$lib/credit';
 import { db } from '$lib/server/db';
 import { articleBySlug, publishedAlternates, relatedArticles } from '$lib/server/db/queries/public';
 import { toCard } from '$lib/server/cards';
@@ -77,6 +78,12 @@ export const load: PageServerLoad = async ({ params, url, locals, setHeaders }) 
 		seo,
 		article: {
 			...card,
+			// Read live rather than baked into the page, so a corrected credit
+			// shows as soon as the cache is purged.
+			imageCredit:
+				card.image && row.media_credit?.trim()
+					? { text: row.media_credit.trim(), href: safeCreditUrl(row.media_credit_url) }
+					: null,
 			body: splitAfterOpening(row.body_html),
 			toc: row.word_count >= TOC_MIN_WORDS ? row.toc : [],
 			wordCount: row.word_count,

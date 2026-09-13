@@ -13,7 +13,7 @@ Dengan menggunakan ${ctx.siteName}, Anda menyetujui ketentuan berikut.
 
 ## Isi situs
 
-Seluruh artikel, gambar buatan sendiri, dan kode di situs ini adalah milik ${ctx.authorName}, kecuali dinyatakan lain.
+Seluruh artikel, gambar buatan sendiri, dan kode di situs ini adalah milik ${ctx.team}, kecuali dinyatakan lain. Gambar dari pihak lain tetap milik pembuatnya dan dipakai sesuai lisensinya, sebagaimana tercantum di kredit gambar.
 
 Anda boleh mengutip sebagian isi situs ini disertai atribusi dan tautan ke halaman aslinya. Anda **tidak** boleh menerbitkan ulang artikel secara utuh, atau memakai isinya untuk membuat salinan situs ini.
 
@@ -53,7 +53,7 @@ By using ${ctx.siteName} you agree to the following.
 
 ## Content
 
-All articles, original images and code on this site belong to ${ctx.authorName} unless stated otherwise.
+All articles, original images and code on this site belong to ${ctx.team} unless stated otherwise. Images by others remain their creators' and are used under the licence named in their credit.
 
 You may quote portions of this site with attribution and a link to the original page. You may **not** republish articles in full, or use the content to build a copy of this site.
 
@@ -63,7 +63,7 @@ Articles here are written in good faith and verified before publication, but tec
 
 The content is informational. It is not professional advice, and technical decisions you make based on it are your own.
 
-If you find something wrong, tell me — see [Contact](/en/contact).
+If you find something wrong, tell us — see [Contact](/en/contact).
 
 ## Outbound links
 

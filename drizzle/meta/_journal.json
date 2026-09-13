@@ -50,6 +50,13 @@
       "when": 1789130565477,
       "tag": "0006_ai_job_notes",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789296591183,
+      "tag": "0007_media_credit_url",
+      "breakpoints": true
     }
   ]
 }

@@ -63,13 +63,13 @@
 <footer class="footer">
 	<div class="footer__inner">
 		<p class="footer__tagline">{m.site_tagline()}</p>
+		<p class="footer__blurb">{m.footer_blurb()}</p>
 		<nav aria-label="Footer">
 			<a href={urls.page(locale, 'about')}>{m.footer_about()}</a>
 			<a href={urls.page(locale, 'editorial-policy')}>{m.footer_editorial()}</a>
 			<a href={urls.page(locale, 'contact')}>{m.footer_contact()}</a>
 			<a href={urls.page(locale, 'privacy')}>{m.footer_privacy()}</a>
 			<a href={urls.page(locale, 'terms')}>{m.footer_terms()}</a>
-			<a href="/rss.xml">RSS</a>
 		</nav>
 		<p class="footer__rights">{m.footer_rights({ year })}</p>
 	</div>
@@ -196,10 +196,19 @@
 		padding-bottom: 3rem;
 	}
 	.footer__tagline {
-		max-width: 28rem;
-		margin: 0 0 1.25rem;
+		max-width: 32rem;
+		margin: 0 0 0.5rem;
+		color: var(--text);
+		font-size: 1.0625rem;
+		font-weight: var(--weight-strong);
+		letter-spacing: -0.01em;
+	}
+	.footer__blurb {
+		max-width: 36rem;
+		margin: 0 0 1.5rem;
 		color: var(--text-2);
-		font-size: 1rem;
+		font-size: 0.875rem;
+		line-height: 1.6;
 	}
 	.footer nav {
 		display: flex;

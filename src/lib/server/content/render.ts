@@ -188,6 +188,8 @@ type MediaMap = Map<number, MediaRecord>;
 export type RenderContext = {
 	media?: MediaMap;
 	mediaUrl?: (key: string) => string;
+	/** Language of the surrounding page, for the words rendered around images. */
+	locale?: 'en' | 'id';
 };
 
 /** Ids to fetch before rendering, so the pipeline itself stays free of I/O. */
@@ -206,6 +208,7 @@ export async function renderMarkdown(
 	const file = new VFile({ value: markdown ?? '' });
 	file.data.media = context.media;
 	file.data.mediaUrl = context.mediaUrl;
+	file.data.locale = context.locale ?? 'en';
 	await processor.process(file);
 
 	const { toc, text } = (file.data.extracted as Extracted | undefined) ?? { toc: [], text: '' };
@@ -226,6 +229,7 @@ declare module 'vfile' {
 		extracted: Extracted;
 		media: MediaMap | undefined;
 		mediaUrl: ((key: string) => string) | undefined;
+		locale: 'en' | 'id';
 	}
 }
 

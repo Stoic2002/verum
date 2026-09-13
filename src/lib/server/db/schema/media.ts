@@ -25,7 +25,13 @@ export const media = pgTable('media', {
 	bytes: integer('bytes').notNull(),
 	/** Required on insert: an image without alt text is an accessibility defect. */
 	alt: text('alt').notNull().default(''),
+	/**
+	 * Who made the image and under what licence, shown under it wherever it
+	 * appears (PRD §14). Required before an article using it can go live.
+	 */
 	credit: text('credit'),
+	/** Where the image came from — the photographer's page, the stock listing. */
+	creditUrl: text('credit_url'),
 	variants: jsonb('variants').$type<MediaVariant[]>().notNull().default([]),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 });

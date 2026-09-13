@@ -273,3 +273,52 @@ describe('ad slot placement', () => {
 		expect(splitAfterOpening('')).toEqual({ lead: '', rest: '' });
 	});
 });
+
+describe('image credits', () => {
+	const record = (credit: string | null, creditUrl: string | null) => ({
+		id: 7,
+		r2Key: 'original/abc.png',
+		originalName: 'abc.png',
+		mimeType: 'image/png',
+		width: 1600,
+		height: 900,
+		bytes: 1000,
+		alt: 'A chart',
+		credit,
+		creditUrl,
+		variants: []
+	});
+	const render = (credit: string | null, creditUrl: string | null, locale?: 'en' | 'id') =>
+		renderMarkdown('::image{id=7 caption="Benchmark results"}', {
+			media: new Map([[7, record(credit, creditUrl)]]),
+			locale
+		});
+
+	it('shows the credit under the caption, linked to its source', async () => {
+		const { html, text } = await render('Jane Doe / Unsplash', 'https://unsplash.com/photos/x');
+
+		expect(html).toContain('Benchmark results');
+		expect(html).toContain(
+			'<span class="figure-credit">Image: <a href="https://unsplash.com/photos/x"'
+		);
+		expect(html).toContain('rel="nofollow noopener noreferrer"');
+		// A credit is not prose: it stays out of search and reading time.
+		expect(text).not.toContain('Unsplash');
+	});
+
+	it('uses the page language for the label', async () => {
+		const { html } = await render('VERUM', null, 'id');
+		expect(html).toContain('<span class="figure-credit">Gambar: VERUM</span>');
+	});
+
+	it('never links a source that is not http or https', async () => {
+		const { html } = await render('Someone', 'javascript:alert(1)');
+		expect(html).not.toContain('javascript:');
+		expect(html).toContain('Image: Someone');
+	});
+
+	it('renders no credit line when none is recorded', async () => {
+		const { html } = await render(null, null);
+		expect(html).not.toContain('figure-credit');
+	});
+});

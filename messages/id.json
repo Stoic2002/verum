@@ -1,7 +1,7 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"phase0_smoke": "Fondasi sudah jalan.",
-	"site_tagline": "AI dan teknologi, diuji oleh orang yang memakainya.",
+	"site_tagline": "AI dan teknologi, dijelaskan dengan bukti — bukan siaran pers.",
 	"nav_home": "Beranda",
 	"nav_search": "Cari",
 	"nav_skip": "Lompat ke konten",
@@ -40,6 +40,7 @@
 	"theme_light": "Terang",
 	"theme_dark": "Gelap",
 	"theme_system": "Sistem",
+	"footer_blurb": "Panduan, perbandingan, dan analisis untuk orang yang bekerja dengan AI. Setiap klaim faktual dicek ke sumbernya, dan setiap artikel ditinjau manusia sebelum terbit.",
 	"footer_editorial": "Kebijakan editorial",
 	"footer_about": "Tentang",
 	"footer_contact": "Kontak",

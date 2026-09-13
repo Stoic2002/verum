@@ -5,6 +5,7 @@ import type { VFile } from 'vfile';
 // which reaches $env, which the seed script cannot resolve.
 import { ARTICLE_IMAGE_SIZES, pictureFor } from '../media/picture';
 import type { MediaRecord } from '../media/types';
+import { creditLabel, safeCreditUrl } from '../../credit';
 import { visit } from 'unist-util-visit';
 
 /**
@@ -206,6 +207,38 @@ export function remarkEmbeds() {
 	};
 }
 
+/**
+ * Caption and credit, in one figcaption.
+ *
+ * The credit is not optional decoration: PRD §14 allows only licensed stock or
+ * images made here, and saying where an image came from, right under it, is
+ * what makes that checkable by a reader. The link is nofollow — it credits a
+ * source, it does not vouch for it.
+ */
+function figcaption(caption: string, record: MediaRecord, locale: string): Element[] {
+	const credit = record.credit?.trim() ?? '';
+	if (!caption && !credit) return [];
+
+	const children: Element['children'] = [];
+	if (caption) children.push({ type: 'text', value: caption });
+
+	if (credit) {
+		const href = safeCreditUrl(record.creditUrl);
+		children.push(
+			el('span', { className: ['figure-credit'] }, [
+				{ type: 'text', value: `${creditLabel(locale)}: ` },
+				href
+					? el('a', { href, rel: ['nofollow', 'noopener', 'noreferrer'], target: '_blank' }, [
+							{ type: 'text', value: credit }
+						])
+					: { type: 'text', value: credit }
+			])
+		);
+	}
+
+	return [el('figcaption', {}, children)];
+}
+
 const el = (
 	tagName: string,
 	properties: Properties,
@@ -313,7 +346,7 @@ export function rehypeEmbeds() {
 							decoding: 'async'
 						})
 					]),
-					...(caption ? [el('figcaption', {}, [{ type: 'text' as const, value: caption }])] : [])
+					...figcaption(caption, record, (file.data.locale as string | undefined) ?? 'en')
 				];
 				return;
 			}

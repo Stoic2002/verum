@@ -62,8 +62,8 @@ export async function purgeUrls(urls: string[]): Promise<PurgeResult> {
 /**
  * Every URL an article edit can affect.
  *
- * Not just the article: its category listing, the homepage, the feed and the
- * sitemaps all embed its title or date, and leaving those stale is how a site
+ * Not just the article: its category listing, the homepage and the sitemaps
+ * all embed its title or date, and leaving those stale is how a site
  * ends up showing a headline that no longer exists anywhere.
  */
 export function articleSurfaces(
@@ -76,8 +76,6 @@ export function articleSurfaces(
 		`${origin}/${locale}/${categorySlug}/${slug}`,
 		`${origin}/${locale}/${categorySlug}`,
 		`${origin}/${locale}`,
-		`${origin}/rss.xml`,
-		`${origin}/rss.xml?locale=${locale}`,
 		`${origin}/sitemap.xml`,
 		`${origin}/sitemap-${locale}.xml`
 	];

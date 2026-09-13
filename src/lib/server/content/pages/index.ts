@@ -1,6 +1,5 @@
 import { env } from '$env/dynamic/public';
 import type { Locale } from '../../db/schema';
-import { AUTHOR_NAME } from '../../seo';
 import { about } from './about';
 import { contact } from './contact';
 import { editorialPolicy } from './editorial-policy';
@@ -28,7 +27,8 @@ export type StaticPage = {
 };
 
 export type PageContext = {
-	authorName: string;
+	/** Who stands behind the site, as the pages name it: a team, never a person. */
+	team: string;
 	contactEmail: string;
 	siteName: string;
 	updated: string;
@@ -57,7 +57,7 @@ function lastUpdated(): string {
 
 export function getStaticPage(slug: PageSlug, locale: Locale): StaticPage {
 	return BUILDERS[slug](locale, {
-		authorName: AUTHOR_NAME,
+		team: locale === 'id' ? 'tim pengembang VERUM' : 'the VERUM development team',
 		// Deliberately visible when unset: a Contact page with no way to make
 		// contact fails the AdSense prerequisite it exists to satisfy.
 		contactEmail: env.PUBLIC_CONTACT_EMAIL || '(contact email not configured)',

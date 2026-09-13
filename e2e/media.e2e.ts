@@ -75,6 +75,7 @@ test('refuses an upload without alt text', async ({ page }) => {
 			.toBuffer()
 	});
 	await page.locator('#alt').evaluate((el) => el.removeAttribute('required'));
+	await page.locator('#credit').fill('Generated for tests');
 	await page.getByRole('button', { name: /^upload$/i }).click();
 
 	await expect(page.getByRole('alert')).toContainText(/alt text is required/i);
@@ -90,9 +91,27 @@ test('refuses an SVG', async ({ page }) => {
 		buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>')
 	});
 	await page.locator('#alt').fill('Should not upload');
+	await page.locator('#credit').fill('Generated for tests');
 	await page.getByRole('button', { name: /^upload$/i }).click();
 
 	await expect(page.getByRole('alert')).toContainText(/not an image|unsupported/i);
+});
+
+test('refuses an upload without a credit', async ({ page }) => {
+	await signIn(page);
+	await page.goto('/admin/media');
+
+	await page.locator('#file').setInputFiles({
+		name: `uncredited-${stamp}.png`,
+		mimeType: 'image/png',
+		buffer: await sampleImage()
+	});
+	await page.locator('#alt').fill('An image with no credit');
+	// The browser's own required check has to be bypassed to reach the server rule.
+	await page.locator('#credit').evaluate((el) => el.removeAttribute('required'));
+	await page.getByRole('button', { name: /^upload$/i }).click();
+
+	await expect(page.getByRole('alert')).toContainText(/credit is required/i);
 });
 
 test('an article image renders as a picture that reserves its box', async ({ page }) => {
@@ -122,7 +141,9 @@ test('an article image renders as a picture that reserves its box', async ({ pag
 
 	await expect(figure.locator('source[type="image/avif"]')).toHaveCount(1);
 	await expect(figure.locator('source[type="image/webp"]')).toHaveCount(1);
-	await expect(figure.locator('figcaption')).toHaveText('Figure 1');
+	await expect(figure.locator('figcaption')).toContainText('Figure 1');
+	// PRD §14: where the image came from, right under it.
+	await expect(figure.locator('.figure-credit')).toHaveText('Image: Generated for tests');
 
 	await page.getByRole('button', { name: /^save$/i }).click();
 	await expect(toast(page, 'Saved')).toBeVisible();
@@ -175,7 +196,7 @@ test.describe('importing by URL', () => {
 		await expect(page.getByRole('alert')).toContainText(/not reachable from here/i);
 	});
 
-	test('requires a credit, unlike a file upload', async ({ page }) => {
+	test('requires a credit', async ({ page }) => {
 		await signIn(page);
 		await page.goto('/admin/media');
 		await page.getByRole('tab', { name: /import from url/i }).click();

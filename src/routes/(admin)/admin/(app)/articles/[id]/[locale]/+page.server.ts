@@ -6,7 +6,8 @@ import { valibot } from 'sveltekit-superforms/adapters';
 import { message, superValidate } from 'sveltekit-superforms';
 import { db } from '$lib/server/db';
 import { getArticleForAdmin, getArticleLocale } from '$lib/server/db/queries/admin';
-import { saveArticleLocale } from '$lib/server/content/articles';
+import { saveArticleLocale, uncreditedMedia } from '$lib/server/content/articles';
+import { missingCreditMessage } from '$lib/credit';
 import { createPreviewToken } from '$lib/server/content/preview-token';
 import { articleSurfaces, purgeUrls } from '$lib/server/cdn';
 import { siteOrigin } from '$lib/server/site';
@@ -88,6 +89,12 @@ export const actions: Actions = {
 				'This article is live: remove the [[EDITOR: …]] notes before saving, or unpublish it first.',
 				{ status: 400 }
 			);
+		}
+		if (live) {
+			const uncredited = await uncreditedMedia(db, id, { locale, bodyMd: form.data.bodyMd });
+			if (uncredited.length) {
+				return message(form, missingCreditMessage(uncredited), { status: 400 });
+			}
 		}
 
 		try {
