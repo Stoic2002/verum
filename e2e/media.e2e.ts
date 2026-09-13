@@ -149,6 +149,29 @@ test('an article image renders as a picture that reserves its box', async ({ pag
 	await expect(toast(page, 'Saved')).toBeVisible();
 });
 
+test('an image from the library can be chosen as the cover and saved', async ({ page }) => {
+	await signIn(page);
+
+	await page.goto('/admin/articles/new');
+	await page.getByLabel('Title').fill(`Cover article ${stamp}`);
+	await page.getByLabel('Slug').fill(`cover-article-${stamp}`);
+	await page.getByLabel('Category').selectOption({ index: 1 });
+	await page.getByRole('button', { name: /create and edit/i }).click();
+	await expect(page).toHaveURL(/\/admin\/articles\/\d+\/en$/);
+	const articleId = page.url().match(/articles\/(\d+)\//)?.[1];
+
+	await page.goto(`/admin/articles/${articleId}`);
+	const cover = page.locator('button.cover[title="A blue test image"]').first();
+	await cover.click();
+	// Ids from the library must be numbers: a string id never matches the
+	// selection, and the settings form rejects it on save.
+	await expect(cover).toHaveClass(/selected/);
+
+	await page.getByRole('button', { name: 'Save settings' }).click();
+	await expect(toast(page, 'Saved')).toBeVisible();
+	await expect(page.getByRole('alert')).toHaveCount(0);
+});
+
 test('the image adds no layout shift', async ({ page }) => {
 	await signIn(page);
 	await page.goto('/admin/media');

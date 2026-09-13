@@ -86,7 +86,12 @@ export async function listMedia(
 	`);
 
 	const list = Array.from(rows);
-	return { items: list as MediaRecord[], total: Number(list[0]?.total ?? 0) };
+	return {
+		// postgres.js returns a bigint column as a string. Left alone, "1" reaches
+		// the article settings form as the cover id and fails its number check.
+		items: list.map((row) => ({ ...row, id: Number(row.id) })) as MediaRecord[],
+		total: Number(list[0]?.total ?? 0)
+	};
 }
 
 export async function getMedia(db: Database, id: number) {
@@ -227,7 +232,7 @@ export async function listMediaAfter(
 
 	return {
 		items: rows.map((row): MediaRecord => ({
-			id: row.id,
+			id: Number(row.id),
 			r2Key: row.r2Key,
 			originalName: row.originalName,
 			mimeType: row.mimeType,

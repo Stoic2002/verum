@@ -3,7 +3,7 @@ import type { Sql } from 'postgres';
 import { setupTestDatabase, truncateAll } from '../db/testing';
 import type { Database } from '../db/types';
 import { media } from '../db/schema';
-import { listMedia } from './index';
+import { listMedia, listMediaAfter } from './index';
 
 /**
  * The library used to be capped at the newest hundred rows with no way past
@@ -40,6 +40,14 @@ afterAll(async () => {
 });
 
 describe('media library paging', () => {
+	it('returns ids as numbers, not the strings postgres uses for bigint', async () => {
+		const { items } = await listMedia(db, { limit: 3 });
+		for (const item of items) expect(typeof item.id).toBe('number');
+
+		const feed = await listMediaAfter(db, { limit: 3 });
+		for (const item of feed.items) expect(typeof item.id).toBe('number');
+	});
+
 	it('reports the true total, not the page size', async () => {
 		const { items, total } = await listMedia(db, { limit: 24 });
 		expect(items).toHaveLength(24);
