@@ -53,4 +53,20 @@ code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT:-3000}/en
 echo "GET /en -> $code"
 [[ "$code" == "200" ]] || { echo "Smoke test failed" >&2; exit 1; }
 
+log "CDN cache"
+# A release changes templates every page shares — the footer, the layout — and
+# the edge holds HTML for a day. Purge everything so readers get this release
+# now. A failed purge is reported but does not undo a deploy that already works.
+CF_ZONE=$(grep -E '^CLOUDFLARE_ZONE_ID=' "$ENV_FILE" | cut -d= -f2- | tr -d '"' || true)
+CF_TOKEN=$(grep -E '^CLOUDFLARE_API_TOKEN=' "$ENV_FILE" | cut -d= -f2- | tr -d '"' || true)
+if [[ -n "$CF_ZONE" && -n "$CF_TOKEN" ]]; then
+	# The token goes in on stdin as curl config, never as an argument.
+	result=$(curl -s -K - -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE/purge_cache" \
+		-H 'content-type: application/json' --data '{"purge_everything":true}' \
+		<<<"header = \"Authorization: Bearer $CF_TOKEN\"")
+	if grep -q '"success":true' <<<"$result"; then echo "Purged"; else echo "Purge failed: $result" >&2; fi
+else
+	echo "CLOUDFLARE_ZONE_ID / CLOUDFLARE_API_TOKEN not set; skipped"
+fi
+
 log "Deployed: $(sudo -u "$APP_USER" git -C "$APP_DIR" log --oneline -1)"

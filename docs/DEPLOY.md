@@ -36,14 +36,36 @@ database — bukan mengingat-ingat perintah. Isinya:
 
 ## Setiap rilis
 
+Server mengambil kode dari GitHub, jadi perubahan harus sudah di-push ke `main`.
+
 ```bash
+git push origin main
 ssh ubuntu@SERVER_IP 'sudo bash /srv/verum/app/scripts/deploy.sh'
 ```
 
 Urutannya: `git reset --hard origin/main` → `bun install --frozen-lockfile` →
-**migrasi** → build → restart → smoke test `GET /en`. Migrasi berjalan sebelum
-build baru melayani permintaan: migrasi yang gagal harus menghentikan deploy,
-bukan meninggalkan aplikasi berjalan di atas database setengah jadi.
+**migrasi** → build → restart → smoke test `GET /en` → **purge seluruh cache
+Cloudflare**. Migrasi berjalan sebelum build baru melayani permintaan: migrasi
+yang gagal harus menghentikan deploy, bukan meninggalkan aplikasi berjalan di
+atas database setengah jadi.
+
+Purge menyeluruh dilakukan karena rilis mengubah bagian yang dipakai semua
+halaman (footer, layout), sementara edge menyimpan HTML sehari. Purge yang gagal
+dilaporkan tapi tidak membatalkan deploy yang sudah jalan.
+
+Kalau deploy berhenti di tengah, pesan terakhir menunjukkan langkahnya. Situs
+lama tetap melayani sampai langkah restart, jadi kegagalan sebelum itu tidak
+menurunkan situs.
+
+### Perintah lain di server
+
+```bash
+# Tambah tag awal (aman diulang; tidak menghapus apa pun)
+ssh ubuntu@SERVER_IP "sudo -u verum -H bash -c 'cd /srv/verum/app && bun run db:seed-tags'"
+
+# Log aplikasi
+ssh ubuntu@SERVER_IP 'sudo journalctl -u verum -n 100 --no-pager'
+```
 
 ## Yang masih harus diisi
 

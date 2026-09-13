@@ -29,6 +29,7 @@
 		"db:migrate": "drizzle-kit migrate",
 		"db:seed": "bun run --env-file=.env src/lib/server/db/seed.ts",
 		"admin:create": "bun run --env-file=.env scripts/create-admin.ts",
+		"db:seed-tags": "bun run --env-file=.env scripts/seed-tags.ts",
 		"db:demo": "bun run --env-file=.env src/lib/server/db/demo/index.ts",
 		"db:backup": "bash scripts/backup.sh",
 		"db:restore-test": "bash scripts/restore-test.sh",
