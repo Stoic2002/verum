@@ -3,6 +3,7 @@
 	import { enhance as kitEnhance } from '$app/forms';
 	import { ConfirmButton } from '$lib/components/ui';
 	import { enhanceWithToast, toastOnUpdate } from '$lib/toast.svelte';
+	import { slugify } from '$lib/slug';
 
 	let { data } = $props();
 
@@ -21,6 +22,36 @@
 
 	const { form: cForm, errors: cErrors, enhance: cEnhance } = category;
 	const { form: tForm, errors: tErrors, enhance: tEnhance } = tag;
+
+	/*
+	 * The tag list runs to hundreds of rows after a seed. It is filtered and
+	 * shown a page at a time in the browser: the whole list is already loaded,
+	 * and a round trip per keystroke would be slower than the filter itself.
+	 */
+	const PAGE = 30;
+	let query = $state('');
+	let usage = $state<'all' | 'used' | 'unused'>('all');
+	let visible = $state(PAGE);
+
+	const filteredTags = $derived.by(() => {
+		const needle = query.trim().toLowerCase();
+		return data.tags.filter((row) => {
+			if (usage === 'used' && row.article_count === 0) return false;
+			if (usage === 'unused' && row.article_count > 0) return false;
+			return !needle || row.name.toLowerCase().includes(needle) || row.slug.includes(needle);
+		});
+	});
+
+	function setUsage(next: typeof usage) {
+		usage = next;
+		visible = PAGE;
+	}
+
+	// The slug follows the name until it is edited by hand.
+	let slugTouched = $state(false);
+	function nameInput() {
+		if (!slugTouched) $tForm.slug = slugify($tForm.name);
+	}
 
 	function edit(row: (typeof data.categories)[number]) {
 		$cForm.slug = row.slug;
@@ -105,50 +136,89 @@
 
 <section>
 	<h2>Tags</h2>
-	<p class="meta">A tag page with fewer than 3 articles is noindexed (PRD §8.1).</p>
+	<p class="meta">
+		{data.tags.length} tags. A tag page with fewer than 3 articles is noindexed (PRD §8.1).
+	</p>
 
-	<table>
-		<thead><tr><th>Name</th><th>Slug</th><th>Articles</th><th></th></tr></thead>
-		<tbody>
-			{#each data.tags as row (row.id)}
-				<tr>
-					<td>{row.name}</td>
-					<td><code>{row.slug}</code></td>
-					<td class="num">{row.article_count}</td>
-					<td>
-						<form method="POST" action="?/deleteTag" use:kitEnhance={enhanceWithToast()}>
-							<input type="hidden" name="id" value={row.id} />
-							<ConfirmButton
-								class="btn btn--danger btn--sm"
-								title="Delete this tag?"
-								message={`“${row.name}” is removed from every article that carries it. The articles themselves stay.`}
-								confirmLabel="Delete tag"
-							>
-								Delete
-							</ConfirmButton>
-						</form>
-					</td>
-				</tr>
-			{/each}
-		</tbody>
-	</table>
-
-	<form method="POST" action="?/saveTag" use:tEnhance class="form-grid">
-		<div class="row">
-			<div class="form-grid">
-				<label for="tname">Name</label>
-				<input id="tname" bind:value={$tForm.name} />
-				{#if $tErrors.name}<p class="error">{$tErrors.name[0]}</p>{/if}
-			</div>
-			<div class="form-grid">
-				<label for="tslug">Slug</label>
-				<input id="tslug" bind:value={$tForm.slug} />
-				{#if $tErrors.slug}<p class="error">{$tErrors.slug[0]}</p>{/if}
-			</div>
+	<form method="POST" action="?/saveTag" use:tEnhance class="add">
+		<div class="form-grid">
+			<label for="tname">Name</label>
+			<input id="tname" bind:value={$tForm.name} oninput={nameInput} placeholder="Dota 2" />
+			{#if $tErrors.name}<p class="error">{$tErrors.name[0]}</p>{/if}
 		</div>
-
+		<div class="form-grid">
+			<label for="tslug">Slug</label>
+			<input
+				id="tslug"
+				bind:value={$tForm.slug}
+				oninput={() => (slugTouched = true)}
+				placeholder="dota-2"
+			/>
+			{#if $tErrors.slug}<p class="error">{$tErrors.slug[0]}</p>{/if}
+		</div>
 		<div><button type="submit">Save tag</button></div>
 	</form>
+
+	<div class="filters">
+		<label class="visually-hidden" for="tag-search">Search tags</label>
+		<input
+			id="tag-search"
+			type="search"
+			placeholder="Search by name or slug"
+			bind:value={query}
+			oninput={() => (visible = PAGE)}
+		/>
+		<div class="usage" role="group" aria-label="Filter by use">
+			{#each [['all', 'All'], ['used', 'In use'], ['unused', 'Unused']] as const as [value, label] (value)}
+				<button
+					type="button"
+					class="unstyled"
+					aria-pressed={usage === value}
+					onclick={() => setUsage(value)}>{label}</button
+				>
+			{/each}
+		</div>
+	</div>
+
+	<p class="meta" aria-live="polite">
+		Showing {Math.min(visible, filteredTags.length)} of {filteredTags.length}
+	</p>
+
+	{#if filteredTags.length === 0}
+		<p class="meta">No tag matches “{query}”.</p>
+	{:else}
+		<table>
+			<thead><tr><th>Name</th><th>Slug</th><th>Articles</th><th></th></tr></thead>
+			<tbody>
+				{#each filteredTags.slice(0, visible) as row (row.id)}
+					<tr>
+						<td>{row.name}</td>
+						<td><code>{row.slug}</code></td>
+						<td class="num">{row.article_count}</td>
+						<td>
+							<form method="POST" action="?/deleteTag" use:kitEnhance={enhanceWithToast()}>
+								<input type="hidden" name="id" value={row.id} />
+								<ConfirmButton
+									class="btn btn--danger btn--sm"
+									title="Delete this tag?"
+									message={`“${row.name}” is removed from every article that carries it. The articles themselves stay.`}
+									confirmLabel="Delete tag"
+								>
+									Delete
+								</ConfirmButton>
+							</form>
+						</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+
+		{#if visible < filteredTags.length}
+			<button type="button" class="btn btn--secondary more" onclick={() => (visible += PAGE)}>
+				Show {Math.min(PAGE, filteredTags.length - visible)} more
+			</button>
+		{/if}
+	{/if}
 </section>
 
 <style>
@@ -168,5 +238,54 @@
 	}
 	.num {
 		font-variant-numeric: tabular-nums;
+	}
+	.add {
+		display: grid;
+		grid-template-columns: 1fr 1fr auto;
+		gap: 0.75rem;
+		align-items: end;
+		margin: 1rem 0 1.5rem;
+		padding: 1rem;
+		border: 1px solid var(--border);
+		border-radius: var(--r-md);
+		background: var(--surface);
+	}
+	.filters {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+		align-items: center;
+	}
+	.filters input {
+		flex: 1;
+		min-width: 12rem;
+	}
+	.usage {
+		display: inline-flex;
+		gap: 0.125rem;
+		padding: 0.1875rem;
+		border-radius: var(--r-md);
+		background: var(--surface-2);
+	}
+	.usage button {
+		padding: 0.3125rem 0.75rem;
+		border-radius: var(--r-sm);
+		color: var(--text-3);
+		font-size: 0.8125rem;
+		font-weight: var(--weight-strong);
+		cursor: pointer;
+	}
+	.usage button[aria-pressed='true'] {
+		background: var(--surface);
+		color: var(--text);
+		box-shadow: var(--shadow-sm);
+	}
+	.more {
+		margin-top: 1rem;
+	}
+	@media (max-width: 40rem) {
+		.add {
+			grid-template-columns: 1fr;
+		}
 	}
 </style>

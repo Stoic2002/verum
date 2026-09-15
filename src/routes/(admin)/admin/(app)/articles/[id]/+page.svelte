@@ -21,6 +21,25 @@
 		$form.tagIds = checked ? [...$form.tagIds, id] : $form.tagIds.filter((t) => t !== id);
 	}
 
+	/*
+	 * Hundreds of tags will not fit as a wall of checkboxes. The chosen ones
+	 * sit on top as chips; the rest are found by typing, a handful at a time.
+	 */
+	const MATCHES = 20;
+	let tagQuery = $state('');
+	const selectedTags = $derived(data.tags.filter((tag) => $form.tagIds.includes(tag.id)));
+	const tagMatches = $derived.by(() => {
+		const needle = tagQuery.trim().toLowerCase();
+		if (!needle) return [];
+		return data.tags
+			.filter(
+				(tag) =>
+					!$form.tagIds.includes(tag.id) &&
+					(tag.name.toLowerCase().includes(needle) || tag.slug.includes(needle))
+			)
+			.slice(0, MATCHES);
+	});
+
 	const goingLive = $derived(
 		($form.status === 'published' || $form.status === 'scheduled') &&
 			data.article.status !== 'published' &&
@@ -186,18 +205,54 @@
 
 		<fieldset>
 			<legend>Tags</legend>
-			<div class="checks">
-				{#each data.tags as tag (tag.id)}
-					<label class="check">
-						<input
-							type="checkbox"
-							checked={$form.tagIds.includes(tag.id)}
-							onchange={(e) => toggleTag(tag.id, e.currentTarget.checked)}
-						/>
-						{tag.name}
-					</label>
-				{/each}
-			</div>
+
+			{#if selectedTags.length}
+				<ul class="chosen" aria-label="Chosen tags">
+					{#each selectedTags as tag (tag.id)}
+						<li>
+							{tag.name}
+							<button
+								type="button"
+								class="unstyled"
+								aria-label="Remove {tag.name}"
+								onclick={() => toggleTag(tag.id, false)}>×</button
+							>
+						</li>
+					{/each}
+				</ul>
+			{:else}
+				<p class="meta">No tags yet. Two to four is usually right.</p>
+			{/if}
+
+			<label class="visually-hidden" for="tag-find">Find a tag</label>
+			<input
+				id="tag-find"
+				type="search"
+				placeholder="Type to find a tag ({data.tags.length} available)"
+				bind:value={tagQuery}
+			/>
+
+			{#if tagMatches.length}
+				<div class="checks tag-matches">
+					{#each tagMatches as tag (tag.id)}
+						<label class="check">
+							<input
+								type="checkbox"
+								checked={false}
+								onchange={(e) => {
+									toggleTag(tag.id, e.currentTarget.checked);
+									tagQuery = '';
+								}}
+							/>
+							{tag.name}
+						</label>
+					{/each}
+				</div>
+			{:else if tagQuery.trim()}
+				<p class="meta">
+					No tag matches “{tagQuery}”. Add it under Categories &amp; tags first.
+				</p>
+			{/if}
 		</fieldset>
 
 		<div>
@@ -314,5 +369,41 @@
 	.gate__item {
 		align-items: flex-start;
 		line-height: 1.45;
+	}
+	.chosen {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.375rem;
+		margin: 0 0 0.75rem;
+		padding: 0;
+		list-style: none;
+	}
+	.chosen li {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.1875rem 0.25rem 0.1875rem 0.625rem;
+		border-radius: var(--r-pill);
+		background: var(--accent-tint);
+		color: var(--accent);
+		font-size: 0.8125rem;
+		font-weight: var(--weight-strong);
+	}
+	.chosen button {
+		display: grid;
+		place-items: center;
+		width: 1.25rem;
+		height: 1.25rem;
+		border-radius: var(--r-pill);
+		color: inherit;
+		font-size: 1rem;
+		line-height: 1;
+		cursor: pointer;
+	}
+	.chosen button:hover {
+		background: var(--accent-tint-strong);
+	}
+	.tag-matches {
+		margin-top: 0.625rem;
 	}
 </style>
