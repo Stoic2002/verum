@@ -37,10 +37,12 @@
 <!--
 	A real switch for assistive technology (role="switch" + aria-checked), and
 	hidden until JavaScript runs, because without it the control could do nothing.
+	`unstyled` opts out of the global button look, whose hover background and
+	padding otherwise paint a rectangle behind the pill.
 -->
 <button
 	type="button"
-	class="theme"
+	class="unstyled theme"
 	class:theme--dark={dark}
 	role="switch"
 	aria-checked={dark}
