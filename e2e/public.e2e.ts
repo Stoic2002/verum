@@ -51,6 +51,25 @@ test.describe('with JavaScript disabled', () => {
 	});
 });
 
+test('a slow navigation shows the shape of the next page, then the page', async ({ page }) => {
+	await page.goto('/en');
+
+	// Hold the next page's data long enough to be past the skeleton's delay.
+	await page.route('**/__data.json*', async (route) => {
+		await new Promise((done) => setTimeout(done, 900));
+		await route.continue();
+	});
+
+	await page
+		.getByRole('navigation', { name: 'Menu' })
+		.getByRole('link', { name: 'AI', exact: true })
+		.click();
+	await expect(page.locator('.skeleton--listing')).toBeVisible();
+
+	await expect(page.locator('h1')).toHaveText('AI');
+	await expect(page.locator('.skeleton')).toHaveCount(0);
+});
+
 test('an unknown category is a 404, not an empty page', async ({ page }) => {
 	const response = await page.goto('/en/not-a-real-category');
 	expect(response?.status()).toBe(404);

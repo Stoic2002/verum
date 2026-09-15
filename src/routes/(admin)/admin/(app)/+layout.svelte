@@ -16,6 +16,8 @@
 	import { resolve } from '$app/paths';
 	import { navigating, page } from '$app/state';
 	import { ConfirmButton, Toaster } from '$lib/components/ui';
+	import AdminSkeleton from '$lib/components/AdminSkeleton.svelte';
+	import { delayedNavigation } from '$lib/navigation.svelte';
 	import { toast } from '$lib/toast.svelte';
 
 	let { data, children } = $props();
@@ -67,6 +69,8 @@
 	 * nothing to show for it a click feels ignored. So the destination is
 	 * highlighted the moment navigation starts, and a bar runs along the top.
 	 */
+	const loading = delayedNavigation();
+
 	const activePath = $derived(navigating.to?.url.pathname ?? page.url.pathname);
 
 	const isCurrent = (href: string) =>
@@ -133,7 +137,11 @@
 	</aside>
 
 	<main>
-		{@render children()}
+		{#if loading.show}
+			<AdminSkeleton />
+		{:else}
+			{@render children()}
+		{/if}
 	</main>
 </div>
 

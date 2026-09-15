@@ -6,6 +6,8 @@
 	import * as urls from '$lib/urls';
 	import LanguageSwitch from '$lib/components/LanguageSwitch.svelte';
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
+	import PageSkeleton from '$lib/components/PageSkeleton.svelte';
+	import { delayedNavigation } from '$lib/navigation.svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { onMount } from 'svelte';
 
@@ -28,6 +30,8 @@
 			year: 'numeric'
 		}).format(new Date());
 	});
+
+	const loading = delayedNavigation();
 
 	let topicsOpen = $state(false);
 	afterNavigate(() => {
@@ -113,7 +117,11 @@
 </header>
 
 <main id="content">
-	{@render children()}
+	{#if loading.show}
+		<PageSkeleton routeId={loading.routeId} />
+	{:else}
+		{@render children()}
+	{/if}
 </main>
 
 <footer class="footer">

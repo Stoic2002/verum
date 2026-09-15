@@ -1292,12 +1292,17 @@ PRD §14 hanya mengizinkan stock berlisensi jelas atau gambar buatan sendiri. Su
 
 ### R.21 Tata letak lebih padat (15 September 2026)
 
-- **Header dua baris.** Baris atas: tanggal (ditulis di browser, karena halaman di-cache sampai sehari), tiga judul yang sedang ramai, tombol EN/ID dan tema. Baris bawah: kategori, menu *Topik* (`<details>`, tanpa JavaScript), dan cari. Di HP baris atas hanya berisi tombol.
+- **Header dua baris.** Baris atas: tanggal (ditulis di browser, karena halaman di-cache sampai sehari), tiga judul yang sedang ramai, tombol EN/ID dan tema. Baris bawah: kategori, menu _Topik_ (`<details>`, tanpa JavaScript), dan cari. Di HP baris atas hanya berisi tombol.
 - **Data bersama di layout.** Trending (7 hari) dan topik populer dimuat di `(public)/+layout.server.ts` sebagai judul + link saja, dipakai header, kolom samping, dan footer.
-- **Homepage.** Artikel utama + tiga artikel di sampingnya, kolom kanan *Sedang ramai* (atau *Terbaru* selama belum ada 3 artikel yang dibaca) dan topik populer, lalu blok per kategori, lalu cerita lainnya.
-- **Artikel.** Tiga kolom mulai 82rem: daftar isi *sticky* di kiri, artikel, kolom kanan (sedang ramai, terkait, satu unit iklan rail). 68–82rem dua kolom, daftar isi terlipat di dalam artikel. Di bawah 68rem kolom kanan turun ke bawah artikel tanpa unit rail. Unit iklan tetap maksimal tiga (article-top, rail-right, article-end). Rail kiri dihapus. Daftar isi tampil untuk artikel ≥1.200 kata **atau** ≥3 subjudul.
-- **Kategori.** Filter tag (`?tag=`) dari tag yang benar-benar dipakai kategori itu; halaman terfilter `noindex` dengan canonical ke kategori, tag yang tidak dipakai → 404. Daftar artikel horizontal (`ArticleRow`) dan kolom *Terpopuler di {kategori}* (view 30 hari).
+- **Homepage.** Artikel utama + tiga artikel di sampingnya, kolom kanan _Sedang ramai_ (atau _Terbaru_ selama belum ada 3 artikel yang dibaca) dan topik populer, lalu blok per kategori, lalu cerita lainnya.
+- **Artikel.** Tiga kolom mulai 82rem: daftar isi _sticky_ di kiri, artikel, kolom kanan (sedang ramai, terkait, satu unit iklan rail). 68–82rem dua kolom, daftar isi terlipat di dalam artikel. Di bawah 68rem kolom kanan turun ke bawah artikel tanpa unit rail. Unit iklan tetap maksimal tiga (article-top, rail-right, article-end). Rail kiri dihapus. Daftar isi tampil untuk artikel ≥1.200 kata **atau** ≥3 subjudul.
+- **Kategori.** Filter tag (`?tag=`) dari tag yang benar-benar dipakai kategori itu; halaman terfilter `noindex` dengan canonical ke kategori, tag yang tidak dipakai → 404. Daftar artikel horizontal (`ArticleRow`) dan kolom _Terpopuler di {kategori}_ (view 30 hari).
 - **Topik.** Pengantar, daftar horizontal, kolom sedang ramai.
 - **Footer empat kolom:** merek dan tagline, kategori, topik populer, halaman VERUM.
 - `--wide` naik dari 76rem ke 82rem supaya daftar isi, lebar baca penuh (44rem), dan kolom 300px muat berdampingan.
 
+### R.22 Skeleton saat berpindah halaman
+
+SvelteKit menahan halaman lama sampai data halaman berikutnya datang. Kalau perpindahan memakan lebih dari 150 ms, isi `<main>` diganti kerangka shimmer yang bentuknya mengikuti halaman tujuan (home, artikel, daftar, halaman statis; admin memakai satu bentuk generik). Di bawah 150 ms tidak ada yang berkedip. Perubahan hash saja (daftar isi) tidak memicu skeleton. Animasi mati untuk `prefers-reduced-motion`.
+
+Tidak memakai TanStack Query atau store tambahan: data tetap lewat `load` SvelteKit. Konten publik tidak di-stream, supaya HTML pertama tetap lengkap untuk mesin pencari dan cache CDN.
