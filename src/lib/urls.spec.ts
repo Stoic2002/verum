@@ -33,6 +33,8 @@ describe('public URL shapes', () => {
 		expect(urls.paged('/en/ai', 1)).toBe('/en/ai');
 		expect(urls.paged('/en/ai', 0)).toBe('/en/ai');
 		expect(urls.paged('/en/ai', 2)).toBe('/en/ai?page=2');
+		// A filtered listing keeps its filter.
+		expect(urls.paged('/en/ai?tag=llm', 3)).toBe('/en/ai?tag=llm&page=3');
 	});
 
 	it('builds absolute URLs without doubling the slash', () => {

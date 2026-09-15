@@ -182,24 +182,22 @@ test.describe('ad rails', () => {
 					.map((el) => el.getAttribute('data-ad-slot'))
 			);
 
-	test('a wide screen shows the two rails instead of the in-content slot', async ({ page }) => {
+	test('a wide screen puts one rail unit in the side column', async ({ page }) => {
 		await page.setViewportSize({ width: 1500, height: 1000 });
 		await page.goto(ARTICLE);
 
 		const slots = await visibleSlots(page);
-		expect(slots).toContain('rail-left');
 		expect(slots).toContain('rail-right');
-		// Swapped for the rails, not added to them.
-		expect(slots).not.toContain('article-top');
+		// The left column holds the table of contents now, not an ad.
+		expect(slots).not.toContain('rail-left');
 	});
 
-	test('a laptop shows the in-content slot and no rails', async ({ page }) => {
-		await page.setViewportSize({ width: 1100, height: 900 });
+	test('below the side column there is no rail unit', async ({ page }) => {
+		await page.setViewportSize({ width: 1000, height: 900 });
 		await page.goto(ARTICLE);
 
-		const slots = await visibleSlots(page);
-		expect(slots).not.toContain('rail-left');
-		expect(slots).not.toContain('rail-right');
+		// Stacked under the article, a 600px unit would just be a wall.
+		expect(await visibleSlots(page)).not.toContain('rail-right');
 	});
 
 	test('never puts more than three units on screen at once', async ({ page }) => {

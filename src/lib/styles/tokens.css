@@ -82,7 +82,8 @@
 
 	/* ── Layout ────────────────────────────────────────────────────────── */
 	--measure: 44rem;
-	--wide: 76rem;
+	/* Wide enough for contents, a full measure and a 300px side column side by side. */
+	--wide: 82rem;
 
 	color-scheme: light;
 }

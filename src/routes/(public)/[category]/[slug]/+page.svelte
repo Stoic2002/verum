@@ -5,9 +5,9 @@
 	import * as urls from '$lib/urls';
 	import { creditLabel } from '$lib/credit';
 	import AdSlot from '$lib/components/AdSlot.svelte';
-	import ArticleCard from '$lib/components/ArticleCard.svelte';
 	import LocaleBanner from '$lib/components/LocaleBanner.svelte';
 	import Picture from '$lib/components/Picture.svelte';
+	import RankedList from '$lib/components/RankedList.svelte';
 	import Seo from '$lib/components/Seo.svelte';
 	import ShareButtons from '$lib/components/ShareButtons.svelte';
 	import ViewBeacon from '$lib/components/ViewBeacon.svelte';
@@ -17,6 +17,8 @@
 	const locale = getLocale();
 	const article = $derived(data.article);
 	const canonical = $derived(page.url.href.split('?')[0]);
+	// The article being read is not news to its own reader.
+	const trending = $derived(data.trending.filter((item) => item.id !== article.id).slice(0, 5));
 
 	/**
 	 * The table of contents is stored flat, with a level per heading. Rendering
@@ -50,15 +52,33 @@
 
 <ViewBeacon articleId={article.id} />
 
-<div class="layout">
-	<!--
-		Rails appear only where there is room for them without squeezing the
-		measure. Combined with the end slot that is three units on a wide screen
-		and two on a narrow one — never more than PRD §13.1 allows.
-	-->
-	<div class="rail rail--left">
-		<AdSlot slot="rail-left" minHeight={600} variant="rail" />
-	</div>
+<div class="layout" class:layout--toc={article.toc.length > 0}>
+	{#snippet contents()}
+		<ol>
+			{#each outline as section (section.id)}
+				<li>
+					<a href="#{section.id}">{section.text}</a>
+					{#if section.children.length}
+						<ul>
+							{#each section.children as child (child.id)}
+								<li><a href="#{child.id}">{child.text}</a></li>
+							{/each}
+						</ul>
+					{/if}
+				</li>
+			{/each}
+		</ol>
+	{/snippet}
+
+	<!-- Beside the article on a wide screen; folded into it everywhere else. -->
+	{#if article.toc.length}
+		<aside class="side side--left">
+			<nav class="toc toc--side" aria-label={m.article_contents()}>
+				<h2>{m.article_contents()}</h2>
+				{@render contents()}
+			</nav>
+		</aside>
+	{/if}
 
 	<article class="article">
 		<nav class="crumbs" aria-label="Breadcrumb">
@@ -115,23 +135,10 @@
 		{/if}
 
 		{#if article.toc.length}
-			<nav class="toc" aria-label={m.article_contents()}>
-				<h2>{m.article_contents()}</h2>
-				<ol>
-					{#each outline as section (section.id)}
-						<li>
-							<a href="#{section.id}">{section.text}</a>
-							{#if section.children.length}
-								<ul>
-									{#each section.children as child (child.id)}
-										<li><a href="#{child.id}">{child.text}</a></li>
-									{/each}
-								</ul>
-							{/if}
-						</li>
-					{/each}
-				</ol>
-			</nav>
+			<details class="toc toc--inline">
+				<summary>{m.article_contents()}</summary>
+				{@render contents()}
+			</details>
 		{/if}
 
 		<!--
@@ -172,61 +179,60 @@
 		<ShareButtons url={canonical} title={article.title} />
 
 		<AdSlot slot="article-end" minHeight={280} />
-
-		{#if data.related.length}
-			<section class="related">
-				<h2>{m.article_related()}</h2>
-				<div class="related__grid">
-					{#each data.related as card (card.id)}
-						<ArticleCard {card} />
-					{/each}
-				</div>
-			</section>
-		{/if}
 	</article>
 
-	<div class="rail rail--right">
+	<!--
+		Below the article on narrow screens, beside it from 68rem. The rail unit
+		only exists beside the article: stacked underneath, a 600px box is a wall.
+	-->
+	<aside class="side side--right">
+		<RankedList title={m.home_trending()} items={trending} />
+		<RankedList title={m.article_related()} items={data.related} numbered={false} />
 		<AdSlot slot="rail-right" minHeight={600} variant="rail" />
-	</div>
+	</aside>
 </div>
 
 <style>
 	.layout {
 		display: grid;
+		grid-template-columns: minmax(0, var(--measure));
 		justify-content: center;
+		gap: 3rem 2.5rem;
 	}
 	.article {
 		width: 100%;
 		max-width: var(--measure);
 		min-width: 0;
 	}
-
-	/*
-	 * Rails are hidden by default and only appear once the viewport can carry
-	 * them beside a full-width measure. Below that they do not exist, which is
-	 * most traffic — so the in-content slot is what actually earns on mobile.
-	 */
-	.rail {
+	.side--left {
 		display: none;
 	}
-	@media (min-width: 78rem) {
+	.side--right {
+		display: grid;
+		gap: 1.25rem;
+		align-content: start;
+	}
+	.side--right :global(.ad--rail) {
+		display: none;
+	}
+	@media (min-width: 68rem) {
 		.layout {
-			grid-template-columns: 10rem minmax(0, var(--measure)) 10rem;
-			gap: 2.5rem;
-			align-items: start;
+			grid-template-columns: minmax(0, var(--measure)) 19rem;
 		}
-		.rail {
-			display: block;
-		}
-		/* Three units on screen at once is the ceiling; the rails take two. */
-		.inline-ad {
-			display: none;
+		.side--right :global(.ad--rail) {
+			display: flex;
 		}
 	}
-	@media (min-width: 96rem) {
-		.layout {
-			grid-template-columns: 18.75rem minmax(0, var(--measure)) 18.75rem;
-			gap: 3rem;
+	@media (min-width: 82rem) {
+		.layout--toc {
+			grid-template-columns: 12rem minmax(0, var(--measure)) 19rem;
+			gap: 3rem 2rem;
+		}
+		.layout--toc .side--left {
+			display: block;
+		}
+		.layout--toc .toc--inline {
+			display: none;
 		}
 	}
 
@@ -352,6 +358,31 @@
 	}
 	.toc a:hover {
 		color: var(--accent);
+	}
+
+	.toc--side {
+		position: sticky;
+		top: 5rem;
+		max-height: calc(100vh - 6rem);
+		margin: 0;
+		overflow-y: auto;
+		background: none;
+		padding: 0;
+	}
+	.toc--side ol {
+		padding-left: 1.125rem;
+		font-size: 0.875rem;
+	}
+	.toc--inline summary {
+		color: var(--text-3);
+		font-size: 0.75rem;
+		font-weight: var(--weight-strong);
+		letter-spacing: var(--track-label);
+		text-transform: uppercase;
+		cursor: pointer;
+	}
+	.toc--inline[open] summary {
+		margin-bottom: 0.625rem;
 	}
 
 	/*
@@ -548,25 +579,6 @@
 	.tags a:hover {
 		background: var(--accent-tint);
 		color: var(--accent);
-	}
-
-	.related {
-		margin-top: 3.5rem;
-		padding-top: 2rem;
-		border-top: 1px solid var(--border);
-	}
-	.related h2 {
-		margin: 0 0 1.5rem;
-		font-size: 0.75rem;
-		font-weight: var(--weight-strong);
-		text-transform: uppercase;
-		letter-spacing: var(--track-label);
-		color: var(--text-3);
-	}
-	.related__grid {
-		display: grid;
-		gap: 2rem 1.75rem;
-		grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
 	}
 
 	@media (max-width: 40rem) {

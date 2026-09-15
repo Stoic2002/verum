@@ -10,8 +10,13 @@ import { siteOrigin } from '$lib/server/site';
 import type { Locale } from '$lib/paraglide/runtime';
 import type { PageServerLoad } from './$types';
 
-/** PRD §8.1: the table of contents only appears on articles long enough to need it. */
+/**
+ * PRD §8.1 ties the table of contents to long articles. With a side column to
+ * hold it, a shorter piece with three or more sections gets one too: that is
+ * where it helps a reader skip ahead.
+ */
 const TOC_MIN_WORDS = 1200;
+const TOC_MIN_SECTIONS = 3;
 
 export const load: PageServerLoad = async ({ params, url, locals, setHeaders }) => {
 	const locale = locals.locale;
@@ -85,7 +90,7 @@ export const load: PageServerLoad = async ({ params, url, locals, setHeaders }) 
 					? { text: row.media_credit.trim(), href: safeCreditUrl(row.media_credit_url) }
 					: null,
 			body: splitAfterOpening(row.body_html),
-			toc: row.word_count >= TOC_MIN_WORDS ? row.toc : [],
+			toc: row.word_count >= TOC_MIN_WORDS || row.toc.length >= TOC_MIN_SECTIONS ? row.toc : [],
 			wordCount: row.word_count,
 			metaTitle: row.meta_title,
 			metaDesc: row.meta_desc,
@@ -94,6 +99,11 @@ export const load: PageServerLoad = async ({ params, url, locals, setHeaders }) 
 			tags: row.tags
 		},
 		alternates,
-		related: related.map(toCard)
+		related: related.map((item) => ({
+			id: Number(item.article_id),
+			title: item.title,
+			href: urls.article(locale, item.category_slug, item.slug),
+			label: item.category_name ?? item.category_slug
+		}))
 	};
 };

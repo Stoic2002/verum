@@ -6,11 +6,33 @@
 	import * as urls from '$lib/urls';
 	import LanguageSwitch from '$lib/components/LanguageSwitch.svelte';
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
+	import { afterNavigate } from '$app/navigation';
+	import { onMount } from 'svelte';
 
 	let { data, children } = $props();
 
 	const locale = getLocale();
 	const year = new Date().getFullYear();
+
+	/**
+	 * Written in the browser, not on the server: pages sit in the CDN for up to
+	 * a day, and a server-rendered date would show yesterday. The span keeps its
+	 * width either way, so filling it causes no shift.
+	 */
+	let today = $state('');
+	onMount(() => {
+		today = new Intl.DateTimeFormat(locale, {
+			weekday: 'long',
+			day: 'numeric',
+			month: 'long',
+			year: 'numeric'
+		}).format(new Date());
+	});
+
+	let topicsOpen = $state(false);
+	afterNavigate(() => {
+		topicsOpen = false;
+	});
 
 	/**
 	 * Marks the document as scripted.
@@ -26,6 +48,30 @@
 
 <a class="skip" href="#content">{m.nav_skip()}</a>
 
+<svelte:window
+	onclick={(event) => {
+		if (topicsOpen && !(event.target as Element).closest('.topics')) topicsOpen = false;
+	}}
+/>
+
+<div class="topbar">
+	<div class="topbar__inner">
+		<p class="topbar__news">
+			<span class="topbar__date">{today}</span>
+			{#if data.trending.length}
+				<span class="topbar__label">{m.header_trending()}</span>
+				{#each data.trending.slice(0, 3) as item (item.id)}
+					<a href={item.href}>{item.title}</a>
+				{/each}
+			{/if}
+		</p>
+		<div class="topbar__controls">
+			<LanguageSwitch />
+			<ThemeToggle />
+		</div>
+	</div>
+</div>
+
 <header class="masthead">
 	<div class="masthead__inner">
 		<a class="wordmark" href={urls.home(locale)}>
@@ -37,6 +83,16 @@
 			{#each data.categories as category (category.slug)}
 				<a href={urls.category(locale, category.slug)}>{category.name ?? category.slug}</a>
 			{/each}
+			{#if data.topics.length}
+				<details class="topics" bind:open={topicsOpen}>
+					<summary>{m.nav_topics()}</summary>
+					<ul>
+						{#each data.topics as topic (topic.slug)}
+							<li><a href={urls.topic(locale, topic.slug)}>{topic.title}</a></li>
+						{/each}
+					</ul>
+				</details>
+			{/if}
 		</nav>
 
 		<div class="masthead__end">
@@ -52,8 +108,6 @@
 				</svg>
 				<span>{m.nav_search()}</span>
 			</a>
-			<LanguageSwitch />
-			<ThemeToggle />
 		</div>
 	</div>
 </header>
@@ -64,15 +118,49 @@
 
 <footer class="footer">
 	<div class="footer__inner">
-		<p class="footer__tagline">{m.site_tagline()}</p>
-		<p class="footer__blurb">{m.footer_blurb()}</p>
-		<nav aria-label="Footer">
-			<a href={urls.page(locale, 'about')}>{m.footer_about()}</a>
-			<a href={urls.page(locale, 'editorial-policy')}>{m.footer_editorial()}</a>
-			<a href={urls.page(locale, 'contact')}>{m.footer_contact()}</a>
-			<a href={urls.page(locale, 'privacy')}>{m.footer_privacy()}</a>
-			<a href={urls.page(locale, 'terms')}>{m.footer_terms()}</a>
-		</nav>
+		<div class="footer__grid">
+			<div class="footer__brand">
+				<p class="footer__wordmark">
+					<span class="wordmark__mark" aria-hidden="true"></span>
+					VERUM
+				</p>
+				<p class="footer__tagline">{m.site_tagline()}</p>
+				<p class="footer__blurb">{m.footer_blurb()}</p>
+			</div>
+
+			<nav class="footer__col" aria-label={m.footer_categories()}>
+				<h2>{m.footer_categories()}</h2>
+				<ul>
+					{#each data.categories as category (category.slug)}
+						<li>
+							<a href={urls.category(locale, category.slug)}>{category.name ?? category.slug}</a>
+						</li>
+					{/each}
+				</ul>
+			</nav>
+
+			{#if data.topics.length}
+				<nav class="footer__col" aria-label={m.footer_topics()}>
+					<h2>{m.footer_topics()}</h2>
+					<ul>
+						{#each data.topics.slice(0, 6) as topic (topic.slug)}
+							<li><a href={urls.topic(locale, topic.slug)}>{topic.title}</a></li>
+						{/each}
+					</ul>
+				</nav>
+			{/if}
+
+			<nav class="footer__col" aria-label="Footer">
+				<h2>{m.footer_site()}</h2>
+				<ul>
+					<li><a href={urls.page(locale, 'about')}>{m.footer_about()}</a></li>
+					<li><a href={urls.page(locale, 'editorial-policy')}>{m.footer_editorial()}</a></li>
+					<li><a href={urls.page(locale, 'contact')}>{m.footer_contact()}</a></li>
+					<li><a href={urls.page(locale, 'privacy')}>{m.footer_privacy()}</a></li>
+					<li><a href={urls.page(locale, 'terms')}>{m.footer_terms()}</a></li>
+				</ul>
+			</nav>
+		</div>
 		<p class="footer__rights">{m.footer_rights({ year })}</p>
 	</div>
 </footer>
@@ -99,6 +187,114 @@
 	 * strip behind it on every scroll frame, which is exactly the cost PRD
 	 * §12.5's INP budget cannot spare.
 	 */
+	.topbar {
+		border-bottom: 1px solid var(--border);
+		background: var(--surface-2);
+		font-size: 0.75rem;
+	}
+	.topbar__inner {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		max-width: var(--wide);
+		margin: 0 auto;
+		padding: 0.375rem 1.5rem;
+	}
+	.topbar__news {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem 1rem;
+		min-width: 0;
+		margin: 0;
+		overflow: hidden;
+		color: var(--text-3);
+		white-space: nowrap;
+	}
+	.topbar__date {
+		display: inline-block;
+		min-width: 12rem;
+	}
+	.topbar__label {
+		color: var(--accent);
+		font-weight: var(--weight-strong);
+		letter-spacing: var(--track-label);
+		text-transform: uppercase;
+	}
+	.topbar__news a {
+		max-width: 24ch;
+		overflow: hidden;
+		color: var(--text-2);
+		text-decoration: none;
+		text-overflow: ellipsis;
+	}
+	.topbar__news a:hover {
+		color: var(--accent);
+	}
+	.topbar__controls {
+		display: flex;
+		flex: none;
+		align-items: center;
+		gap: 0.625rem;
+	}
+
+	.topics {
+		position: relative;
+	}
+	.topics summary {
+		padding: 0.375rem 0.75rem;
+		border-radius: var(--r-md);
+		color: var(--text-2);
+		font-size: 0.875rem;
+		list-style: none;
+		cursor: pointer;
+	}
+	.topics summary::-webkit-details-marker {
+		display: none;
+	}
+	.topics summary::after {
+		content: '';
+		display: inline-block;
+		width: 0.375rem;
+		height: 0.375rem;
+		margin-left: 0.4375rem;
+		border-right: 1.5px solid currentColor;
+		border-bottom: 1.5px solid currentColor;
+		transform: translateY(-0.1875rem) rotate(45deg);
+	}
+	.topics summary:hover,
+	.topics[open] summary {
+		background: var(--surface-3);
+		color: var(--text);
+	}
+	.topics ul {
+		position: absolute;
+		top: calc(100% + 0.375rem);
+		left: 0;
+		z-index: 20;
+		display: grid;
+		min-width: 13rem;
+		margin: 0;
+		padding: 0.375rem;
+		border: 1px solid var(--border);
+		border-radius: var(--r-lg);
+		background: var(--surface);
+		box-shadow: var(--shadow-md);
+		list-style: none;
+	}
+	.topics ul a {
+		display: block;
+		padding: 0.4375rem 0.625rem;
+		border-radius: var(--r-md);
+		color: var(--text-2);
+		font-size: 0.875rem;
+		text-decoration: none;
+	}
+	.topics ul a:hover {
+		background: var(--surface-3);
+		color: var(--text);
+	}
+
 	.masthead {
 		position: sticky;
 		top: 0;
@@ -139,6 +335,7 @@
 
 	.masthead nav {
 		display: flex;
+		align-items: center;
 		flex-wrap: wrap;
 		gap: 0.25rem;
 		flex: 1;
@@ -194,11 +391,25 @@
 		background: var(--surface-2);
 	}
 	.footer__inner {
-		padding-top: 2.5rem;
-		padding-bottom: 3rem;
+		padding-top: 3rem;
+		padding-bottom: 2.5rem;
+	}
+	.footer__grid {
+		display: grid;
+		gap: 2rem 2.5rem;
+		grid-template-columns: minmax(0, 1.6fr) repeat(auto-fit, minmax(10rem, 1fr));
+	}
+	.footer__wordmark {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin: 0 0 0.875rem;
+		color: var(--text);
+		font-weight: var(--weight-strong);
+		letter-spacing: 0.18em;
 	}
 	.footer__tagline {
-		max-width: 32rem;
+		max-width: 26rem;
 		margin: 0 0 0.5rem;
 		color: var(--text);
 		font-size: 1.0625rem;
@@ -206,27 +417,39 @@
 		letter-spacing: -0.01em;
 	}
 	.footer__blurb {
-		max-width: 36rem;
-		margin: 0 0 1.5rem;
+		max-width: 26rem;
+		margin: 0;
 		color: var(--text-2);
 		font-size: 0.875rem;
 		line-height: 1.6;
 	}
-	.footer nav {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.375rem 1.5rem;
+	.footer__col h2 {
+		margin: 0 0 0.875rem;
+		color: var(--text-3);
+		font-size: 0.75rem;
+		font-weight: var(--weight-strong);
+		letter-spacing: var(--track-label);
+		text-transform: uppercase;
+	}
+	.footer__col ul {
+		display: grid;
+		gap: 0.5rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
 		font-size: 0.875rem;
 	}
-	.footer nav a {
+	.footer__col a {
 		color: var(--text-2);
 		text-decoration: none;
 	}
-	.footer nav a:hover {
+	.footer__col a:hover {
 		color: var(--accent);
 	}
 	.footer__rights {
-		margin: 1.75rem 0 0;
+		margin: 2.5rem 0 0;
+		padding-top: 1.25rem;
+		border-top: 1px solid var(--border);
 		color: var(--text-3);
 		font-size: 0.8125rem;
 	}
@@ -246,6 +469,20 @@
 		}
 		.search-link span {
 			display: none;
+		}
+		.topbar__inner {
+			padding: 0.375rem 1.125rem;
+		}
+		/* A phone keeps the controls; the date and headlines are for wider screens. */
+		.topbar__news {
+			display: none;
+		}
+		.topbar__controls {
+			margin-left: auto;
+		}
+		.topics ul {
+			right: 0;
+			left: auto;
 		}
 		.masthead nav {
 			order: 3;

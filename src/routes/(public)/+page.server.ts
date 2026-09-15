@@ -2,8 +2,7 @@ import { db } from '$lib/server/db';
 import {
 	activeCategories,
 	articlesByCategory,
-	recentArticles,
-	trendingArticles
+	recentArticles
 } from '$lib/server/db/queries/public';
 import { toCard } from '$lib/server/cards';
 import { homeSeo } from '$lib/server/seo';
@@ -18,6 +17,7 @@ export const load: PageServerLoad = async ({ url, locals, setHeaders }) => {
 	setHeaders({ 'cache-control': 'public, max-age=0, s-maxage=60' });
 
 	const latest = await recentArticles(db, locale, { limit: 13 });
+	// One lead story, three beside it, and the rest further down the page.
 	const [featured, ...rest] = latest;
 
 	const categories = await activeCategories(db, locale);
@@ -40,8 +40,8 @@ export const load: PageServerLoad = async ({ url, locals, setHeaders }) => {
 	return {
 		seo: homeSeo({ requestUrl: url, locale }, tagline),
 		featured: featured ? toCard(featured) : null,
-		trending: (await trendingArticles(db, locale, { days: 7, limit: 5 })).map(toCard),
-		latest: rest.map(toCard),
+		secondary: rest.slice(0, 3).map(toCard),
+		more: rest.slice(3).map(toCard),
 		blocks
 	};
 };

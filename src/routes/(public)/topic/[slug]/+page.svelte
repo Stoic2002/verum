@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { m } from '$lib/paraglide/messages';
-	import ArticleCard from '$lib/components/ArticleCard.svelte';
+	import ArticleRow from '$lib/components/ArticleRow.svelte';
+	import RankedList from '$lib/components/RankedList.svelte';
 	import Seo from '$lib/components/Seo.svelte';
 
 	let { data } = $props();
@@ -20,16 +21,23 @@
 	<div class="intro">{@html data.topic.intro_html}</div>
 </header>
 
-<div class="grid">
-	{#each data.articles as card (card.id)}
-		<ArticleCard {card} />
-	{/each}
+<div class="listing">
+	<div class="listing__main">
+		{#each data.articles as card (card.id)}
+			<ArticleRow {card} />
+		{/each}
+	</div>
+
+	<aside class="listing__side">
+		<RankedList title={m.home_trending()} items={data.trending.slice(0, 5)} />
+	</aside>
 </div>
 
 <style>
 	.head {
-		max-width: var(--measure);
-		margin-bottom: 3rem;
+		margin-bottom: 1.5rem;
+		padding-bottom: 1.5rem;
+		border-bottom: 2px solid var(--text);
 	}
 	.kicker {
 		margin: 0;
@@ -41,6 +49,7 @@
 		letter-spacing: -0.03em;
 	}
 	.intro {
+		max-width: var(--measure);
 		color: var(--text-2);
 		font-size: 1.0625rem;
 		line-height: 1.7;
@@ -48,9 +57,21 @@
 	.intro :global(p) {
 		margin: 0 0 1.125rem;
 	}
-	.grid {
+	.listing {
 		display: grid;
-		gap: 2.5rem 1.75rem;
-		grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+		gap: 2.5rem;
+	}
+	.listing__side {
+		align-self: start;
+	}
+	@media (min-width: 64rem) {
+		.listing {
+			grid-template-columns: minmax(0, 1fr) 20rem;
+		}
+		.listing__side {
+			position: sticky;
+			top: 5rem;
+			padding-top: 1.25rem;
+		}
 	}
 </style>

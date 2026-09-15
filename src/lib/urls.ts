@@ -22,7 +22,11 @@ export function absolute(origin: string, path: string): string {
 	return `${origin.replace(/\/+$/, '')}${path}`;
 }
 
-/** Adds ?page=N, and omits it for page 1 so the first page has one URL, not two. */
+/**
+ * Adds page=N, and omits it for page 1 so the first page has one URL, not two.
+ * Joins with & when the path already carries a query, such as a tag filter.
+ */
 export function paged(path: string, pageNumber: number): string {
-	return pageNumber <= 1 ? path : `${path}?page=${pageNumber}`;
+	if (pageNumber <= 1) return path;
+	return `${path}${path.includes('?') ? '&' : '?'}page=${pageNumber}`;
 }

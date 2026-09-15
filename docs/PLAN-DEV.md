@@ -1289,3 +1289,15 @@ PRD §14 hanya mengizinkan stock berlisensi jelas atau gambar buatan sendiri. Su
 - **Navigasi admin.** SvelteKit menahan halaman lama sampai `load` halaman baru selesai. Menu tujuan kini langsung ditandai aktif, ada progress bar tipis (muncul setelah 120 ms), dan kode semua halaman admin dimuat di muka (`data-sveltekit-preload-code="eager"`).
 - **AI writer** mendapat aturan gaya: pembuka spesifik, panjang kalimat bervariasi, tanpa frasa klise khas teks hasil generate (daftar EN dan ID di `prompts.ts`). Kebijakan editorial menjelaskan bahwa draf AI ditulis ulang, ditambah pengalaman langsung, dan jumlah artikel per minggu dibatasi — sejalan dengan panduan Google soal konten AI dan _scaled content abuse_.
 - **Tag** diperluas menjadi 447 (`bun run db:seed-tags`).
+
+### R.21 Tata letak lebih padat (15 September 2026)
+
+- **Header dua baris.** Baris atas: tanggal (ditulis di browser, karena halaman di-cache sampai sehari), tiga judul yang sedang ramai, tombol EN/ID dan tema. Baris bawah: kategori, menu *Topik* (`<details>`, tanpa JavaScript), dan cari. Di HP baris atas hanya berisi tombol.
+- **Data bersama di layout.** Trending (7 hari) dan topik populer dimuat di `(public)/+layout.server.ts` sebagai judul + link saja, dipakai header, kolom samping, dan footer.
+- **Homepage.** Artikel utama + tiga artikel di sampingnya, kolom kanan *Sedang ramai* (atau *Terbaru* selama belum ada 3 artikel yang dibaca) dan topik populer, lalu blok per kategori, lalu cerita lainnya.
+- **Artikel.** Tiga kolom mulai 82rem: daftar isi *sticky* di kiri, artikel, kolom kanan (sedang ramai, terkait, satu unit iklan rail). 68–82rem dua kolom, daftar isi terlipat di dalam artikel. Di bawah 68rem kolom kanan turun ke bawah artikel tanpa unit rail. Unit iklan tetap maksimal tiga (article-top, rail-right, article-end). Rail kiri dihapus. Daftar isi tampil untuk artikel ≥1.200 kata **atau** ≥3 subjudul.
+- **Kategori.** Filter tag (`?tag=`) dari tag yang benar-benar dipakai kategori itu; halaman terfilter `noindex` dengan canonical ke kategori, tag yang tidak dipakai → 404. Daftar artikel horizontal (`ArticleRow`) dan kolom *Terpopuler di {kategori}* (view 30 hari).
+- **Topik.** Pengantar, daftar horizontal, kolom sedang ramai.
+- **Footer empat kolom:** merek dan tagline, kategori, topik populer, halaman VERUM.
+- `--wide` naik dari 76rem ke 82rem supaya daftar isi, lebar baca penuh (44rem), dan kolom 300px muat berdampingan.
+

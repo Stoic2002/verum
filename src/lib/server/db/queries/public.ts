@@ -323,3 +323,116 @@ export async function articlesInTopic(db: Database, locale: Locale, topicSlug: s
 	`);
 	return Array.from(rows);
 }
+
+/**
+ * Topics that have something to read in this language, most articles first.
+ * Feeds the header's topic menu, the homepage and the footer.
+ */
+export async function popularTopics(db: Database, locale: Locale, limit = 8) {
+	const rows = await db.execute<{ slug: string; title: string; article_count: number }>(sql`
+		SELECT t.slug, tl.title, count(*)::int AS article_count
+		FROM topics t
+		JOIN topic_locales tl ON tl.topic_id = t.id AND tl.locale = ${locale}
+		JOIN topic_articles ta ON ta.topic_id = t.id
+		JOIN articles a ON a.id = ta.article_id
+		JOIN article_locales al ON al.article_id = a.id AND al.locale = ${locale}
+		WHERE ${live}
+		GROUP BY t.slug, tl.title
+		ORDER BY article_count DESC, tl.title
+		LIMIT ${limit}
+	`);
+	return Array.from(rows).map((row) => ({ ...row, article_count: Number(row.article_count) }));
+}
+
+/** The tags live articles in a category actually use, for the filter row. */
+export async function categoryTags(db: Database, locale: Locale, categorySlug: string, limit = 8) {
+	const rows = await db.execute<{ slug: string; name: string; article_count: number }>(sql`
+		SELECT t.slug, t.name, count(*)::int AS article_count
+		FROM tags t
+		JOIN article_tags at ON at.tag_id = t.id
+		JOIN articles a ON a.id = at.article_id
+		JOIN categories c ON c.id = a.category_id
+		JOIN article_locales al ON al.article_id = a.id AND al.locale = ${locale}
+		WHERE c.slug = ${categorySlug} AND ${live}
+		GROUP BY t.slug, t.name
+		ORDER BY article_count DESC, t.name
+		LIMIT ${limit}
+	`);
+	return Array.from(rows).map((row) => ({ ...row, article_count: Number(row.article_count) }));
+}
+
+const withTag = (tagSlug: string | null | undefined) =>
+	tagSlug
+		? sql`AND EXISTS (
+				SELECT 1 FROM article_tags xt JOIN tags xtt ON xtt.id = xt.tag_id
+				WHERE xt.article_id = a.id AND xtt.slug = ${tagSlug}
+			)`
+		: sql``;
+
+/** A category's articles, optionally narrowed to one tag. */
+export async function categoryArticles(
+	db: Database,
+	locale: Locale,
+	categorySlug: string,
+	{
+		limit = 12,
+		offset = 0,
+		tagSlug = null
+	}: { limit?: number; offset?: number; tagSlug?: string | null } = {}
+) {
+	const rows = await db.execute<ArticleCard>(sql`
+		SELECT ${cardColumns} ${cardJoins}
+		WHERE al.locale = ${locale} AND c.slug = ${categorySlug} AND ${live} ${withTag(tagSlug)}
+		ORDER BY al.published_at DESC, al.article_id DESC
+		LIMIT ${limit} OFFSET ${offset}
+	`);
+	return Array.from(rows);
+}
+
+export async function countCategoryArticles(
+	db: Database,
+	locale: Locale,
+	categorySlug: string,
+	tagSlug: string | null = null
+) {
+	const [row] = await db.execute<{ count: number }>(sql`
+		SELECT count(*)::int AS count
+		FROM article_locales al
+		JOIN articles a ON a.id = al.article_id
+		JOIN categories c ON c.id = a.category_id
+		WHERE al.locale = ${locale} AND c.slug = ${categorySlug} AND ${live} ${withTag(tagSlug)}
+	`);
+	return Number(row?.count ?? 0);
+}
+
+/** Most-read articles in one category over the last month. */
+export async function popularInCategory(
+	db: Database,
+	locale: Locale,
+	categorySlug: string,
+	{ days = 30, limit = 5 }: { days?: number; limit?: number } = {}
+) {
+	const rows = await db.execute<{
+		article_id: number;
+		title: string;
+		slug: string;
+		category_slug: string;
+		views: number;
+	}>(sql`
+		SELECT al.article_id, al.title, al.slug, c.slug AS category_slug, sum(s.views)::int AS views
+		FROM article_stats s
+		JOIN article_locales al ON al.article_id = s.article_id AND al.locale = s.locale
+		JOIN articles a ON a.id = al.article_id
+		JOIN categories c ON c.id = a.category_id
+		WHERE s.locale = ${locale} AND c.slug = ${categorySlug}
+			AND s.day > current_date - ${days}::int AND ${live}
+		GROUP BY al.article_id, al.title, al.slug, c.slug, al.published_at
+		ORDER BY views DESC, al.published_at DESC
+		LIMIT ${limit}
+	`);
+	return Array.from(rows).map((row) => ({
+		...row,
+		article_id: Number(row.article_id),
+		views: Number(row.views)
+	}));
+}
