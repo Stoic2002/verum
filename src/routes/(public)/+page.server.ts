@@ -2,7 +2,8 @@ import { db } from '$lib/server/db';
 import {
 	activeCategories,
 	articlesByCategory,
-	recentArticles
+	recentArticles,
+	trendingArticles
 } from '$lib/server/db/queries/public';
 import { toCard } from '$lib/server/cards';
 import { homeSeo } from '$lib/server/seo';
@@ -33,12 +34,13 @@ export const load: PageServerLoad = async ({ url, locals, setHeaders }) => {
 
 	const tagline =
 		locale === 'id'
-			? 'AI dan teknologi, dijelaskan dengan bukti — bukan siaran pers.'
-			: 'AI and technology, explained with evidence — not press releases.';
+			? 'Dijelaskan dengan bukti, bukan siaran pers.'
+			: 'Explained with evidence, not press releases.';
 
 	return {
 		seo: homeSeo({ requestUrl: url, locale }, tagline),
 		featured: featured ? toCard(featured) : null,
+		trending: (await trendingArticles(db, locale, { days: 7, limit: 5 })).map(toCard),
 		latest: rest.map(toCard),
 		blocks
 	};

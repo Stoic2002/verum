@@ -7,7 +7,6 @@
 	import AdSlot from '$lib/components/AdSlot.svelte';
 	import ArticleCard from '$lib/components/ArticleCard.svelte';
 	import LocaleBanner from '$lib/components/LocaleBanner.svelte';
-	import NewsletterCta from '$lib/components/NewsletterCta.svelte';
 	import Picture from '$lib/components/Picture.svelte';
 	import Seo from '$lib/components/Seo.svelte';
 	import ShareButtons from '$lib/components/ShareButtons.svelte';
@@ -173,8 +172,6 @@
 		<ShareButtons url={canonical} title={article.title} />
 
 		<AdSlot slot="article-end" minHeight={280} />
-
-		<div class="cta"><NewsletterCta /></div>
 
 		{#if data.related.length}
 			<section class="related">
@@ -553,9 +550,6 @@
 		color: var(--accent);
 	}
 
-	.cta {
-		margin: 3rem 0;
-	}
 	.related {
 		margin-top: 3.5rem;
 		padding-top: 2rem;

@@ -17,6 +17,8 @@ export function editorialPolicy(locale: Locale, ctx: PageContext): StaticPage {
 
 AI dipakai di situs ini untuk riset awal, penyusunan draf, dan penyuntingan bahasa. Sebagian besar draf awal dibantu AI.
 
+Draf itu hanya titik awal. Sebelum terbit, tim menulis ulang dengan kata-kata sendiri, menambahkan hal yang hanya bisa datang dari pemakaian langsung — hasil uji, tangkapan layar, penilaian — dan memeriksa setiap fakta. Kami tidak menerbitkan halaman yang dibuat massal: jumlah artikel per minggu sengaja dibatasi, supaya setiap tulisan sempat dikerjakan dengan layak.
+
 **Setiap artikel melewati review dan verifikasi manusia sebelum terbit.** Tidak ada tulisan yang diterbitkan tanpa dibaca, diperiksa, dan disetujui oleh ${ctx.team}.
 
 Yang tidak pernah diserahkan ke AI:
@@ -71,6 +73,8 @@ ${ctx.siteName} adalah publikasi teknologi, bukan media pers, dan tidak berafili
 ## The role of AI
 
 AI is used on this site for initial research, drafting, and language editing. A substantial part of a first draft is AI-assisted.
+
+That draft is a starting point. Before publication the team rewrites it in its own words, adds what only first-hand use can supply — test results, screenshots, judgement — and checks every fact. We do not publish pages generated in bulk: the number of articles each week is deliberately capped, so each one gets the work it needs.
 
 **Every article goes through human review and verification before it is published.** Nothing appears here that has not been read, checked and approved by ${ctx.team}.
 

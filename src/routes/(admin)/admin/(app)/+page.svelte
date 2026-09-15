@@ -25,7 +25,6 @@
 <h1>Dashboard</h1>
 <p class="who">
 	Signed in as <strong data-testid="admin-email">{data.user.email}</strong>
-	· mail: <code>{data.drivers.mail}</code>
 	· storage: <code>{data.drivers.storage}</code>
 </p>
 
@@ -47,10 +46,6 @@
 	<li>
 		<span class="n">{data.views30.toLocaleString()}</span>
 		<span class="l">Views, 30 days</span>
-	</li>
-	<li>
-		<span class="n">{data.subscribers.toLocaleString()}</span>
-		<span class="l">Confirmed subscribers</span>
 	</li>
 </ul>
 

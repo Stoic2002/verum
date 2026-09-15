@@ -5,7 +5,6 @@
 		ArrowRightLeft,
 		FileText,
 		Image,
-		Inbox,
 		Layers,
 		LayoutDashboard,
 		LogOut,
@@ -15,7 +14,7 @@
 		Tags
 	} from '@lucide/svelte';
 	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
+	import { navigating, page } from '$app/state';
 	import { ConfirmButton, Toaster } from '$lib/components/ui';
 	import { toast } from '$lib/toast.svelte';
 
@@ -59,13 +58,22 @@
 		{ href: resolve('/(admin)/admin/(app)/media'), label: 'Media', icon: Image },
 		{ href: resolve('/(admin)/admin/(app)/topics'), label: 'Topics', icon: Layers },
 		{ href: resolve('/(admin)/admin/(app)/taxonomy'), label: 'Categories & tags', icon: Tags },
-		{ href: resolve('/(admin)/admin/(app)/redirects'), label: 'Redirects', icon: ArrowRightLeft },
-		{ href: resolve('/(admin)/admin/(app)/mail'), label: 'Dev inbox', icon: Inbox }
+		{ href: resolve('/(admin)/admin/(app)/redirects'), label: 'Redirects', icon: ArrowRightLeft }
 	];
 
+	/**
+	 * SvelteKit keeps the current page on screen until the next page's server
+	 * load has finished. That is correct — no half-rendered page — but with
+	 * nothing to show for it a click feels ignored. So the destination is
+	 * highlighted the moment navigation starts, and a bar runs along the top.
+	 */
+	const activePath = $derived(navigating.to?.url.pathname ?? page.url.pathname);
+
 	const isCurrent = (href: string) =>
-		href === '/admin' ? page.url.pathname === '/admin' : page.url.pathname.startsWith(href);
+		href === '/admin' ? activePath === '/admin' : activePath.startsWith(href);
 </script>
+
+<div class="progress" class:progress--active={!!navigating.to} aria-hidden="true"></div>
 
 <div class="shell" class:shell--collapsed={collapsed}>
 	<aside>
@@ -91,7 +99,8 @@
 			</button>
 		</div>
 
-		<nav>
+		<!-- Route code for every section loads up front; only its data waits for the click. -->
+		<nav data-sveltekit-preload-code="eager">
 			{#each nav as item (item.href)}
 				<a
 					class="item"
@@ -131,6 +140,25 @@
 <Toaster />
 
 <style>
+	.progress {
+		position: fixed;
+		inset: 0 0 auto;
+		z-index: 50;
+		height: 2px;
+		background: var(--accent);
+		transform: scaleX(0);
+		transform-origin: left;
+		opacity: 0;
+		pointer-events: none;
+	}
+	/* Delayed, so a navigation that finishes quickly shows nothing at all. */
+	.progress--active {
+		opacity: 1;
+		transform: scaleX(0.85);
+		transition:
+			opacity 0s 120ms,
+			transform 2.5s 120ms cubic-bezier(0.1, 0.7, 0.2, 1);
+	}
 	.shell {
 		display: grid;
 		grid-template-columns: 15rem 1fr;

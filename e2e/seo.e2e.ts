@@ -56,7 +56,8 @@ test.describe('article metadata', () => {
 		expect(article.datePublished).toBeTruthy();
 		// Living articles depend on this signal; it must never be absent.
 		expect(article.dateModified).toBeTruthy();
-		expect((article.author as Record<string, string>).name).toBeTruthy();
+		// Credited to VERUM itself: the author is the site's Organization node.
+		expect((article.author as Record<string, string>)['@id']).toMatch(/\/#organization$/);
 		expect(article.inLanguage).toBe('en');
 
 		const crumbs = nodes.find((n) => n['@type'] === 'BreadcrumbList')!;

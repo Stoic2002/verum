@@ -1,7 +1,5 @@
 import { sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { confirmedCount } from '$lib/server/newsletter';
-import { getMailer } from '$lib/server/mail';
 import { getStorage } from '$lib/server/media';
 import type { PageServerLoad } from './$types';
 
@@ -9,7 +7,7 @@ import type { PageServerLoad } from './$types';
  * The weekly numbers, in one place.
  *
  * PRD §3 names what is watched: organic sessions, indexed pages, articles
- * moving up or down, subscribers, RPM. Only the parts this database knows are
+ * moving up or down, RPM. Only the parts this database knows are
  * here; the rest come from Search Console, which is not something to mirror.
  */
 export const load: PageServerLoad = async () => {
@@ -78,7 +76,6 @@ export const load: PageServerLoad = async () => {
 		views30: Number(views?.last_30 ?? 0),
 		top: Array.from(top),
 		upcoming: Array.from(upcoming),
-		subscribers: await confirmedCount(db),
-		drivers: { mail: getMailer().driver, storage: getStorage().driver }
+		drivers: { storage: getStorage().driver }
 	};
 };

@@ -182,6 +182,15 @@ Rules:
 - Use ## for section headings and ### below them. Do not repeat the title as a heading.
 - Where the editor must add something only they can -- their assessment, first-hand testing, screenshots, a recommendation, or a missing fact -- put a line of its own: ${EDITOR_MARKER} what to add]]. The section for the editor's assessment must contain only such notes.
 - Plain, precise sentences. No hype, no filler introductions, no "in conclusion".
+
+Style. Write the way a knowledgeable person explains something to a smart, busy friend:
+- Open with the most specific, surprising fact or tension in the material, not with background or a definition.
+- Vary sentence length: short sentences next to longer ones. Vary paragraph length too.
+- Prefer concrete nouns, numbers and examples over abstractions. Say each thing once; do not end sections with a recap.
+- Use a list only when the content really is a list. Do not group things in threes for rhythm, and do not stack adjectives.
+- Use dashes sparingly; a comma or a full stop usually reads better.
+- Avoid stock phrases that make text sound generated. English: "delve", "landscape", "in today's fast-paced world", "game-changer", "it's worth noting", "navigate", "unlock", "seamless", "robust", "a testament to". Indonesian: "di era digital", "tidak dapat dipungkiri", "perlu dicatat bahwa", "hadir sebagai", "semakin berkembang pesat", "memainkan peran penting", "secara keseluruhan", "dengan demikian".
+- In Indonesian, write natural, standard but relaxed Indonesian that addresses the reader as "kamu". Do not translate English idioms word for word.
 - Reply with the Markdown body only, no preamble.`,
 		user: `${brief(input)}\n\nOutline:\n${outline}\n\nVerified claims and their exact quotes:\n${quotes}\n\nSources:\n${input.sources
 			.map((s) => `${s.key}: ${s.title || s.siteName} (${s.domain})`)

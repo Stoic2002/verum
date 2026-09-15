@@ -75,7 +75,6 @@ ssh ubuntu@SERVER_IP 'sudo journalctl -u verum -n 100 --no-pager'
 | `ORIGIN`, `PUBLIC_SITE_URL`     | `adapter-node` menolak setiap POST form kalau `ORIGIN` tidak cocok      | Sementara berisi IP server     |
 | Cloudflare (zone id, API token) | CDN, cache rules, dan purge saat artikel disimpan                       | Menunggu domain                |
 | R2                              | Media lepas dari disk server; sekarang masih di `/srv/verum/.media`     | Menunggu diisi                 |
-| SMTP                            | Newsletter double opt-in                                                | Menunggu diisi                 |
 | Sentry, UptimeRobot             | Error dan uptime (PRD §15)                                              | Menunggu diisi                 |
 | CMP (Funding Choices)           | Wajib sebelum ada traffic Eropa (PRD §14)                               | Menunggu akun AdSense          |
 

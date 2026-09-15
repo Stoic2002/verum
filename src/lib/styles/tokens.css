@@ -211,6 +211,16 @@ iframe {
 	max-width: 100%;
 }
 
+/*
+ * Images carry width and height attributes so the browser can reserve their
+ * box before the bytes arrive. Without height:auto that attribute height wins
+ * once max-width narrows the image, and an inserted picture is stretched to
+ * its full original height.
+ */
+img {
+	height: auto;
+}
+
 /* ── Shared pieces ───────────────────────────────────────────────────── */
 
 .pill {

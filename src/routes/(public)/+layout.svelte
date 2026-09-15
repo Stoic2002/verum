@@ -4,6 +4,7 @@
 	import { m } from '$lib/paraglide/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import * as urls from '$lib/urls';
+	import LanguageSwitch from '$lib/components/LanguageSwitch.svelte';
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 
 	let { data, children } = $props();
@@ -51,6 +52,7 @@
 				</svg>
 				<span>{m.nav_search()}</span>
 			</a>
+			<LanguageSwitch />
 			<ThemeToggle />
 		</div>
 	</div>

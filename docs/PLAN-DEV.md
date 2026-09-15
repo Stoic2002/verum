@@ -1278,3 +1278,14 @@ PRD §14 hanya mengizinkan stock berlisensi jelas atau gambar buatan sendiri. Su
 - **Tampilan:** cover di bawah gambar lede ("Image: …" / "Gambar: …"), gambar `::image` di dalam `figcaption` setelah caption. Kredit tidak ikut dihitung sebagai prosa (figcaption sudah dikecualikan dari search dan waktu baca).
 - **Gerbang publish:** artikel tidak bisa diterbitkan/dijadwalkan — dan versi bahasa artikel yang sudah live tidak bisa disimpan — selama cover atau gambar inline-nya belum punya kredit.
 - **Koreksi kredit:** body_html dirender saat simpan, jadi mengubah kredit di media library merender ulang semua versi bahasa yang memakai gambar itu (tanpa menaikkan `modified_at`) lalu purge cache-nya. Cover dibaca langsung dari tabel media.
+
+### R.20 Perubahan 15 September 2026
+
+- **Tinggi gambar.** Gambar punya atribut `width`/`height` untuk mencadangkan ruang. Tanpa `height: auto`, tinggi dari atribut menang setelah `max-width` mengecilkan lebarnya, sehingga gambar sisipan tertarik memanjang. Reset global di `tokens.css`.
+- **Newsletter dihapus**, beserta modul mail, SMTP, halaman Dev inbox, dan `nodemailer`. Tabel `newsletter_subscribers` sengaja **tidak** di-drop — menghapus tabel tidak bisa dibatalkan; bisa di-drop lewat migrasi kalau sudah pasti.
+- **Bahasa di domain utama.** Hanya `/` yang memilih bahasa: cookie `verum-locale` (dari tombol EN/ID) → negara dari `CF-IPCountry` (ID → `/id`) → `Accept-Language` → `en`. Redirect 302 dengan `cache-control: private, no-store`, supaya satu pilihan tidak ter-cache untuk semua orang. URL berawalan bahasa tidak pernah di-redirect: panduan Google melarang redirect antarbahasa karena Googlebot merayap dari AS tanpa `Accept-Language`, jadi `/id` harus tetap bisa dicapai lewat hreflang dan link.
+- **Trending** di homepage: jumlah view 7 hari terakhir per bahasa dari `article_stats`, tampil hanya kalau ada minimal 3 artikel yang pernah dibaca.
+- **Tema** jadi satu switch terang/gelap dengan ikon. Sebelum disentuh, tetap mengikuti setelan sistem.
+- **Navigasi admin.** SvelteKit menahan halaman lama sampai `load` halaman baru selesai. Menu tujuan kini langsung ditandai aktif, ada progress bar tipis (muncul setelah 120 ms), dan kode semua halaman admin dimuat di muka (`data-sveltekit-preload-code="eager"`).
+- **AI writer** mendapat aturan gaya: pembuka spesifik, panjang kalimat bervariasi, tanpa frasa klise khas teks hasil generate (daftar EN dan ID di `prompts.ts`). Kebijakan editorial menjelaskan bahwa draf AI ditulis ulang, ditambah pengalaman langsung, dan jumlah artikel per minggu dibatasi — sejalan dengan panduan Google soal konten AI dan _scaled content abuse_.
+- **Tag** diperluas menjadi 447 (`bun run db:seed-tags`).

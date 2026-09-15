@@ -2,103 +2,140 @@
 	import { m } from '$lib/paraglide/messages';
 
 	/**
-	 * Three states, not two: light, dark, and following the system.
+	 * One switch: light or dark.
 	 *
-	 * "System" has to be a real option — a reader who switches their OS to dark
-	 * at night expects the site to follow, and a two-state toggle silently opts
-	 * them out of that forever the first time they touch it.
-	 *
-	 * The saved value is applied before first paint by the inline script in
-	 * app.html; this component only writes it.
+	 * Until the reader touches it the site follows the system setting, and the
+	 * switch shows whichever that currently is — including when the system flips
+	 * at sunset. Touching it saves an explicit choice, which app.html applies
+	 * before first paint on the next visit.
 	 */
-	type Theme = 'light' | 'dark' | 'system';
-
-	let theme = $state<Theme>('system');
+	let dark = $state(false);
 
 	$effect(() => {
-		try {
-			const saved = localStorage.getItem('verum-theme');
-			if (saved === 'light' || saved === 'dark') theme = saved;
-		} catch {
-			// Storage unavailable; system it is.
-		}
+		const media = window.matchMedia('(prefers-color-scheme: dark)');
+		const sync = () => {
+			const explicit = document.documentElement.dataset.theme;
+			dark = explicit ? explicit === 'dark' : media.matches;
+		};
+		sync();
+		media.addEventListener('change', sync);
+		return () => media.removeEventListener('change', sync);
 	});
 
-	function apply(next: Theme) {
-		theme = next;
+	function toggle() {
+		const next = dark ? 'light' : 'dark';
+		dark = next === 'dark';
+		document.documentElement.dataset.theme = next;
 		try {
-			if (next === 'system') {
-				localStorage.removeItem('verum-theme');
-				delete document.documentElement.dataset.theme;
-			} else {
-				localStorage.setItem('verum-theme', next);
-				document.documentElement.dataset.theme = next;
-			}
+			localStorage.setItem('verum-theme', next);
 		} catch {
 			// Storage unavailable: the choice applies to this page view only.
-			if (next === 'system') delete document.documentElement.dataset.theme;
-			else document.documentElement.dataset.theme = next;
 		}
 	}
 </script>
 
 <!--
-	Rendered as a group of buttons rather than a select, so it works with the
-	keyboard and screen readers without any custom behaviour. The whole control
-	is hidden when JavaScript is off, because it could not do anything then and
-	a dead control is worse than none.
+	A real switch for assistive technology (role="switch" + aria-checked), and
+	hidden until JavaScript runs, because without it the control could do nothing.
 -->
-<div class="theme" role="group" aria-label={m.theme_toggle()}>
-	<button type="button" aria-pressed={theme === 'light'} onclick={() => apply('light')}>
-		{m.theme_light()}
-	</button>
-	<button type="button" aria-pressed={theme === 'system'} onclick={() => apply('system')}>
-		{m.theme_system()}
-	</button>
-	<button type="button" aria-pressed={theme === 'dark'} onclick={() => apply('dark')}>
-		{m.theme_dark()}
-	</button>
-</div>
+<button
+	type="button"
+	class="theme"
+	class:theme--dark={dark}
+	role="switch"
+	aria-checked={dark}
+	aria-label={m.theme_dark_mode()}
+	title={m.theme_dark_mode()}
+	onclick={toggle}
+>
+	<span class="track" aria-hidden="true">
+		<svg class="glyph glyph--sun" viewBox="0 0 24 24" width="12" height="12">
+			<circle cx="12" cy="12" r="4" fill="currentColor" />
+			<path
+				d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+			/>
+		</svg>
+		<svg class="glyph glyph--moon" viewBox="0 0 24 24" width="12" height="12">
+			<path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z" fill="currentColor" />
+		</svg>
+		<span class="thumb"></span>
+	</span>
+</button>
 
 <style>
 	/*
-	 * Hidden with visibility, not display, so the control still occupies its
-	 * box before the script that reveals it runs. Switching from display:none
-	 * would resize the masthead at that moment — a small layout shift, but a
-	 * real one, and the CLS budget is spent on things readers can see.
+	 * Hidden with visibility, not display, so the switch holds its box before
+	 * the script that reveals it runs — no layout shift in the masthead.
 	 */
 	.theme {
-		display: inline-flex;
 		visibility: hidden;
-		gap: 0.125rem;
-		padding: 0.1875rem;
-		border-radius: var(--r-md);
-		background: var(--surface-2);
+		padding: 0;
+		border: 0;
+		background: none;
+		cursor: pointer;
+		border-radius: var(--r-pill);
 	}
 	:global(html.js) .theme {
 		visibility: visible;
 	}
-	button {
-		padding: 0.25rem 0.625rem;
-		border: 0;
-		border-radius: var(--r-sm);
-		background: none;
+	.track {
+		position: relative;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		width: 3.25rem;
+		height: 1.75rem;
+		padding: 0 0.4375rem;
+		border-radius: var(--r-pill);
+		background: var(--surface-3);
+		box-shadow: inset 0 0 0 1px var(--border);
+		transition: background var(--dur) var(--ease);
+	}
+	.glyph {
+		position: relative;
+		z-index: 0;
 		color: var(--text-3);
-		font: inherit;
-		font-size: 0.6875rem;
-		font-weight: var(--weight-strong);
-		letter-spacing: 0.02em;
-		cursor: pointer;
-		transition:
-			background var(--dur) var(--ease),
-			color var(--dur) var(--ease);
+		transition: color var(--dur) var(--ease);
 	}
-	button:hover {
-		color: var(--text);
-	}
-	button[aria-pressed='true'] {
+	.thumb {
+		position: absolute;
+		top: 0.1875rem;
+		left: 0.1875rem;
+		width: 1.375rem;
+		height: 1.375rem;
+		border-radius: var(--r-pill);
 		background: var(--surface);
-		color: var(--text);
 		box-shadow: var(--shadow-sm);
+		transition: transform 220ms var(--ease);
+	}
+	/* The icon under the thumb is the current mode; it sits above the thumb. */
+	.glyph--sun {
+		z-index: 1;
+		color: hsl(38 92% 50%);
+	}
+	.theme--dark .track {
+		background: var(--accent-tint-strong);
+	}
+	.theme--dark .thumb {
+		transform: translateX(1.5rem);
+	}
+	.theme--dark .glyph--sun {
+		z-index: 0;
+		color: var(--text-3);
+	}
+	.theme--dark .glyph--moon {
+		z-index: 1;
+		color: var(--accent);
+	}
+	.theme:hover .track {
+		box-shadow: inset 0 0 0 1px var(--border-strong);
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.thumb {
+			transition: none;
+		}
 	}
 </style>

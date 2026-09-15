@@ -85,6 +85,39 @@ export async function recentArticles(
 	return Array.from(rows);
 }
 
+/**
+ * Most-read articles over the last few days, from the first-party daily counts
+ * (article_stats). Ranked per locale: what Indonesian readers are reading is
+ * not what English readers are.
+ *
+ * Empty until readers arrive; the homepage hides the section rather than
+ * ranking a list of zeros.
+ */
+export async function trendingArticles(
+	db: Database,
+	locale: Locale,
+	{ days = 7, limit = 5 }: { days?: number; limit?: number } = {}
+) {
+	const rows = await db.execute<ArticleCard & { views: number }>(sql`
+		SELECT ${cardColumns}, t.views
+		FROM (
+			SELECT article_id, sum(views)::int AS views
+			FROM article_stats
+			WHERE locale = ${locale} AND day > current_date - ${days}::int
+			GROUP BY article_id
+		) t
+		JOIN article_locales al ON al.article_id = t.article_id AND al.locale = ${locale}
+		JOIN articles a ON a.id = al.article_id
+		JOIN categories c ON c.id = a.category_id
+		LEFT JOIN category_locales cl ON cl.category_id = c.id AND cl.locale = al.locale
+		LEFT JOIN media m ON m.id = a.cover_media_id
+		WHERE ${live} AND t.views > 0
+		ORDER BY t.views DESC, al.published_at DESC
+		LIMIT ${limit}
+	`);
+	return Array.from(rows);
+}
+
 export async function articlesByCategory(
 	db: Database,
 	locale: Locale,

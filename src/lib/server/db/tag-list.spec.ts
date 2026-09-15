@@ -4,7 +4,7 @@ import { resolveTags } from './tag-list';
 describe('starter tags', () => {
 	it('every tag passes the admin form rules, with no slug used twice', () => {
 		const rows = resolveTags();
-		expect(rows.length).toBeGreaterThan(150);
+		expect(rows.length).toBeGreaterThan(400);
 		expect(new Set(rows.map((row) => row.slug)).size).toBe(rows.length);
 	});
 

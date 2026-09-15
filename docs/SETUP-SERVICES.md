@@ -4,58 +4,17 @@ Setiap layanan di bawah punya **perilaku pengganti**, jadi tidak ada yang wajib
 diisi untuk menjalankan project ini secara lokal. Isi saat Anda membutuhkan
 fiturnya, bukan sebelumnya.
 
-| Layanan          | Kosong berarti                                   | Baru perlu saat                   |
-| ---------------- | ------------------------------------------------ | --------------------------------- |
-| SMTP             | Email ditulis ke buffer, dibaca di `/admin/mail` | Newsletter diaktifkan (bulan 4–6) |
-| Cloudflare R2    | Upload ke folder `.media/` lokal                 | Deploy produksi                   |
-| Cloudflare purge | Purge dilewati                                   | Deploy produksi                   |
-| Sentry           | Tidak ada pelacakan error                        | Kapan saja; gratis                |
+| Layanan          | Kosong berarti                   | Baru perlu saat    |
+| ---------------- | -------------------------------- | ------------------ |
+| Cloudflare R2    | Upload ke folder `.media/` lokal | Deploy produksi    |
+| Cloudflare purge | Purge dilewati                   | Deploy produksi    |
+| Sentry           | Tidak ada pelacakan error        | Kapan saja; gratis |
 
 ---
 
-## 1. SMTP — pengiriman email
+## 1. SMTP — dihapus
 
-Dipakai untuk **satu hal**: mengirim link konfirmasi double opt-in newsletter.
-
-SMTP bukan nama perusahaan — itu protokol standar untuk mengirim email. Anda
-butuh akun di penyedia yang menjalankan server SMTP.
-
-### Kandidat
-
-**Resend** — paling mudah dipasang, 3.000 email/bulan gratis.
-
-1. Daftar di [resend.com](https://resend.com).
-2. **Verifikasi domain dulu.** Tanpa domain terverifikasi, tidak ada email yang
-   terkirim sama sekali. Anda akan diminta menambahkan beberapa record DNS —
-   kalau domainnya di Cloudflare, itu di tab DNS.
-3. Buat API key (dimulai dengan `re_`).
-
-```
-SMTP_HOST="smtp.resend.com"
-SMTP_PORT="587"
-SMTP_USER="resend"
-SMTP_PASSWORD="re_xxxxxxxxxxxx"
-MAIL_FROM="VERUM <hello@domain-anda.com>"
-```
-
-`SMTP_USER` benar-benar kata **`resend`** untuk semua akun — itu bukan
-placeholder. Password-nya adalah API key, lengkap dengan awalan `re_`.
-
-Port: 587 untuk TLS, atau 465 untuk SSL. Kode ini memilih mode SSL secara
-otomatis ketika portnya 465.
-
-**Alternatif:** [Postmark](https://postmarkapp.com) (deliverability terbaik,
-berbayar), atau Gmail dengan App Password (bisa, tapi berbatas ketat dan bukan
-untuk pengiriman massal).
-
-`MAIL_FROM` domainnya harus milik Anda dan terverifikasi di penyedia. Mengirim
-dari `@gmail.com` lewat penyedia lain akan masuk spam atau ditolak.
-
-> Mengisi sebagian variabel SMTP adalah **error yang menggagalkan start**. Itu
-> disengaja: form yang menerima alamat lalu diam-diam tidak pernah mengirim
-> konfirmasi terlihat persis seperti form yang bekerja.
-
----
+Newsletter dihapus pada 15 September 2026, jadi VERUM tidak mengirim email apa pun dan tidak butuh SMTP. Kalau newsletter dihidupkan lagi, kodenya ada di riwayat git sebelum commit penghapusan.
 
 ## 2. Cloudflare R2 — penyimpanan gambar
 
@@ -222,4 +181,4 @@ Kalau tujuannya menuju produksi, urutan yang masuk akal:
 2. R2 (bucket → token → custom domain) — supaya gambar punya rumah tetap
 3. Cache Rule + purge token — supaya situsnya cepat
 4. Sentry — supaya Anda tahu kalau ada yang rusak
-5. SMTP — terakhir, bersamaan dengan mengaktifkan newsletter
+5. ~~SMTP~~ — tidak dipakai lagi (newsletter dihapus)

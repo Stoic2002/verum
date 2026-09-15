@@ -33,17 +33,56 @@ const LOGIN_PATH = '/admin/login';
 const UNLOCALIZED =
 	/^\/(admin|api|preview|media|robots\.txt|ads\.txt|sitemap.*\.xml|\.well-known)(\/|$)/;
 
+/** Set by the language switch; an explicit choice beats every guess. */
+export const LOCALE_COOKIE = 'verum-locale';
+
+/**
+ * Picks the language for a visit to the bare domain.
+ *
+ * Only `/` is ever chosen this way — it is the x-default entry point, not a
+ * page with content of its own. Every locale-prefixed URL is served exactly as
+ * requested. Google advises against redirecting between language versions
+ * because Googlebot crawls from the US without Accept-Language: it lands on
+ * /en from here, and reaches /id through hreflang and links, so both stay
+ * indexed.
+ *
+ * Order: the reader's saved choice, then the country Cloudflare resolved from
+ * the connection (the origin only accepts Cloudflare, so the header cannot
+ * come from anyone else), then the browser's language.
+ */
+export function rootLocale(request: Request, cookie: string | undefined): string {
+	if (cookie && isLocale(cookie)) return cookie;
+	if (request.headers.get('cf-ipcountry')?.toUpperCase() === 'ID') return 'id';
+
+	const preferred = request.headers.get('accept-language')?.split(',')[0]?.trim().toLowerCase();
+	if (preferred?.startsWith('id') || preferred?.startsWith('in')) return 'id';
+
+	return baseLocale;
+}
+
 /**
  * Canonicalise every public URL to a locale-prefixed one (PRD §12.1).
  *
- * Deliberately a pure path rewrite: no IP lookup, no Accept-Language sniffing.
- * PRD §10.4 — Googlebot crawls from the US, so bouncing visitors to a locale
- * based on where they are means the other locale never gets indexed. Locale
- * suggestion is a banner (Fase 5), never a redirect.
+ * The bare domain picks a language per visitor (see rootLocale) with a
+ * temporary, uncacheable redirect: a 301, or a copy cached at the edge, would
+ * hand one visitor's language to everyone. Any other unprefixed path is a
+ * permanent move to the base locale, as before.
  */
 const handleLocaleRedirect: Handle = async ({ event, resolve }) => {
 	const { pathname, search } = event.url;
 	const first = pathname.split('/')[1];
+
+	if (pathname === '/') {
+		const locale = rootLocale(event.request, event.cookies.get(LOCALE_COOKIE));
+		return new Response(null, {
+			status: 302,
+			headers: {
+				location: `/${locale}${search}`,
+				'cache-control': 'private, no-store',
+				vary: 'Accept-Language, Cookie'
+			}
+		});
+	}
 
 	if (!isLocale(first) && !UNLOCALIZED.test(pathname)) {
 		// No trailing slash anywhere: SvelteKit's default `trailingSlash: 'never'`

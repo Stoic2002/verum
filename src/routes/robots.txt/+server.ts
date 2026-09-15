@@ -32,7 +32,6 @@ Disallow: /admin
 Disallow: /api/
 Disallow: /preview/
 Disallow: /*/search
-Disallow: /*/newsletter
 
 # Retrieval crawlers for AI search. Allowed on purpose (PRD §12.6).
 User-agent: GPTBot
