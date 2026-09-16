@@ -84,3 +84,8 @@ export async function getTopicLocale(db: Database, topicId: number, locale: Loca
 		.limit(1);
 	return row ?? null;
 }
+
+/** Deletes a topic with its introductions and article list. The articles themselves stay. */
+export async function deleteTopic(db: Database, id: number) {
+	await db.delete(topics).where(eq(topics.id, id));
+}

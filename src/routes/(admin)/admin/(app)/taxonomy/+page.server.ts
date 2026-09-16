@@ -1,9 +1,10 @@
 import { fail, type Actions } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { valibot } from 'sveltekit-superforms/adapters';
 import { message, superValidate } from 'sveltekit-superforms';
 import { db } from '$lib/server/db';
-import { categories, categoryLocales, tags } from '$lib/server/db/schema';
+import { purgeEverything } from '$lib/server/cdn';
+import { articles, categories, categoryLocales, tags } from '$lib/server/db/schema';
 import { listCategoriesForAdmin, listTagsForAdmin } from '$lib/server/db/queries/admin';
 import { categorySchema, tagSchema } from '$lib/server/content/schemas';
 import type { PageServerLoad } from './$types';
@@ -58,7 +59,56 @@ export const actions: Actions = {
 			}
 		});
 
+		// The menu and footer on every cached page list categories.
+		await purgeEverything();
 		return message(form, `Saved category “${slug}”.`);
+	},
+
+	/**
+	 * Hiding a category takes it out of the menu and makes its page 404. Its
+	 * articles stay published at their own URLs; move them first if they
+	 * should not be.
+	 */
+	toggleCategory: async ({ request }) => {
+		const data = await request.formData();
+		const id = Number(data.get('id'));
+		const active = data.get('active') === '1';
+		if (!Number.isInteger(id)) return fail(400, { error: 'Bad id' });
+
+		await db.update(categories).set({ isActive: active }).where(eq(categories.id, id));
+		await purgeEverything();
+
+		return {
+			toast: active
+				? 'Category is live again: back in the menu, and its page is reachable.'
+				: 'Category hidden: gone from the menu, and its page returns 404. Its articles stay published.'
+		};
+	},
+
+	/**
+	 * Only an empty category can go. An article must always have a category,
+	 * so deleting one with articles would either fail or orphan them.
+	 */
+	deleteCategory: async ({ request }) => {
+		const data = await request.formData();
+		const id = Number(data.get('id'));
+		if (!Number.isInteger(id)) return fail(400, { error: 'Bad id' });
+
+		const [row] = await db
+			.select({ count: sql<number>`count(*)::int` })
+			.from(articles)
+			.where(eq(articles.categoryId, id));
+		const count = Number(row?.count ?? 0);
+		if (count > 0) {
+			return fail(400, {
+				error: `This category still has ${count} article${count === 1 ? '' : 's'}. Move ${count === 1 ? 'it' : 'them'} to another category first, or hide the category instead.`
+			});
+		}
+
+		// Names and descriptions cascade; AI drafts that pointed at it keep their text.
+		await db.delete(categories).where(eq(categories.id, id));
+		await purgeEverything();
+		return { toast: 'Category deleted.' };
 	},
 
 	saveTag: async ({ request }) => {

@@ -71,14 +71,14 @@
 <section>
 	<h2>Categories</h2>
 	<p class="meta">
-		Only <code>ai</code> and <code>tech</code> are active at launch. The rest open one at a time, once
-		traffic is proven (PRD §5.3).
+		<strong>Hide</strong> takes a category out of the menu and makes its page 404; its articles stay
+		published. <strong>Delete</strong> is only offered once a category has no articles.
 	</p>
 
 	<table>
 		<thead>
 			<tr
-				><th>Slug</th><th>English</th><th>Indonesian</th><th>Articles</th><th>Active</th><th
+				><th>Slug</th><th>English</th><th>Indonesian</th><th>Articles</th><th>Status</th><th
 				></th></tr
 			>
 		</thead>
@@ -89,8 +89,40 @@
 					<td>{row.names.en ?? '—'}</td>
 					<td>{row.names.id ?? '—'}</td>
 					<td class="num">{row.article_count}</td>
-					<td>{row.is_active ? 'yes' : 'no'}</td>
-					<td><button type="button" onclick={() => edit(row)}>Edit</button></td>
+					<td>
+						{#if row.is_active}<span class="pill pill--accent">Live</span>{:else}<span class="pill"
+								>Hidden</span
+							>{/if}
+					</td>
+					<td class="actions">
+						<button type="button" class="btn btn--secondary btn--sm" onclick={() => edit(row)}
+							>Edit</button
+						>
+						<form method="POST" action="?/toggleCategory" use:kitEnhance={enhanceWithToast()}>
+							<input type="hidden" name="id" value={row.id} />
+							<input type="hidden" name="active" value={row.is_active ? '0' : '1'} />
+							<button type="submit" class="btn btn--secondary btn--sm">
+								{row.is_active ? 'Hide' : 'Show'}
+							</button>
+						</form>
+						{#if row.article_count === 0}
+							<form method="POST" action="?/deleteCategory" use:kitEnhance={enhanceWithToast()}>
+								<input type="hidden" name="id" value={row.id} />
+								<ConfirmButton
+									class="btn btn--danger btn--sm"
+									title="Delete this category?"
+									message={`“${row.names.en ?? row.slug}” and its names and descriptions are removed. It has no articles.`}
+									confirmLabel="Delete category"
+								>
+									Delete
+								</ConfirmButton>
+							</form>
+						{:else}
+							<span class="meta" title="Move its articles to another category before deleting it"
+								>Has articles</span
+							>
+						{/if}
+					</td>
 				</tr>
 			{/each}
 		</tbody>
@@ -287,5 +319,11 @@
 		.add {
 			grid-template-columns: 1fr;
 		}
+	}
+	.actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.375rem;
+		align-items: center;
 	}
 </style>

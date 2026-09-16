@@ -1,7 +1,8 @@
 import { setFlash } from '$lib/server/flash';
 import { fail, redirect, type Actions } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { createTopic, listTopicsForAdmin } from '$lib/server/content/topics';
+import { createTopic, deleteTopic, listTopicsForAdmin } from '$lib/server/content/topics';
+import { purgeEverything } from '$lib/server/cdn';
 import { slugify } from '$lib/server/content/articles';
 import type { PageServerLoad } from './$types';
 import { isUniqueViolation } from '$lib/server/db/errors';
@@ -9,6 +10,16 @@ import { isUniqueViolation } from '$lib/server/db/errors';
 export const load: PageServerLoad = async () => ({ topics: await listTopicsForAdmin(db) });
 
 export const actions: Actions = {
+	delete: async ({ request }) => {
+		const id = Number((await request.formData()).get('id'));
+		if (!Number.isInteger(id)) return fail(400, { error: 'Bad id' });
+
+		await deleteTopic(db, id);
+		// The topic menu and footer on every cached page list topics.
+		await purgeEverything();
+		return { toast: 'Topic deleted. Its articles are unchanged.' };
+	},
+
 	create: async ({ request, cookies }) => {
 		const data = await request.formData();
 		const slug = slugify(String(data.get('slug') ?? ''));

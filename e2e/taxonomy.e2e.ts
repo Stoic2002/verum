@@ -70,3 +70,55 @@ test('an article picks tags by typing, and keeps them as chips', async ({ page }
 		1
 	);
 });
+
+test('a category can be hidden, shown again, and deleted once empty', async ({ page }) => {
+	const slug = `hidden-${stamp}`;
+	await signIn(page);
+	await page.goto('/admin/taxonomy');
+
+	await page.locator('#cslug').fill(slug);
+	await page.locator('#nameEn').fill(`Hidden ${stamp}`);
+	await page.getByRole('button', { name: 'Save category' }).click();
+	await expect(toast(page, 'Saved category')).toBeVisible();
+
+	const row = page.locator('tr', { hasText: slug });
+	await row.getByRole('button', { name: 'Hide' }).click();
+	await expect(toast(page, 'Category hidden')).toBeVisible();
+	expect((await page.request.get(`/en/${slug}`)).status()).toBe(404);
+
+	await row.getByRole('button', { name: 'Show' }).click();
+	await expect(toast(page, 'live again')).toBeVisible();
+	expect((await page.request.get(`/en/${slug}`)).status()).toBe(200);
+
+	await row.getByRole('button', { name: 'Delete' }).click();
+	await page.getByRole('button', { name: 'Delete category' }).click();
+	await expect(toast(page, 'Category deleted')).toBeVisible();
+	await expect(page.locator('tr', { hasText: slug })).toHaveCount(0);
+});
+
+test('a category with articles cannot be deleted', async ({ page }) => {
+	await signIn(page);
+	await page.goto('/admin/taxonomy');
+
+	// The seeded ai category always has articles.
+	const row = page.locator('tr', { has: page.locator('code', { hasText: /^ai$/ }) });
+	await expect(row.getByRole('button', { name: 'Delete' })).toHaveCount(0);
+	await expect(row.getByText('Has articles')).toBeVisible();
+});
+
+test('a topic can be deleted', async ({ page }) => {
+	const slug = `topic-${stamp}`;
+	await signIn(page);
+	await page.goto('/admin/topics');
+
+	await page.locator('#slug').fill(slug);
+	await page.getByRole('button', { name: 'Create topic' }).click();
+	await expect(page).toHaveURL(/\/admin\/topics\/\d+$/);
+
+	await page.goto('/admin/topics');
+	const row = page.locator('tr', { hasText: slug });
+	await row.getByRole('button', { name: 'Delete' }).click();
+	await page.getByRole('button', { name: 'Delete topic' }).click();
+	await expect(toast(page, 'Topic deleted')).toBeVisible();
+	await expect(page.locator('tr', { hasText: slug })).toHaveCount(0);
+});

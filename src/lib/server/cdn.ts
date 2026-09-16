@@ -82,3 +82,36 @@ export function articleSurfaces(
 }
 
 export { siteName };
+
+/**
+ * Purges the whole zone.
+ *
+ * For changes every page carries — the category menu, the topic menu, the
+ * footer — where listing each cached URL is not possible. They are rare, so a
+ * briefly cold cache costs little. Same failure policy as purgeUrls.
+ */
+export async function purgeEverything(): Promise<PurgeResult> {
+	if (!cdnConfigured()) return { attempted: false, ok: true };
+
+	try {
+		const response = await fetch(
+			`https://api.cloudflare.com/client/v4/zones/${env.CLOUDFLARE_ZONE_ID}/purge_cache`,
+			{
+				method: 'POST',
+				headers: {
+					authorization: `Bearer ${env.CLOUDFLARE_API_TOKEN}`,
+					'content-type': 'application/json'
+				},
+				body: JSON.stringify({ purge_everything: true })
+			}
+		);
+		if (!response.ok) {
+			console.error(`[cdn] purge everything failed: ${response.status} ${await response.text()}`);
+			return { attempted: true, ok: false, error: `${response.status}` };
+		}
+		return { attempted: true, ok: true };
+	} catch (error) {
+		console.error('[cdn] purge everything threw:', error);
+		return { attempted: true, ok: false, error: (error as Error).message };
+	}
+}
